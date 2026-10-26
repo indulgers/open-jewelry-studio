@@ -1,0 +1,13 @@
+{
+  "sourceTitle": "Peppermint Powerplant 2",
+  "author": "Andreas Mischok",
+  "sourceUrl": "https://polyhaven.com/a/peppermint_powerplant_2",
+  "downloadUrl": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/peppermint_powerplant_2_1k.hdr",
+  "licenseName": "CC0",
+  "licenseUrl": "https://polyhaven.com/license",
+  "acquiredAt": "2026-10-23",
+  "localFile": "public/environments/peppermint_powerplant_2_1k.hdr",
+  "bytes": 1721277,
+  "sha256": "c065a9c643e0311c2a6a44079a601649857c05471cb4ca8ac6acb44f2103d7d6",
+  "modifications": "None. Original 1K HDR hosted locally and shared by metal and refraction materials."
+}

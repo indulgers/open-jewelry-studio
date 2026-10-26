@@ -1,0 +1,26 @@
+{
+  "sourceTitle": "Math Diamond — Diamond Shader Lab",
+  "author": "Ehsan Moradi",
+  "sourceUrl": "https://github.com/ehsanwwe/diamond-shader-lab",
+  "downloadUrl": "https://raw.githubusercontent.com/ehsanwwe/diamond-shader-lab/main/public/models/math-diamond.gltf",
+  "licenseName": "MIT",
+  "licenseUrl": "https://github.com/ehsanwwe/diamond-shader-lab/blob/main/LICENSE",
+  "acquiredAt": "2026-10-18",
+  "sourceSha256": "bfe55c52adc617173d23f8c0d18f2ca67c85d9f32fb0d74e872d9b6726e5103e",
+  "sourceBufferSha256": "2adc9619bc7661c19c2c007dfd1cb85f9a8543640ded9b6bfac26881e989c5f0",
+  "outputSha256": "7b1b65468cbc79a725ad80afd91d4fa4b76c197f81c44d12c9968a445e28e6b9",
+  "triangles": 252,
+  "modifications": "Packed original glTF and binary into self-contained GLB; renamed mesh/node; preserved cut and flat normals; runtime material replaced.",
+  "bounds": {
+    "min": [
+      -0.9110000133514404,
+      -0.5824999809265137,
+      -0.9110000133514404
+    ],
+    "max": [
+      0.9110000133514404,
+      0.5824999809265137,
+      0.9110000133514404
+    ]
+  }
+}

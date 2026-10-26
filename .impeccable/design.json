@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-19T10:00:00+08:00",
+  "title": "Design System: 戒指实验室",
+  "extensions": {
+    "breakpoints": [{"name":"stacked","value":"700px"}],
+    "motion": [{"name":"selection","value":"180ms","purpose":"Selection state feedback; reduced motion respected."}]
+  },
+  "components": [{
+    "name":"Save locally","kind":"button","description":"Explicit local-only persistence action.",
+    "html":"<button class=\"ds-save\">保存到本机</button>",
+    "css":".ds-save{background:#303a2c;color:#fff;border:0;border-radius:4px;padding:15px 17px;font:inherit;cursor:pointer}.ds-save:hover{background:#47523f}.ds-save:focus-visible{outline:2px solid #76643c;outline-offset:5px}"
+  }],
+  "narrative": {"northStar":"珠宝是主角","overview":"安静、温暖的观察台。真实的三维物件承担视觉表达，界面让位于选择、比较与观察。","dos":["Do 以可检查的真实几何、光照与清晰度改善珠宝展示。","Do 保留来源与许可证入口。"],"donts":["Don't 用过度泛光掩盖切工、镶座或法线问题。","Don't 将视觉比例标为实际克拉、戒围或生产规格。"]}
+}
