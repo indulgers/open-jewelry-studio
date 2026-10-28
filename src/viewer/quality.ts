@@ -4,8 +4,8 @@ export function qualitySettings(quality:Quality,simplified=false){
   return {
     maxDpr:high?2:1.75,
     bounces:high?7:5,
-    aberrationStrength:high?0.006:0.003,
-    fastChroma:!high,
+    aberrationStrength:0.004,
+    fastChroma:false,
     reflectionResolution:simplified?0:high?1024:512,
     postprocessing:!simplified,
     shadowResolution:simplified?256:high?1024:512,

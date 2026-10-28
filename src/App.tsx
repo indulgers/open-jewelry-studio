@@ -1,12 +1,16 @@
-import {useCallback,useEffect,useReducer,useState} from 'react';
+import {lazy,Suspense,useCallback,useEffect,useReducer,useState} from 'react';
 import {configurationReducer} from './configuration/configuration';
 import {loadConfiguration,saveConfiguration} from './configuration/storage';
 import {Configurator} from './components/Configurator';
 import {AssetCredits} from './components/AssetCredits';
-import {JewelryStage} from './viewer/JewelryStage';
 import {METALS} from './viewer/materials';
 import type {Quality} from './viewer/quality';
 import type {ModelMode} from './assets/referenceManifest';
+import {ATELIER_GEMS,atelierGem,type GemShapeId} from './assets/atelierManifest';
+import {STUDIO_PRESETS,type StudioPresetId} from './viewer/studioPresets';
+import {SAMPLE_IMAGES,type ProductImage} from './assets/productMedia';
+import {ProductGallery} from './components/ProductGallery';
+const JewelryStage=lazy(()=>import('./viewer/JewelryStage').then(module=>({default:module.JewelryStage})));
 
 function restore(){
   try{return loadConfiguration(window.localStorage);}
@@ -17,6 +21,12 @@ export default function App(){
   const [configuration,dispatch]=useReducer(configurationReducer,initial.configuration);
   const [quality,onQualityChange]=useState<Quality>('standard');
   const [modelMode,setModelMode]=useState<ModelMode>('reference');
+  const [gemShape,setGemShape]=useState<GemShapeId>('round');
+  const [studioPreset,setStudioPreset]=useState<StudioPresetId>('catalog');
+  const [display,setDisplay]=useState<'3d'|'images'>('3d');
+  const [images,setImages]=useState<ProductImage[]|null>(null);
+  const [captureRequest,setCaptureRequest]=useState(0),[captureBusy,setCaptureBusy]=useState(false),[captureMessage,setCaptureMessage]=useState('');
+  const [captureReady,setCaptureReady]=useState(false);
   const [autoRotate,onAutoRotateChange]=useState(false);
   const [resetToken,setResetToken]=useState(0);
   const [message,setMessage]=useState(initial.warning??'');
@@ -27,6 +37,19 @@ export default function App(){
     query.addEventListener('change',changed);return()=>query.removeEventListener('change',changed);
   },[]);
   const onPerformanceWarning=useCallback(()=>setSlow(true),[]);
+  const onImages=useCallback((next:ProductImage[])=>setImages(next),[]);
+  const onCaptureProgress=useCallback((value:string)=>{
+    const running=value.startsWith('正在生成');setCaptureMessage(value);setCaptureBusy(running);
+    if(!running)setCaptureRequest(0);
+  },[]);
+  useEffect(()=>{setImages(null);setCaptureMessage('');},[configuration,modelMode,gemShape,studioPreset,quality]);
+  useEffect(()=>{
+    if(!captureBusy)return;
+    // Also ends a capture if the browser stops delivering animation frames.
+    const timer=window.setTimeout(()=>onCaptureProgress('生成超时，请等待预览恢复后重试。'),60000);
+    return()=>window.clearTimeout(timer);
+  },[captureBusy,onCaptureProgress]);
+  const capture=()=>{onAutoRotateChange(false);setCaptureBusy(true);setCaptureMessage('正在生成商品预览');setCaptureRequest(n=>n+1);};
   const save=()=>{
     try{const result=saveConfiguration(window.localStorage,configuration);setMessage(result.ok?'已保存，刷新页面后可继续。':result.warning??'保存失败。');}
     catch{setMessage('浏览器未允许保存，当前选择仍然保留。');}
@@ -36,23 +59,33 @@ export default function App(){
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m5 11 6-6h10l6 6-11 17L5 11Zm0 0h22M11 5l5 23L21 5M11 5l-1 6m11-6 1 6"/></svg>
       <span>戒指实验室</span></a><span className="header-note">让想法，成为形状。</span><span className="demo-tag">开源技术演示</span></header>
     <main className="studio-layout">
-      <div className="preview-column"><div className="preview-heading"><h1>{modelMode==='reference'?'光，落在切面之间。':configuration.shankStyle==='plain'?'纯粹，恰如其分。':'交汇，自有光芒。'}</h1>
-        <p>{modelMode==='reference'?'六爪实模':configuration.shankStyle==='plain'?'素圈戒臂':'分叉戒臂'}<span> / </span>{METALS[configuration.metalFinish].name}</p></div>
-        <JewelryStage {...{configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode}}/>
-        <div className="preview-footer"><span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7h14M6 4 3 7l3 3m8 0 3-3-3-3M7 13h6m-3-2v6"/></svg>拖动旋转 · 滚轮或双指缩放</span><span>实时 3D</span></div>
+      <div className="preview-column"><div className="preview-heading"><h1>{modelMode==='gem'?'每一种切工，都有自己的光。':modelMode==='reference'?'光，落在切面之间。':configuration.shankStyle==='plain'?'纯粹，恰如其分。':'交汇，自有光芒。'}</h1>
+        <p>{modelMode==='gem'?atelierGem(gemShape).name:modelMode==='reference'?'圆形主石 · 配钻戒托':configuration.shankStyle==='plain'?'素圈戒臂':'分叉戒臂'}<span> / </span>{modelMode==='gem'?STUDIO_PRESETS[studioPreset].name:METALS[configuration.metalFinish].name}</p></div>
+        {display==='images'?<ProductGallery images={images??SAMPLE_IMAGES} sample={!images}/>:<Suspense fallback={<div className="loading-indicator" role="status">正在准备三维预览</div>}>
+          <JewelryStage {...{configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,gemShape,studioPreset,captureRequest,onImages,onCaptureProgress,captureBusy}} onCaptureReady={setCaptureReady}/>
+        </Suspense>}
+        {display==='3d'&&<div className="preview-footer"><span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7h14M6 4 3 7l3 3m8 0 3-3-3-3M7 13h6m-3-2v6"/></svg>拖动旋转 · 滚轮或双指缩放</span><span>实时 3D</span></div>}
       </div>
       <aside className="configuration-column" aria-label="戒指配置">
         <div className="panel-heading"><h2>设计你的戒指</h2><p>选择结构与光泽，慢慢找到你的组合。</p></div>
-        <div className="model-modes" role="group" aria-label="模型模式">
-          <button aria-pressed={modelMode==='reference'} onClick={()=>setModelMode('reference')}>六爪参考实模</button>
-          <button aria-pressed={modelMode==='procedural'} onClick={()=>setModelMode('procedural')}>参数化 DIY</button>
-        </div>
-        <Configurator {...{configuration,dispatch,quality,onQualityChange,autoRotate,onAutoRotateChange}} reference={modelMode==='reference'} onSave={save} onResetView={()=>setResetToken(n=>n+1)}/>
+        <fieldset disabled={captureBusy} className="studio-options"><legend className="sr-only">展示选项</legend>
+          <div className="model-modes" role="group" aria-label="模型模式">
+            <button aria-pressed={modelMode==='reference'} onClick={()=>setModelMode('reference')}>成品戒指</button>
+            <button aria-pressed={modelMode==='gem'} onClick={()=>setModelMode('gem')}>宝石库</button>
+            <button aria-pressed={modelMode==='procedural'} onClick={()=>setModelMode('procedural')}>结构 DIY</button>
+          </div>
+          {modelMode==='gem'?<label className="shape-picker">宝石切形 <span>19 款</span><select value={gemShape} onChange={e=>setGemShape(e.target.value as GemShapeId)}>{ATELIER_GEMS.map(gem=><option key={gem.id} value={gem.id}>{gem.name}</option>)}</select></label>
+            :modelMode==='reference'&&<p className="reference-note">你的圆形主石，搭配开源配钻戒托。其他石形可在宝石库单独观察；此样板不代表生产装配尺寸。</p>}
+          <fieldset><legend>观察光线</legend><div className="preset-choices">{Object.values(STUDIO_PRESETS).map(preset=><button key={preset.id} aria-pressed={studioPreset===preset.id} onClick={()=>setStudioPreset(preset.id)}>{preset.name}</button>)}</div><p className="field-help">{STUDIO_PRESETS[studioPreset].description}</p></fieldset>
+          <div className="media-modes" role="group" aria-label="预览方式"><button aria-pressed={display==='3d'} onClick={()=>setDisplay('3d')}>实时 3D</button><button aria-pressed={display==='images'} onClick={()=>setDisplay('images')}>商品图片</button></div>
+          <Configurator {...{configuration,dispatch,quality,onQualityChange,autoRotate,onAutoRotateChange}} reference={modelMode!=='procedural'} hideStructure={modelMode!=='procedural'} stoneOnly={modelMode==='gem'} onSave={save} onResetView={()=>setResetToken(n=>n+1)}/>
+        </fieldset>
+        <section className="capture-panel" aria-label="商品图输出"><button className="capture-button" disabled={captureBusy||!captureReady||display!=='3d'} onClick={capture}>{captureBusy?'正在生成…':'生成四个角度的商品图'}</button><p className="field-help">停止旋转后生成当前配置的渲染预览，分辨率随画布与画质设置变化。</p><p className="capture-status" role="status">{captureMessage}</p>{images&&<ProductGallery images={images} downloads/>}</section>
         <div className="feedback" role="status" aria-live="polite">{message}</div>
         {slow&&quality==='high'&&<div className="performance-notice">当前渲染较慢。<button onClick={()=>onQualityChange('standard')}>切换为标准画质</button></div>}
         <AssetCredits/>
       </aside>
     </main>
-    <footer className="site-footer"><span>开源渲染技术演示，参考素材仅作效果研究。</span><span>六爪实模 / 参数化 DIY × WebGL</span></footer>
+    <footer className="site-footer"><span>开源渲染样板，展示比例不代表实际克拉或生产规格。</span><span>成品戒指 / 19 款切工 / 结构 DIY</span></footer>
   </div>;
 }

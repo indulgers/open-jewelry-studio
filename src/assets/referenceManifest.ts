@@ -1,4 +1,4 @@
-export type ModelMode='reference'|'procedural';
+export type ModelMode='reference'|'procedural'|'gem';
 export const REFERENCE_ASSETS={
   model:'/models/reference/six-prong.glb',
   metalEnvironment:'/environments/reference/metal.exr',

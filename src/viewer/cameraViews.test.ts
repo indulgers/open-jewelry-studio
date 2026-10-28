@@ -34,3 +34,15 @@ it('leaves header and reflection space around the taller reference assembly',()=
     expect(new Vector3(0,-1.287,0).project(camera).y).toBeGreaterThan(-0.6);
   }
 });
+it('centres the new mounted stone and keeps its halo inside reference close-ups',()=>{
+  for(const kind of ['stone','side'] as const){
+    for(const compact of [false,true]){
+      const view=cameraView(kind,compact,'reference'),camera=new PerspectiveCamera(32,compact?300/470:786/961,0.1,50);
+      camera.position.set(...view.position);camera.lookAt(...view.target);camera.updateMatrixWorld();
+      // Actual atelier sample centre after its ground alignment is approximately Y=1.08.
+      const centre=new Vector3(0,1.08,0).project(camera);
+      expect(Math.abs(centre.y)).toBeLessThan(0.25);
+      for(const x of [-0.57,0.57])expect(Math.abs(new Vector3(x,1.08,0).project(camera).x)).toBeLessThan(0.92);
+    }
+  }
+});

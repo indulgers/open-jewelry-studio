@@ -50,8 +50,8 @@ function radianceTexture(width:number,height:number,boxes:Softbox[],base:number)
 export function createStudioLighting(width=512,height=256){
   if(!Number.isInteger(width)||!Number.isInteger(height)||width<16||height<8||width>1024||height>512)
     throw new RangeError('Studio dimensions must be integer texel sizes within 16×8–1024×512');
-  const metal=radianceTexture(width,height,metalBoxes,0.025);
-  const gem=radianceTexture(width,height,gemBoxes,0.10);
+  const metal=radianceTexture(width,height,metalBoxes,0.15);
+  const gem=radianceTexture(width,height,gemBoxes,0.13);
   metal.name='Original neutral metal softboxes';gem.name='Original neutral gemstone softboxes';
   let disposed=false;
   return {metal,gem,dispose(){if(!disposed){disposed=true;metal.dispose();gem.dispose();}}};
