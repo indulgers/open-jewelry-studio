@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 .vite/
+.vercel/
 *.tsbuildinfo
 *.log
 .DS_Store
@@ -22,3 +23,4 @@ coverage/
 
 # Unused candidate model archive; keep the original locally
 assets/source/gem/ring_1.zip
+.vercel
