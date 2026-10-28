@@ -1,12 +1,12 @@
 import {Color,Matrix4,PlaneGeometry,Vector2} from 'three';
 import {Reflector} from 'three/addons/objects/Reflector.js';
 
-export function createPlanarFloor(resolution:number,groundY:number){
+export function createPlanarFloor(resolution:number,groundY:number,color='#ececeb',strength=0.38){
   const geometry=new PlaneGeometry(200,200);
   const reflector=new Reflector(geometry,{
     textureWidth:resolution,textureHeight:resolution,multisample:0,clipBias:0.0003,color:'#ececeb',
     shader:{name:'JewelryPlanarFloor',uniforms:{
-      color:{value:new Color('#ececeb')},tDiffuse:{value:null},textureMatrix:{value:new Matrix4()},
+      color:{value:new Color(color)},strength:{value:strength},tDiffuse:{value:null},textureMatrix:{value:new Matrix4()},
       texel:{value:new Vector2(1/resolution,1/resolution)},
     },vertexShader:/* glsl */`
       uniform mat4 textureMatrix;
@@ -18,6 +18,7 @@ export function createPlanarFloor(resolution:number,groundY:number){
         gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
       }`,fragmentShader:/* glsl */`
       uniform vec3 color;
+      uniform float strength;
       uniform sampler2D tDiffuse;
       uniform vec2 texel;
       varying vec4 vReflection;
@@ -31,7 +32,7 @@ export function createPlanarFloor(resolution:number,groundY:number){
         reflected+=texture2D(tDiffuse,uv-vec2(spread.x,0.0)).rgb*0.15;
         reflected+=texture2D(tDiffuse,uv+vec2(0.0,spread.y)).rgb*0.15;
         reflected+=texture2D(tDiffuse,uv-vec2(0.0,spread.y)).rgb*0.15;
-        float weight=0.38*(1.0-smoothstep(0.8,4.5,distanceFromRing));
+        float weight=strength*(1.0-smoothstep(0.8,4.5,distanceFromRing));
         gl_FragColor=vec4(mix(color,reflected,weight),1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

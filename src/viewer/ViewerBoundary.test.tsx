@@ -7,8 +7,10 @@ describe('recoverable viewer',()=>{
     vi.spyOn(console,'error').mockImplementation(()=>{});
     let failed=true;
     function Child(){if(failed)throw new Error('asset download failed');return <p>模型已载入</p>;}
-    render(<ViewerBoundary onRetry={()=>{failed=false;}}><Child/></ViewerBoundary>);
+    const onError=vi.fn();
+    render(<ViewerBoundary onRetry={()=>{failed=false;}} onError={onError}><Child/></ViewerBoundary>);
     expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(onError).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole('button',{name:'重新加载模型'}));
     expect(screen.getByText('模型已载入')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();

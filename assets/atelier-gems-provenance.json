@@ -1,0 +1,694 @@
+{
+  "source": "User-provided 宝石.zip",
+  "unitStatus": "unspecified",
+  "physicalScaleVerified": false,
+  "upAxis": "Y",
+  "girdleY": 0,
+  "models": [
+    {
+      "id": "triangle",
+      "name": "三角形",
+      "file": "public/models/atelier/gems/triangle.glb",
+      "source": "source/宝石/三角形.3dm",
+      "vertices": 202,
+      "triangles": 82,
+      "bounds": {
+        "min": [
+          -5.0,
+          -3.333233118057251,
+          -3.7882285118103027
+        ],
+        "max": [
+          5.0,
+          1.666766881942749,
+          6.211771488189697
+        ],
+        "size": [
+          10.0,
+          5.0,
+          10.0
+        ],
+        "center": [
+          0.0,
+          -0.833233118057251,
+          1.2117714881896973
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.9999999663985333,
+      "closedExportTopology": true,
+      "bytes": 6544,
+      "sha256": "16287f7ebd0da673f3a70f1b906e4aebe264206415ed07eef34818af3d166ac0",
+      "sourceSha256": "74f1d5851f91b259231cf28dc06d2d893999f11c2ba0bb7c60db21779daf69a5"
+    },
+    {
+      "id": "octagon",
+      "name": "八方形",
+      "file": "public/models/atelier/gems/octagon.glb",
+      "source": "source/宝石/八方形.3dm",
+      "vertices": 256,
+      "triangles": 110,
+      "bounds": {
+        "min": [
+          -5.000145435333252,
+          -4.907515525817871,
+          -5.000145435333252
+        ],
+        "max": [
+          5.000145435333252,
+          1.692676305770874,
+          5.000145435333252
+        ],
+        "size": [
+          10.000290870666504,
+          6.600191831588745,
+          10.000290870666504
+        ],
+        "center": [
+          0.0,
+          -1.6074196100234985,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.1999941827558765,
+      "normalMinDot": 0.9999678485553589,
+      "closedExportTopology": true,
+      "bytes": 8036,
+      "sha256": "09be6125259f560389d1696d131553485b21075e5ad4102fbc93059a14e46392",
+      "sourceSha256": "e57b375694e20549396048c7f817f4a1917ff09b2991eaf33764b57c9f3774dd"
+    },
+    {
+      "id": "princess",
+      "name": "公主方",
+      "file": "public/models/atelier/gems/princess.glb",
+      "source": "source/宝石/公主方.3dm",
+      "vertices": 216,
+      "triangles": 86,
+      "bounds": {
+        "min": [
+          -4.999999523162842,
+          -6.1396403312683105,
+          -4.999999523162842
+        ],
+        "max": [
+          4.999999523162842,
+          1.6603585481643677,
+          4.999999523162842
+        ],
+        "size": [
+          9.999999046325684,
+          7.799998879432678,
+          9.999999046325684
+        ],
+        "center": [
+          0.0,
+          -2.2396408915519714,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.20000001907348813,
+      "normalMinDot": 0.9999999854074464,
+      "closedExportTopology": true,
+      "bytes": 6932,
+      "sha256": "b128e62401bf0d8bd0f5890e0e947c9f375d01a361895e67efb7c512e62762f3",
+      "sourceSha256": "c3166df5c25bbdb032e5781a2fe3e2fbf212ff1ba89936f74cfe977698173fae"
+    },
+    {
+      "id": "hexagon",
+      "name": "六角形",
+      "file": "public/models/atelier/gems/hexagon.glb",
+      "source": "source/宝石/六角形.3dm",
+      "vertices": 180,
+      "triangles": 70,
+      "bounds": {
+        "min": [
+          -4.332756042480469,
+          -4.0430097579956055,
+          -5.000000476837158
+        ],
+        "max": [
+          4.332756042480469,
+          1.1562973260879517,
+          5.000000476837158
+        ],
+        "size": [
+          8.665512084960938,
+          5.199307084083557,
+          10.000000953674316
+        ],
+        "center": [
+          0.0,
+          -1.443356215953827,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.1999999809265155,
+      "normalMinDot": 0.9999998383237099,
+      "closedExportTopology": true,
+      "bytes": 5972,
+      "sha256": "3487abf2f2d409e36fa7adafff0207ea6b2fd2b97f42270969f9f6c399180d62",
+      "sourceSha256": "eeefe25fcc4434aa366756395dc2907a701a28c71628aaef5bb886205d515fc6"
+    },
+    {
+      "id": "half-moon",
+      "name": "半月形",
+      "file": "public/models/atelier/gems/half-moon.glb",
+      "source": "source/宝石/半月形.3dm",
+      "vertices": 226,
+      "triangles": 106,
+      "bounds": {
+        "min": [
+          -0.7619295716285706,
+          -3.331252336502075,
+          -5.0
+        ],
+        "max": [
+          4.938070297241211,
+          1.0941575765609741,
+          5.0
+        ],
+        "size": [
+          5.6999998688697815,
+          4.425409913063049,
+          10.0
+        ],
+        "center": [
+          2.08807036280632,
+          -1.1185473799705505,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.7483758330345154,
+      "closedExportTopology": true,
+      "bytes": 7264,
+      "sha256": "91c9aea9c01bbc5c011495e963c8fc76c2dfad76609b350fa06f580193f33529",
+      "sourceSha256": "0fc0920ebe44880e0d8cb66c18f8f4831441b3565d773d4a7ce324afa93bb3d3"
+    },
+    {
+      "id": "round",
+      "name": "圆形",
+      "file": "public/models/atelier/gems/round.glb",
+      "source": "source/宝石/圆形.3dm",
+      "vertices": 352,
+      "triangles": 174,
+      "bounds": {
+        "min": [
+          -5.00002908706665,
+          -4.695490837097168,
+          -5.00002908706665
+        ],
+        "max": [
+          5.00002908706665,
+          1.704546570777893,
+          5.00002908706665
+        ],
+        "size": [
+          10.0000581741333,
+          6.400037407875061,
+          10.0000581741333
+        ],
+        "center": [
+          0.0,
+          -1.4954721331596375,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.1999988365241024,
+      "normalMinDot": 0.9999999058619456,
+      "closedExportTopology": true,
+      "bytes": 10708,
+      "sha256": "dd18aa5ed8bb69992921206afeafcb60942b4d297d56fc4877db8f22a2f7155a",
+      "sourceSha256": "860e45623b179b04f20a49de7d74bfc69aa50ac47cd956ec1a0ef919c6ffd342"
+    },
+    {
+      "id": "heart",
+      "name": "心形",
+      "file": "public/models/atelier/gems/heart.glb",
+      "source": "source/宝石/心形.3dm",
+      "vertices": 430,
+      "triangles": 222,
+      "bounds": {
+        "min": [
+          -5.0,
+          -4.15120267868042,
+          -4.486609935760498
+        ],
+        "max": [
+          5.0,
+          1.5207887887954712,
+          5.513390064239502
+        ],
+        "size": [
+          10.0,
+          5.671991467475891,
+          10.0
+        ],
+        "center": [
+          0.0,
+          -1.3152069449424744,
+          0.513390064239502
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.8193911344510632,
+      "closedExportTopology": true,
+      "bytes": 12848,
+      "sha256": "ec74a28197ddd32d11bc8d8638d8b271220fde849cec2087647793539537566a",
+      "sourceSha256": "18f25e2cb4a9344b2b046360166604ec32829fd568dfd874bc5131c09310d684"
+    },
+    {
+      "id": "oval",
+      "name": "旦形",
+      "file": "public/models/atelier/gems/oval.glb",
+      "source": "source/宝石/旦形.3dm",
+      "vertices": 352,
+      "triangles": 174,
+      "bounds": {
+        "min": [
+          -3.8499999046325684,
+          -3.447457790374756,
+          -5.0
+        ],
+        "max": [
+          3.8499999046325684,
+          1.2168943881988525,
+          5.0
+        ],
+        "size": [
+          7.699999809265137,
+          4.664352178573608,
+          10.0
+        ],
+        "center": [
+          0.0,
+          -1.1152817010879517,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.999981067978257,
+      "closedExportTopology": true,
+      "bytes": 10688,
+      "sha256": "bb0b975545ad4ba0a289b23abbe41a6cfc6f1962107f0c0efd48a28ef8dfa0ff",
+      "sourceSha256": "d9220a9efd573babd17b70889885393a5083492cd6cd970b9a9ff09498933679"
+    },
+    {
+      "id": "cushion",
+      "name": "枕形",
+      "file": "public/models/atelier/gems/cushion.glb",
+      "source": "source/宝石/枕形.3dm",
+      "vertices": 384,
+      "triangles": 206,
+      "bounds": {
+        "min": [
+          -4.0,
+          -3.8824119567871094,
+          -5.0
+        ],
+        "max": [
+          4.0,
+          1.35863196849823,
+          5.0
+        ],
+        "size": [
+          8.0,
+          5.241043925285339,
+          10.0
+        ],
+        "center": [
+          0.0,
+          -1.2618899941444397,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.8833816899253459,
+      "closedExportTopology": true,
+      "bytes": 11616,
+      "sha256": "383e8cfcb15aaad7ee8e5cc06224440439fc8b3897c6a564a3de4eeb87ed6251",
+      "sourceSha256": "009f898875e8d783ca72fba1b4ac4dc1d8e5394c65deb9ba6a971c3c18a20400"
+    },
+    {
+      "id": "pear",
+      "name": "梨形",
+      "file": "public/models/atelier/gems/pear.glb",
+      "source": "source/宝石/梨形.3dm",
+      "vertices": 348,
+      "triangles": 172,
+      "bounds": {
+        "min": [
+          -3.564666509628296,
+          -3.1795082092285156,
+          -4.355289936065674
+        ],
+        "max": [
+          3.564666509628296,
+          1.1220676898956299,
+          5.6735687255859375
+        ],
+        "size": [
+          7.129333019256592,
+          4.3015758991241455,
+          10.028858661651611
+        ],
+        "center": [
+          0.0,
+          -1.0287202596664429,
+          0.6591393947601318
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.19942448761867668,
+      "normalMinDot": 0.9686933000003438,
+      "closedExportTopology": true,
+      "bytes": 10608,
+      "sha256": "958fe22f3b7920af2fc248686066684447c5c0629083afbb8a52cd43bc4b0b94",
+      "sourceSha256": "041dfa8e6bf739923a6a1afb9caa8db7953bceb2c576e08f9575c6aa844a8f3e"
+    },
+    {
+      "id": "square-small-octagon",
+      "name": "正小八角",
+      "file": "public/models/atelier/gems/square-small-octagon.glb",
+      "source": "source/宝石/正小八角.3dm",
+      "vertices": 232,
+      "triangles": 102,
+      "bounds": {
+        "min": [
+          -5.0,
+          -5.148911476135254,
+          -5.0
+        ],
+        "max": [
+          5.0,
+          1.3353475332260132,
+          5.0
+        ],
+        "size": [
+          10.0,
+          6.484259009361267,
+          10.0
+        ],
+        "center": [
+          0.0,
+          -1.9067819714546204,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.9999999709886969,
+      "closedExportTopology": true,
+      "bytes": 7368,
+      "sha256": "c6a960b3ee8ed8023e2792d0dd8470002840108998f4d48cb2b60ddf53460483",
+      "sourceSha256": "02e1a2462031cecc204a600bcf4b566a93b381564ee95e766aedf70e97c56956"
+    },
+    {
+      "id": "square-bevel",
+      "name": "正方倒角",
+      "file": "public/models/atelier/gems/square-bevel.glb",
+      "source": "source/宝石/正方倒角.3dm",
+      "vertices": 280,
+      "triangles": 134,
+      "bounds": {
+        "min": [
+          -5.0,
+          -5.008679389953613,
+          -5.0
+        ],
+        "max": [
+          5.0,
+          1.4024274349212646,
+          5.0
+        ],
+        "size": [
+          10.0,
+          6.411106824874878,
+          10.0
+        ],
+        "center": [
+          0.0,
+          -1.8031259775161743,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.9999999664053204,
+      "closedExportTopology": true,
+      "bytes": 8712,
+      "sha256": "aadf6182a13203aba303897b11e33febbf847b19d12002f7039450de4c892eb7",
+      "sourceSha256": "b2b7f5faad836405b05943b13a78dbcbcfae7d2e662edd206e762fe8a3a5b88e"
+    },
+    {
+      "id": "straight-triangle",
+      "name": "直三角",
+      "file": "public/models/atelier/gems/straight-triangle.glb",
+      "source": "source/宝石/直三角.3dm",
+      "vertices": 126,
+      "triangles": 58,
+      "bounds": {
+        "min": [
+          -5.0,
+          -4.119560718536377,
+          -3.3334133625030518
+        ],
+        "max": [
+          5.0,
+          1.8921526670455933,
+          6.666586399078369
+        ],
+        "size": [
+          10.0,
+          6.01171338558197,
+          9.999999761581421
+        ],
+        "center": [
+          0.0,
+          -1.1137040257453918,
+          1.6665865182876587
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.9999999780314993,
+      "closedExportTopology": true,
+      "bytes": 4576,
+      "sha256": "7ae08eec37559c928559b46227d8627b4d72ef3c270490894c884ab35b87536d",
+      "sourceSha256": "f13b9ddc987ce36a5be5143ba13ab29d6a18edea803d0472d16b84d7ae448c93"
+    },
+    {
+      "id": "wide-triangle",
+      "name": "肥三角",
+      "file": "public/models/atelier/gems/wide-triangle.glb",
+      "source": "source/宝石/肥三角.3dm",
+      "vertices": 276,
+      "triangles": 118,
+      "bounds": {
+        "min": [
+          -5.0,
+          -4.280467510223389,
+          -3.984307289123535
+        ],
+        "max": [
+          5.0,
+          1.039320945739746,
+          6.015692710876465
+        ],
+        "size": [
+          10.0,
+          5.319788455963135,
+          10.0
+        ],
+        "center": [
+          0.0,
+          -1.6205732822418213,
+          1.0156927108764648
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.9999703530186291,
+      "closedExportTopology": true,
+      "bytes": 8536,
+      "sha256": "6089c490d65ad5afb6fc135aafc3469f20d197518a6ad2962710bab93bde9127",
+      "sourceSha256": "773ea69954f121ee9665dad1c3b86033ca46c08d259ffb6df3ea5e50cd3bbe95"
+    },
+    {
+      "id": "wide-square",
+      "name": "肥正方",
+      "file": "public/models/atelier/gems/wide-square.glb",
+      "source": "source/宝石/肥正方.3dm",
+      "vertices": 384,
+      "triangles": 206,
+      "bounds": {
+        "min": [
+          -5.0,
+          -4.571765899658203,
+          -5.0
+        ],
+        "max": [
+          5.0,
+          1.631830096244812,
+          5.0
+        ],
+        "size": [
+          10.0,
+          6.203595995903015,
+          10.0
+        ],
+        "center": [
+          0.0,
+          -1.4699679017066956,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.8930896575863054,
+      "closedExportTopology": true,
+      "bytes": 11628,
+      "sha256": "9c13edf4d99bbdcb07a4d4ca6fe2b6fc676f000b81d1e23c725354e06d9d4ea6",
+      "sourceSha256": "9b4bff6c57abd0c14a00388c3f9b13fbf9fc0fc8398f9ee31463776bf27c2990"
+    },
+    {
+      "id": "elongated-small-octagon",
+      "name": "长小八角",
+      "file": "public/models/atelier/gems/elongated-small-octagon.glb",
+      "source": "source/宝石/长小八角.3dm",
+      "vertices": 292,
+      "triangles": 118,
+      "bounds": {
+        "min": [
+          -3.3988516330718994,
+          -3.2597122192382812,
+          -4.999075889587402
+        ],
+        "max": [
+          3.40087628364563,
+          1.2402878999710083,
+          5.000924110412598
+        ],
+        "size": [
+          6.799727916717529,
+          4.5000001192092896,
+          10.0
+        ],
+        "center": [
+          0.0010123252868652344,
+          -1.0097121596336365,
+          0.0009241104125976562
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.9988885939264388,
+      "closedExportTopology": true,
+      "bytes": 8960,
+      "sha256": "86e7ad0ee2924ab8161c9a9fb81fea286744e7140980234bd3ba582b462668c4",
+      "sourceSha256": "f4dce3f3bad9a48fd8907e56898cd98f750f539f97bdb741df988745d93309fa"
+    },
+    {
+      "id": "rectangle-bevel",
+      "name": "长方倒角",
+      "file": "public/models/atelier/gems/rectangle-bevel.glb",
+      "source": "source/宝石/长方倒角.3dm",
+      "vertices": 282,
+      "triangles": 136,
+      "bounds": {
+        "min": [
+          -3.624868154525757,
+          -3.664620876312256,
+          -5.0
+        ],
+        "max": [
+          3.624868154525757,
+          1.0260918140411377,
+          5.0
+        ],
+        "size": [
+          7.249736309051514,
+          4.6907126903533936,
+          10.0
+        ],
+        "center": [
+          0.0,
+          -1.319264531135559,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.9999765469231524,
+      "closedExportTopology": true,
+      "bytes": 8800,
+      "sha256": "9e238cfa9078521967abcaf8982ee5d7e9d47ef0b130526ee997b81621912189",
+      "sourceSha256": "a6ec9cc89c2bd0fcf54184805336496870f7231ed3d6346562babe5876d75d79"
+    },
+    {
+      "id": "rectangle",
+      "name": "长方形",
+      "file": "public/models/atelier/gems/rectangle.glb",
+      "source": "source/宝石/长方形.3dm",
+      "vertices": 82,
+      "triangles": 40,
+      "bounds": {
+        "min": [
+          -2.5,
+          -2.0999999046325684,
+          -5.0
+        ],
+        "max": [
+          2.5,
+          1.100000023841858,
+          5.0
+        ],
+        "size": [
+          5.0,
+          3.1999999284744263,
+          10.0
+        ],
+        "center": [
+          0.0,
+          -0.4999999403953552,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.9999999547193861,
+      "closedExportTopology": true,
+      "bytes": 3380,
+      "sha256": "3ac78c6b2eb30464dbb81b39e8160d9b14c07a9233981aec718191a68422d567",
+      "sourceSha256": "4630e0c4b2825e3964fd819acef47a80657bc7c2d84d1e876b7f5d27f7a257e7"
+    },
+    {
+      "id": "marquise",
+      "name": "马眼形",
+      "file": "public/models/atelier/gems/marquise.glb",
+      "source": "source/宝石/马眼形.3dm",
+      "vertices": 342,
+      "triangles": 168,
+      "bounds": {
+        "min": [
+          -2.75,
+          -2.2463386058807373,
+          -5.0
+        ],
+        "max": [
+          2.75,
+          0.8122307062149048,
+          5.0
+        ],
+        "size": [
+          5.5,
+          3.058569312095642,
+          10.0
+        ],
+        "center": [
+          0.0,
+          -0.7170539498329163,
+          0.0
+        ]
+      },
+      "displayScaleToMaxPlanWidth2": 0.2,
+      "normalMinDot": 0.9999993040649165,
+      "closedExportTopology": true,
+      "bytes": 10396,
+      "sha256": "d1dcbd57bb2af6815d61923b232693bf6daa318572105b045d5253d7539d00d2",
+      "sourceSha256": "efa1237af2224258fed208fa4cfe3d67f802efe3e7b9105ad0e6073bb51aba0d"
+    }
+  ],
+  "archiveSha256": "451a5e59bfd37c3a1d0173adf9633e945aabedecbab1424faedc0c26bf3fabbb"
+}

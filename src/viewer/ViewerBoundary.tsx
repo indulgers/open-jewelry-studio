@@ -1,8 +1,9 @@
 import {Component,type ReactNode} from 'react';
-type Props={children:ReactNode;onRetry:()=>void};
+type Props={children:ReactNode;onRetry:()=>void;onError?:()=>void};
 export class ViewerBoundary extends Component<Props,{error:Error|null;attempt:number}>{
   state={error:null as Error|null,attempt:0};
   static getDerivedStateFromError(error:Error){return {error};}
+  componentDidCatch(){this.props.onError?.();}
   render(){
     if(this.state.error)return <div className="viewer-message error-message" role="alert">
       <strong>暂时无法载入三维模型</strong>
