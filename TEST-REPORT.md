@@ -1,5 +1,15 @@
 # Verification history
 
+## Commercial display correction — 2026-10-29
+
+- Full suite: 67 tests across 20 files passed. TypeScript check and production build passed. Current JS chunks: entry 615.71 kB / 176.87 kB gzip; lazy viewer 850.41 kB / 242.20 kB gzip. The existing >500 kB bundle advisory and upstream Three deprecation warnings remain.
+- Changes: neutral metal tent with dark cards and softer gradients, lower polished-metal roughness, reduced gemstone light/dispersion, a documented approximate observer cone, lower floor reflection, and the floor preset-color bug fix. Existing radiance tests validate finite nonnegative achromatic textures, contrast and ownership. The new floor-color regression failed before the fix and passed afterward.
+- Actual browser comparison: the same local ring, white metal, catalog preset and overall camera at CSS 984×692 before/after. Blue Nile's live interactive ring was inspected separately; it is a different SKU, camera and viewport, so no equal-product or photorealistic-parity conclusion is drawn.
+- Checked round loose stone face-up, ring detail, both lighting presets and all three metal appearances. Browser error log was empty after these interactions. Final narrow CSS viewport was 300×649, scroll width 300; idle canvas reached 32 refinement samples.
+- Four actual JPEG exports completed. Updated `public/media/sample/{overall,front,side,stone}.jpg` are 786×961 white-metal/catalog images from the new renderer. After a reload, image mode showed all four thumbnails and the main image loaded successfully.
+- Before/after and detail screenshots are in workspace `../research/2026-10-29-commercial-render/`. The floor correction changed the surrounding background along with the metal/gem treatment; screenshots are evidence, not pixel regression goldens or a controlled perceptual study.
+- Real-device GPU performance, full-scene optical accuracy, long-run memory, physical SKU correspondence and final commercial acceptance were not verified. This iteration does not supersede those limitations. See `docs/commercial-render-review.md` for remaining geometry and optical gaps.
+
 ## Reference GLB, mirror floor and open optics — 2026-10-25 / handoff 2026-10-26
 
 - Current suite: 55 tests across 16 files; full suite passed. TypeScript and Vite production build passed. Bundle advisory remains: 1,424.73 kB raw / 403.12 kB gzip, above 500 kB advisory. Node test imports emit upstream THREE_CJS_DEPRECATED warnings; browser emits the pre-existing Three.Clock deprecation warning.

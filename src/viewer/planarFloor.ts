@@ -4,7 +4,7 @@ import {Reflector} from 'three/addons/objects/Reflector.js';
 export function createPlanarFloor(resolution:number,groundY:number,color='#ececeb',strength=0.38){
   const geometry=new PlaneGeometry(200,200);
   const reflector=new Reflector(geometry,{
-    textureWidth:resolution,textureHeight:resolution,multisample:0,clipBias:0.0003,color:'#ececeb',
+    textureWidth:resolution,textureHeight:resolution,multisample:0,clipBias:0.0003,color,
     shader:{name:'JewelryPlanarFloor',uniforms:{
       color:{value:new Color(color)},strength:{value:strength},tDiffuse:{value:null},textureMatrix:{value:new Matrix4()},
       texel:{value:new Vector2(1/resolution,1/resolution)},
