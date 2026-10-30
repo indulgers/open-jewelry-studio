@@ -71,7 +71,10 @@ vec3 outsideRadiance(vec3 origin,vec3 direction,vec3 smoothRay){
       return radiance*f;
     }
   }
-  return environment(direction,smoothRay);
+  // shortcut: a soft camera/observer cone, replace with an explicit capture rig for measured assets.
+  float facingObserver=dot(direction,normalize(cameraPosition-origin));
+  float obstruction=smoothstep(0.9563,0.9848,facingObserver);
+  return environment(direction,smoothRay)*mix(1.0,0.12,obstruction);
 }
 vec3 traceRadiance(vec3 incoming,vec3 normal,float eta,vec3 smoothRay){
   vec3 direction=refract(incoming,normal,1.0/eta);

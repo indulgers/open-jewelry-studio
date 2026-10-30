@@ -1,7 +1,7 @@
 import {DataTexture,DataUtils,EquirectangularReflectionMapping,HalfFloatType,
   LinearFilter,LinearMipmapLinearFilter,LinearSRGBColorSpace,RGBAFormat} from 'three';
 
-type Softbox={azimuth:number;elevation:number;width:number;height:number;power:number};
+type Softbox={azimuth:number;elevation:number;width:number;height:number;power:number;feather?:number};
 const metalBoxes:Softbox[]=[
   // Dark studio with narrow strip lights: the hard bright lines and black gaps are
   // what the eye reads as polished metal. A broad white room just makes gold beige.
@@ -35,11 +35,12 @@ function radianceTexture(width:number,height:number,boxes:Softbox[],base:number)
     let value=base*(0.55+0.45*Math.max(0,Math.sin(elevation)));
     for(const box of boxes){
       const delta=Math.abs(Math.atan2(Math.sin(azimuth-box.azimuth),Math.cos(azimuth-box.azimuth)));
-      const horizontal=1-smooth(box.width*0.85,box.width,delta);
-      const vertical=1-smooth(box.height*0.85,box.height,Math.abs(elevation-box.elevation));
+      const edge=1-(box.feather??0.15);
+      const horizontal=1-smooth(box.width*edge,box.width,delta);
+      const vertical=1-smooth(box.height*edge,box.height,Math.abs(elevation-box.elevation));
       value+=box.power*horizontal*vertical;
     }
-    const i=(y*width+x)*4,encoded=DataUtils.toHalfFloat(value);
+    const i=(y*width+x)*4,encoded=DataUtils.toHalfFloat(Math.max(0.005,value));
     data[i]=data[i+1]=data[i+2]=encoded;data[i+3]=DataUtils.toHalfFloat(1);
   }
   const texture=new DataTexture(data,width,height,RGBAFormat,HalfFloatType);
