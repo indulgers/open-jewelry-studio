@@ -11,7 +11,18 @@ The 19 gemstones in `public/models/atelier/gems/` were converted from the user's
 
 Current metal and gemstone environments are original generated neutral light-card textures in `studioLighting.ts`, with local studio presets. No iJewel environment or SDK is loaded by the default scene.
 
-The local optical tracer retains drei's MIT vertex/BVH foundation, with independently implemented Fresnel energy splitting and approximate static mount intersection. The reference `ektogamat/webgi-jewelry` is CC BY-NC-ND 4.0 and depends on a proprietary WebGi SDK; it was studied only, with no assets or SDK copied.
+The local optical tracer retains drei's MIT vertex/BVH foundation, with independently implemented Fresnel energy splitting and approximate static mount intersection.
+
+## WebGI Jewelry sample rings — CC BY-NC-ND 4.0, research only
+
+Two finished-ring meshes are copied from the local `webgi-jewelry` sample project into `public/models/webgi/`:
+
+- `ring2_webgi3.glb` (1,123,816 bytes) — round centre stone, halo and pavé shank, used as “铺钻单钻”.
+- `ring_webgi.glb` (972,836 bytes) — oval centre stone and two-band vintage shank, used as “复古椭圆”.
+
+Both are Draco-compressed glTF with `WEBGI_materials_diamond` and related WebGI extensions. This project loads only their geometry; the proprietary WebGi shaders and SDK are not copied or executed. The source repository (`ektogamat/webgi-jewelry`) is distributed under **CC BY-NC-ND 4.0** and depends on a proprietary WebGi SDK. Its model-asset licensing has not been separately confirmed. These files are included solely for the user's local rendering study. **Do not publish them as commercial assets, and replace them with owned or cleared models before any public deployment.** Their appearance here is not a licence grant.
+
+This supersedes the earlier note that no assets from that project were copied.
 
 ## Procedural DIY gemstone
 
@@ -48,6 +59,14 @@ The planar floor uses Three.js Reflector with a local ground fragment shader. Th
 
 Draco glTF decoders copied from the installed Three.js examples to public/draco are Google Draco, Apache-2.0. Decoder source notices are preserved. Source: https://github.com/google/draco.
 
+## Active studio HDR
+
+`public/environments/studio_small_09_1k.hdr` is used as the metal IBL.
+Studio Small 09 by Poly Haven, CC0. Source: https://polyhaven.com/a/studio_small_09
+License: https://polyhaven.com/license
+The 1K Radiance file is served locally; no runtime network dependency.
+The five large area lights are project code, not baked assets.
+
 ## Archived lighting (not currently used)
 
 Peppermint Powerplant 2 by Andreas Mischok / Poly Haven, CC0.
@@ -69,6 +88,14 @@ The local contact-shadow capture/blur implementation is based on drei's ContactS
 Source: https://github.com/pmndrs/drei/blob/master/src/core/ContactShadows.tsx
 Its render targets, geometries and materials have explicit local disposal, and renderer state is restored in a finally block.
 MIT copyright/license notice retained in LICENSES/drei-MIT.txt. Blur shaders are imported from the installed three-stdlib dependency.
+
+## Active studio HDR
+
+`public/environments/studio_small_09_1k.hdr` is used as the metal IBL.
+Studio Small 09 by Poly Haven, CC0. Source: https://polyhaven.com/a/studio_small_09
+License: https://polyhaven.com/license
+The 1K Radiance file is served locally; no runtime network dependency.
+The five large area lights are project code, not baked assets.
 
 ## Archived lighting (not currently used)
 
