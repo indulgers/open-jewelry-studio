@@ -1,8 +1,9 @@
 import {useEffect,useMemo} from 'react';
 import {useGLTF} from '@react-three/drei';
 import type {Texture} from 'three';
-import {ATELIER_RING,atelierGem} from '../assets/atelierManifest';
-import {prepareProductRing} from '../geometry/productGeometry';
+import {atelierGem} from '../assets/atelierManifest';
+import {finishedRing,type FinishedRingId} from '../assets/finishedRings';
+import {prepareFinishedRing} from '../geometry/finishedRing';
 import type {MetalFinish} from '../configuration/configuration';
 import {createMetalMaterial} from './materials';
 import {createMountGeometry,bakeMetalOcclusion} from './mountGeometry';
@@ -10,14 +11,20 @@ import {OpticalGem} from './OpticalGem';
 import type {Quality} from './quality';
 import type {StudioPreset} from './studioPresets';
 
-export function ProductRing({metal,environment,quality,simplified,onReady,preset}:{metal:MetalFinish;environment:Texture;quality:Quality;simplified:boolean;onReady:()=>void;preset:StudioPreset}){
-  const gltf=useGLTF(ATELIER_RING),round=useGLTF(atelierGem('round').url);
+export function ProductRing({ringStyle,metal,environment,quality,simplified,onReady,preset}:{
+  ringStyle:FinishedRingId;metal:MetalFinish;environment:Texture;quality:Quality;simplified:boolean;onReady:()=>void;preset:StudioPreset;
+}){
+  const definition=finishedRing(ringStyle);
+  const gltf=useGLTF(definition.url,definition.draco||false),round=useGLTF(atelierGem('round').url);
   const ring=useMemo(()=>{
-    const prepared=prepareProductRing(gltf.scene,round.scene);
+    const prepared=prepareFinishedRing(gltf.scene,{rotation:definition.rotation,
+      replaceCenter:definition.replaceCenter,replacement:round.scene});
     const mount=createMountGeometry(prepared.metals.map(p=>p.geometry));
-    prepared.metals.forEach(p=>bakeMetalOcclusion(p.geometry,mount.tree));
+    // Hand-modelled CAD has far more vertices than the study ring; a short bake keeps
+    // the indirect self-occlusion cue without blocking the first frame for seconds.
+    prepared.metals.forEach(p=>bakeMetalOcclusion(p.geometry,mount.tree,0.14,6));
     return {...prepared,mount,dispose(){mount.dispose();prepared.dispose();}};
-  },[gltf.scene,round.scene]);
+  },[gltf.scene,round.scene,definition]);
   const material=useMemo(()=>createMetalMaterial(metal,preset,true),[metal,preset]);
   const optics=useMemo(()=>({environmentRotation:preset.rotation,environmentIntensity:preset.gemIntensity,dispersion:preset.dispersion,
     mount:{bvh:ring.mount.bvh,color:material.color,roughness:preset.roughness}}),[preset,ring,material]);

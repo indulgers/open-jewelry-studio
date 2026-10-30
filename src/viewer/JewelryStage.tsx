@@ -15,31 +15,30 @@ import {JewelryShadows} from './JewelryShadows';
 import {ProductRing} from './ProductRing';
 import {LooseGem} from './LooseGem';
 import {REFERENCE_ASSETS,type ModelMode} from '../assets/referenceManifest';
-import {JewelryFloor} from './JewelryFloor';
 import {JewelryPostprocessing} from './JewelryPostprocessing';
 import {STUDIO_PRESETS,type StudioPreset, type StudioPresetId} from './studioPresets';
-import {ATELIER_RING,ATELIER_GEMS,type GemShapeId} from '../assets/atelierManifest';
+import {ATELIER_GEMS,type GemShapeId} from '../assets/atelierManifest';
+import {FINISHED_RINGS,type FinishedRingId} from '../assets/finishedRings';
 import {PRODUCT_VIEWS,VIEW_LABELS,SAMPLE_IMAGES,type ProductImage} from '../assets/productMedia';
 import {ProductCapture} from './ProductCapture';
 import {ProductGallery} from '../components/ProductGallery';
 
-function JewelryScene({configuration,quality,simplified,onReady,modelMode,autoRotate,preset,gemShape}:{
-  configuration:Configuration;quality:Quality;simplified:boolean;onReady:()=>void;modelMode:ModelMode;autoRotate:boolean;preset:StudioPreset;gemShape:GemShapeId;
+function JewelryScene({configuration,quality,simplified,onReady,modelMode,autoRotate,preset,gemShape,ringStyle}:{
+  configuration:Configuration;quality:Quality;simplified:boolean;onReady:()=>void;modelMode:ModelMode;autoRotate:boolean;preset:StudioPreset;gemShape:GemShapeId;ringStyle:FinishedRingId;
 }){
   const settings=qualitySettings(quality,simplified);
   const gl=useThree(s=>s.gl),invalidate=useThree(s=>s.invalidate);
   useLayoutEffect(()=>{gl.toneMappingExposure=preset.exposure;invalidate();},[gl,invalidate,preset]);
   return <>
     <JewelryLighting preset={preset}>{environment=>modelMode==='reference'
-      ?<ProductRing metal={configuration.metalFinish} {...{environment,quality,simplified,onReady,preset}}/>
+      ?<ProductRing ringStyle={ringStyle} metal={configuration.metalFinish} {...{environment,quality,simplified,onReady,preset}}/>
       :modelMode==='gem'?<LooseGem shape={gemShape} {...{environment,quality,simplified,onReady,preset}}/>
       :<RingAssembly {...{configuration,preset}}>
       <GemAsset size={configuration.stoneSize} {...{quality,simplified,environment,onReady,preset}}/>
     </RingAssembly>}</JewelryLighting>
-    <JewelryShadows key={`${modelMode}/${gemShape}`} {...{configuration,quality,simplified}}/>
-    <JewelryFloor {...{quality,simplified,preset}}/>
+    <JewelryShadows key={`${modelMode}/${gemShape}/${ringStyle}`} {...{configuration,quality,simplified}} contentKey={ringStyle} ready/>
     {settings.postprocessing&&<JewelryPostprocessing quality={quality} active={autoRotate}
-      contentKey={`${modelMode}/${gemShape}/${preset.id}/${configuration.shankStyle}/${configuration.metalFinish}/${configuration.stoneSize}`}/>}
+      contentKey={`${modelMode}/${ringStyle}/${gemShape}/${preset.id}/${configuration.shankStyle}/${configuration.metalFinish}/${configuration.stoneSize}`}/>}
   </>;
 }
 function CameraControl({autoRotate,resetToken,inspection,onPerformanceWarning,modelMode}:{autoRotate:boolean;resetToken:number;inspection:InspectionView;onPerformanceWarning:()=>void;modelMode:ModelMode}){
@@ -65,14 +64,14 @@ function CameraControl({autoRotate,resetToken,inspection,onPerformanceWarning,mo
     onStart={()=>setInteracting(true)} onEnd={()=>setInteracting(false)} target={cameraView(inspection,compact,modelMode).target}/>;
 }
 
-export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,studioPreset,gemShape,captureRequest,onImages,onCaptureProgress,captureBusy,onCaptureReady}:{
-  configuration:Configuration;quality:Quality;autoRotate:boolean;resetToken:number;onPerformanceWarning:()=>void;modelMode:ModelMode;
+export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,studioPreset,gemShape,ringStyle,captureRequest,onImages,onCaptureProgress,captureBusy,onCaptureReady}:{
+  configuration:Configuration;quality:Quality;autoRotate:boolean;resetToken:number;onPerformanceWarning:()=>void;modelMode:ModelMode;ringStyle:FinishedRingId;
   studioPreset:StudioPresetId;gemShape:GemShapeId;captureRequest:number;onImages:(images:ProductImage[])=>void;onCaptureProgress:(message:string)=>void;captureBusy:boolean;onCaptureReady:(ready:boolean)=>void;
 }){
   const [readyMode,setReadyMode]=useState<string|null>(null),[simplified,setSimplified]=useState(false),[contextLost,setContextLost]=useState(false);
   const [failed,setFailed]=useState(false);
   const [rendererCreated,setRendererCreated]=useState(false);
-  const readyKey=`${modelMode}/${gemShape}`,ready=readyMode===readyKey&&!contextLost&&!failed,preset=STUDIO_PRESETS[studioPreset];
+  const readyKey=`${modelMode}/${gemShape}/${ringStyle}`,ready=readyMode===readyKey&&!contextLost&&!failed,preset=STUDIO_PRESETS[studioPreset];
   useEffect(()=>{onCaptureReady(ready);return()=>onCaptureReady(false);},[ready,onCaptureReady]);
   const contentKey=`${readyKey}/${studioPreset}/${quality}/${simplified}/${JSON.stringify(configuration)}`;
   const [attempt,setAttempt]=useState(0);
@@ -86,7 +85,7 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
     cleanupContext.current?.();
     useGLTF.clear(GEM_ASSET.url);
     useGLTF.clear(REFERENCE_ASSETS.model);
-    useGLTF.clear(ATELIER_RING);ATELIER_GEMS.forEach(gem=>useGLTF.clear(gem.url));
+    FINISHED_RINGS.forEach(ring=>useGLTF.clear(ring.url));ATELIER_GEMS.forEach(gem=>useGLTF.clear(gem.url));
     clearJewelryLightingCache();
     setFailed(false);setRendererCreated(false);setContextLost(false);setReadyMode(null);setAttempt(n=>n+1);
   };
@@ -112,10 +111,10 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
           element.addEventListener('webglcontextlost',lost);element.addEventListener('webglcontextrestored',restored);
           cleanupContext.current=()=>{element.removeEventListener('webglcontextlost',lost);element.removeEventListener('webglcontextrestored',restored);};
         }}>
-        <color attach="background" args={[preset.background]}/>
         <ambientLight intensity={0.2}/>
+        <color attach="background" args={[preset.background]}/>
         <Suspense fallback={null}>
-          <JewelryScene {...{configuration,quality,simplified,modelMode,autoRotate,preset,gemShape}} onReady={readyCallback}/>
+          <JewelryScene {...{configuration,quality,simplified,modelMode,autoRotate,preset,gemShape,ringStyle}} onReady={readyCallback}/>
         </Suspense>
         <CameraControl {...{autoRotate,resetToken,inspection,onPerformanceWarning,modelMode}}/>
         <ProductCapture request={captureRequest} {...{contentKey,modelMode,simplified,ready,onImages}} onProgress={onCaptureProgress}/>
