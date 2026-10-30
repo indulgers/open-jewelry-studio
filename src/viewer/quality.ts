@@ -10,7 +10,7 @@ export function qualitySettings(quality:Quality,simplified=false){
     postprocessing:!simplified,
     shadowResolution:simplified?256:high?1024:512,
     shadowBlurPasses:!simplified&&high?2:1,
-    bloomIntensity:high?0.025:0.015,
+    bloomIntensity:high?0.007:0.004,
     multisampling:high?4:2,
   };
 }

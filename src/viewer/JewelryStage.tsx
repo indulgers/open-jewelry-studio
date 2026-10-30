@@ -1,7 +1,7 @@
 import {Suspense,useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {Canvas,useFrame,useThree} from '@react-three/fiber';
 import {OrbitControls,useGLTF} from '@react-three/drei';
-import {ACESFilmicToneMapping,SRGBColorSpace} from 'three';
+import {NeutralToneMapping,SRGBColorSpace} from 'three';
 import type {OrbitControls as OrbitControlsImpl} from 'three-stdlib';
 import {GEM_ASSET} from '../assets/gemManifest';
 import type {Configuration} from '../configuration/configuration';
@@ -13,6 +13,7 @@ import {cameraView,type InspectionView} from './cameraViews';
 import {JewelryLighting,clearJewelryLightingCache} from './JewelryLighting';
 import {JewelryShadows} from './JewelryShadows';
 import {ProductRing} from './ProductRing';
+import {StudioFillLights} from './StudioFillLights';
 import {LooseGem} from './LooseGem';
 import {REFERENCE_ASSETS,type ModelMode} from '../assets/referenceManifest';
 import {JewelryPostprocessing} from './JewelryPostprocessing';
@@ -97,7 +98,7 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
         fallback={<div className="viewer-message" role="alert" aria-hidden={rendererCreated||undefined}><p>当前浏览器无法使用三维预览，以下为固定样板图。</p><ProductGallery images={SAMPLE_IMAGES} sample/></div>}
         onCreated={({gl})=>{
           setRendererCreated(true);
-          gl.toneMapping=ACESFilmicToneMapping;gl.toneMappingExposure=1;gl.outputColorSpace=SRGBColorSpace;
+          gl.toneMapping=NeutralToneMapping;gl.toneMappingExposure=1;gl.outputColorSpace=SRGBColorSpace;
           gl.debug.onShaderError=(context,program,vertex,fragment)=>{
             console.error('Jewelry material compilation failed',{
               vertex:context.getShaderInfoLog(vertex),fragment:context.getShaderInfoLog(fragment),
@@ -112,7 +113,8 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
           cleanupContext.current=()=>{element.removeEventListener('webglcontextlost',lost);element.removeEventListener('webglcontextrestored',restored);};
         }}>
         <ambientLight intensity={0.2}/>
-        <color attach="background" args={[preset.background]}/>
+        <color attach="background" args={[3.0,2.97,2.9]}/>
+        <StudioFillLights/>
         <Suspense fallback={null}>
           <JewelryScene {...{configuration,quality,simplified,modelMode,autoRotate,preset,gemShape,ringStyle}} onReady={readyCallback}/>
         </Suspense>

@@ -1,4 +1,5 @@
 import {Color,Vector2,Vector3,type BufferGeometry,type Camera,type ShaderMaterial,type Texture,type WebGLRenderer} from 'three';
+import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {MeshRefractionMaterial as BaseRefractionMaterial} from '@react-three/drei/materials/MeshRefractionMaterial';
 import {MeshBVH,MeshBVHUniformStruct,SAH,shaderStructs,shaderIntersectFunction} from 'three-mesh-bvh';
 import {qualitySettings,type Quality} from './quality';
@@ -113,6 +114,10 @@ void main(){
     traceRadiance(incident,normal,ior,smoothRay).g,traceRadiance(incident,normal,ior*(1.0+aberrationStrength),smoothRay).b);
   float fresnel=fresnelDielectric(dot(-incident,normal),1.0,ior);
   vec3 reflected=outsideRadiance(vWorldPosition,reflect(incident,normal),smoothRay);
+  // A trace budget that ends inside the stone is absorbed; lift the remaining
+  // energy a touch so photographed diamonds keep their white body instead of
+  // collapsing to black between bright facets.
+  transmitted=transmitted*1.05+0.006;
   gl_FragColor=vec4(mix(transmitted,reflected,fresnel),1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -138,7 +143,15 @@ export function updateGemOptics(material:ShaderMaterial,options:GemOpticsOptions
 }
 export function createGemOptics(geometry:BufferGeometry,environment:Texture,quality:Quality,options:GemOpticsOptions={}){
   const settings=qualitySettings(quality),material=new BaseRefractionMaterial();
-  const bvh=new MeshBVHUniformStruct(),tracingGeometry=geometry.clone();
+  const bvh=new MeshBVHUniformStruct();
+  // Split-normal facet meshes are geometrically closed but topologically open: every
+  // facet has its own vertex copies, so a ray inside never meets an exit face and the
+  // stone renders as reflection only. Weld by position for tracing while the draw
+  // geometry keeps its flat facet normals.
+  const tracingSource=geometry.clone();
+  tracingSource.deleteAttribute('normal');tracingSource.deleteAttribute('uv');tracingSource.deleteAttribute('tangent');
+  const tracingGeometry=mergeVertices(tracingSource,1e-5);
+  tracingSource.dispose();
   // Material groups create multiple roots; one optical medium needs one BVH root.
   tracingGeometry.clearGroups();
   try{bvh.updateFrom(new MeshBVH(tracingGeometry,{strategy:SAH}));}
