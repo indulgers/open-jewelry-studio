@@ -14,6 +14,7 @@ import {JewelryLighting,clearJewelryLightingCache} from './JewelryLighting';
 import {JewelryShadows} from './JewelryShadows';
 import {ProductRing} from './ProductRing';
 import {StudioFillLights} from './StudioFillLights';
+import {StudioBackdrop} from './StudioBackdrop';
 import {LooseGem} from './LooseGem';
 import {REFERENCE_ASSETS,type ModelMode} from '../assets/referenceManifest';
 import {JewelryPostprocessing} from './JewelryPostprocessing';
@@ -94,11 +95,11 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
   return <section className="stage" aria-label="戒指三维预览">
     <ViewerBoundary onRetry={retry} onError={()=>setFailed(true)}>
       <Canvas key={attempt} dpr={[1,settings.maxDpr]} camera={{position:[2.9,2.6,4.7],fov:32,near:0.1,far:50}}
-        frameloop={autoRotate||!ready?'always':'demand'} gl={{antialias:true,alpha:false,powerPreference:'high-performance',preserveDrawingBuffer:true}}
+        frameloop={autoRotate||!ready?'always':'demand'} gl={{antialias:true,alpha:true,powerPreference:'high-performance',preserveDrawingBuffer:true}}
         fallback={<div className="viewer-message" role="alert" aria-hidden={rendererCreated||undefined}><p>当前浏览器无法使用三维预览，以下为固定样板图。</p><ProductGallery images={SAMPLE_IMAGES} sample/></div>}
         onCreated={({gl})=>{
           setRendererCreated(true);
-          gl.toneMapping=NeutralToneMapping;gl.toneMappingExposure=1;gl.outputColorSpace=SRGBColorSpace;
+          gl.toneMapping=NeutralToneMapping;gl.toneMappingExposure=1;gl.outputColorSpace=SRGBColorSpace;gl.setClearAlpha(0);
           gl.debug.onShaderError=(context,program,vertex,fragment)=>{
             console.error('Jewelry material compilation failed',{
               vertex:context.getShaderInfoLog(vertex),fragment:context.getShaderInfoLog(fragment),

@@ -1,4 +1,4 @@
-import {Color,DoubleSide,Mesh,MeshBasicMaterial,MeshDepthMaterial,OrthographicCamera,PlaneGeometry,
+import {Color,DoubleSide,Mesh,MeshDepthMaterial,OrthographicCamera,PlaneGeometry,
   Scene,ShaderMaterial,UniformsUtils,WebGLRenderTarget,type WebGLRenderer} from 'three';
 import {HorizontalBlurShader,VerticalBlurShader} from 'three-stdlib';
 
@@ -21,8 +21,20 @@ export function createContactShadowResources(resolution:number){
     uniforms:UniformsUtils.clone(HorizontalBlurShader.uniforms),depthTest:false,depthWrite:false});
   const verticalMaterial=new ShaderMaterial({...VerticalBlurShader,
     uniforms:UniformsUtils.clone(VerticalBlurShader.uniforms),depthTest:false,depthWrite:false});
-  const displayMaterial=new MeshBasicMaterial({map:target.texture,transparent:true,opacity:0.45,
-    depthWrite:false,side:DoubleSide,toneMapped:false});
+  // A finite ground plane would otherwise end in a visible horizon seam on the
+  // transparent canvas. Fade the alpha well before the plane edge; the shadow itself
+  // stays inside the central third of the texture.
+  const displayMaterial=new ShaderMaterial({
+    uniforms:{map:{value:target.texture},opacity:{value:0.72}},
+    vertexShader:/* glsl */`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:/* glsl */`uniform sampler2D map;uniform float opacity;varying vec2 vUv;
+      void main(){
+        vec4 shadow=texture2D(map,vUv);
+        float edge=1.0-smoothstep(0.22,0.34,max(abs(vUv.x-0.5),abs(vUv.y-0.5)));
+        gl_FragColor=vec4(vec3(0.0),shadow.a*opacity*edge);
+      }`,
+    transparent:true,depthWrite:false,side:DoubleSide,
+  });
   const shadowCamera=new OrthographicCamera(-4,4,4,-4,0,3);
   shadowCamera.position.set(0,GROUND_Y,0);shadowCamera.up.set(0,0,1);
   shadowCamera.lookAt(0,1,0);shadowCamera.updateMatrixWorld();

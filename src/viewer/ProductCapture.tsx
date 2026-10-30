@@ -38,7 +38,15 @@ export function ProductCapture({request,contentKey,modelMode,simplified,ready,on
     if(current.frames>150){current.restore();cycle.current=null;callbacks.current.onProgress('画面尚未稳定，请停止操作后重试。');return;}
     if(current.frames<3||(!simplified&&Number(gl.domElement.dataset.refinementSamples??0)<32)){invalidate();return;}
     try{
-      const url=gl.domElement.toDataURL('image/jpeg',0.94);
+      // The live canvas is transparent so the studio sweep can be styled in CSS.
+      // Flatten onto paper for the downloadable product frame.
+      const source=gl.domElement,flatten=document.createElement('canvas');
+      flatten.width=source.width;flatten.height=source.height;
+      const context=flatten.getContext('2d');
+      if(!context)throw new Error('Missing 2D context');
+      context.fillStyle='#fbfaf7';context.fillRect(0,0,flatten.width,flatten.height);
+      context.drawImage(source,0,0);
+      const url=flatten.toDataURL('image/jpeg',0.94);
       if(url==='data:,')throw new Error('Empty canvas');
       current.images.push({view,url,label:VIEW_LABELS[view]});current.index++;
       if(current.index===PRODUCT_VIEWS.length){
