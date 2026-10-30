@@ -10,6 +10,7 @@ import {ATELIER_GEMS,atelierGem,type GemShapeId} from './assets/atelierManifest'
 import {STUDIO_PRESETS,type StudioPresetId} from './viewer/studioPresets';
 import {SAMPLE_IMAGES,type ProductImage} from './assets/productMedia';
 import {FINISHED_RINGS,finishedRing,type FinishedRingId} from './assets/finishedRings';
+import {STAGE_MODES,type StageMode} from './viewer/stageMode';
 import {ProductGallery} from './components/ProductGallery';
 const JewelryStage=lazy(()=>import('./viewer/JewelryStage').then(module=>({default:module.JewelryStage})));
 
@@ -25,6 +26,7 @@ export default function App(){
   const [gemShape,setGemShape]=useState<GemShapeId>('round');
   const [ringStyle,setRingStyle]=useState<FinishedRingId>('solitaire');
   const [studioPreset,setStudioPreset]=useState<StudioPresetId>('catalog');
+  const [stageMode,setStageMode]=useState<StageMode>('listing');
   const [display,setDisplay]=useState<'3d'|'images'>('3d');
   const [images,setImages]=useState<ProductImage[]|null>(null);
   const [captureRequest,setCaptureRequest]=useState(0),[captureBusy,setCaptureBusy]=useState(false),[captureMessage,setCaptureMessage]=useState('');
@@ -44,7 +46,7 @@ export default function App(){
     const running=value.startsWith('正在生成');setCaptureMessage(value);setCaptureBusy(running);
     if(!running)setCaptureRequest(0);
   },[]);
-  useEffect(()=>{setImages(null);setCaptureMessage('');},[configuration,modelMode,gemShape,ringStyle,studioPreset,quality]);
+  useEffect(()=>{setImages(null);setCaptureMessage('');},[configuration,modelMode,gemShape,ringStyle,stageMode,studioPreset,quality]);
   useEffect(()=>{
     if(!captureBusy)return;
     // Also ends a capture if the browser stops delivering animation frames.
@@ -64,7 +66,7 @@ export default function App(){
       <div className="preview-column"><div className="preview-heading"><h1>{modelMode==='gem'?'每一种切工，都有自己的光。':modelMode==='reference'?'光，落在切面之间。':configuration.shankStyle==='plain'?'纯粹，恰如其分。':'交汇，自有光芒。'}</h1>
         <p>{modelMode==='gem'?atelierGem(gemShape).name:modelMode==='reference'?finishedRing(ringStyle).note:configuration.shankStyle==='plain'?'素圈戒臂':'分叉戒臂'}<span> / </span>{modelMode==='gem'?STUDIO_PRESETS[studioPreset].name:METALS[configuration.metalFinish].name}</p></div>
         {display==='images'?<ProductGallery images={images??SAMPLE_IMAGES} sample={!images}/>:<Suspense fallback={<div className="loading-indicator" role="status">正在准备三维预览</div>}>
-          <JewelryStage {...{configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,gemShape,ringStyle,studioPreset,captureRequest,onImages,onCaptureProgress,captureBusy}} onCaptureReady={setCaptureReady}/>
+          <JewelryStage {...{configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,gemShape,ringStyle,stageMode,studioPreset,captureRequest,onImages,onCaptureProgress,captureBusy}} onCaptureReady={setCaptureReady}/>
         </Suspense>}
         {display==='3d'&&<div className="preview-footer"><span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7h14M6 4 3 7l3 3m8 0 3-3-3-3M7 13h6m-3-2v6"/></svg>拖动旋转 · 滚轮或双指缩放</span><span>实时 3D</span></div>}
       </div>
@@ -80,6 +82,7 @@ export default function App(){
             :modelMode==='reference'&&<fieldset className="ring-style-field"><legend>成品款式 <span>{FINISHED_RINGS.length} 款</span></legend><div className="ring-styles">{FINISHED_RINGS.map(ring=>
               <button key={ring.id} aria-pressed={ringStyle===ring.id} onClick={()=>{setRingStyle(ring.id);setResetToken(n=>n+1);}}><strong>{ring.name}</strong><span>{ring.note}</span></button>)}</div><p className="field-help">成品模型来自本地 WebGI 珠宝样板（仅作研究），保留原始雕蜡与宝石切工。</p></fieldset>}
           <fieldset><legend>观察光线</legend><div className="preset-choices">{Object.values(STUDIO_PRESETS).map(preset=><button key={preset.id} aria-pressed={studioPreset===preset.id} onClick={()=>setStudioPreset(preset.id)}>{preset.name}</button>)}</div><p className="field-help">{STUDIO_PRESETS[studioPreset].description}</p></fieldset>
+          <fieldset><legend>展台背景</legend><div className="preset-choices">{STAGE_MODES.map(mode=><button key={mode.id} aria-pressed={stageMode===mode.id} onClick={()=>setStageMode(mode.id)}>{mode.name}</button>)}</div><p className="field-help">{STAGE_MODES.find(mode=>mode.id===stageMode)?.note}；商品图导出会压到白底。</p></fieldset>
           <div className="media-modes" role="group" aria-label="预览方式"><button aria-pressed={display==='3d'} onClick={()=>setDisplay('3d')}>实时 3D</button><button aria-pressed={display==='images'} onClick={()=>setDisplay('images')}>商品图片</button></div>
           <Configurator {...{configuration,dispatch,quality,onQualityChange,autoRotate,onAutoRotateChange}} reference={modelMode!=='procedural'} hideStructure={modelMode!=='procedural'} stoneOnly={modelMode==='gem'} onSave={save} onResetView={()=>setResetToken(n=>n+1)}/>
         </fieldset>

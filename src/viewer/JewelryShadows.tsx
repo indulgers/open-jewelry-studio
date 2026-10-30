@@ -5,8 +5,8 @@ import type {Configuration} from '../configuration/configuration';
 import {qualitySettings,type Quality} from './quality';
 import {createContactShadowResources,renderContactShadow,GROUND_Y,type ContactShadowResources} from './contactShadowResources';
 
-export function JewelryShadows({configuration,quality,simplified,contentKey,ready}:{
-  configuration:Configuration;quality:Quality;simplified:boolean;contentKey:string;ready:boolean;
+export function JewelryShadows({configuration,quality,simplified,contentKey,ready,shadowOpacity=0.72}:{
+  configuration:Configuration;quality:Quality;simplified:boolean;contentKey:string;ready:boolean;shadowOpacity?:number;
 }){
   const {gl,scene,invalidate}=useThree();
   const ground=useRef<Mesh>(null),dirty=useRef(true);
@@ -20,6 +20,10 @@ export function JewelryShadows({configuration,quality,simplified,contentKey,read
   useLayoutEffect(()=>{
     dirty.current=true;invalidate();
   },[configuration.shankStyle,configuration.stoneSize,resources,shadowBlurPasses,contentKey,ready,invalidate]);
+  useLayoutEffect(()=>{
+    if(!resources)return;
+    resources.displayMaterial.uniforms.opacity.value=shadowOpacity;invalidate();
+  },[resources,shadowOpacity,invalidate]);
   useFrame(()=>{
     if(!ready||!dirty.current||!resources||!ground.current)return;
     renderContactShadow(gl,scene,ground.current,resources,shadowBlurPasses);

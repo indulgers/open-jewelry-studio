@@ -44,7 +44,7 @@ export function ProductCapture({request,contentKey,modelMode,simplified,ready,on
       flatten.width=source.width;flatten.height=source.height;
       const context=flatten.getContext('2d');
       if(!context)throw new Error('Missing 2D context');
-      context.fillStyle='#fbfaf7';context.fillRect(0,0,flatten.width,flatten.height);
+      context.fillStyle='#ffffff';context.fillRect(0,0,flatten.width,flatten.height);
       context.drawImage(source,0,0);
       const url=flatten.toDataURL('image/jpeg',0.94);
       if(url==='data:,')throw new Error('Empty canvas');
