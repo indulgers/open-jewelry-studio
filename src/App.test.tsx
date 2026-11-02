@@ -14,6 +14,7 @@ vi.mock('./viewer/JewelryStage',()=>({JewelryStage:({onCaptureReady,onCapturePro
 }}));
 
 beforeEach(()=>{
+  window.history.replaceState(null,'','/');
   vi.stubGlobal('matchMedia',()=>({matches:false,addEventListener:()=>{},removeEventListener:()=>{}}));
 });
 afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();});
@@ -51,5 +52,31 @@ describe('product export lifecycle',()=>{
     expect(screen.getByText('生成超时，请等待预览恢复后重试。')).toBeInTheDocument();
     expect(screen.getByRole('button',{name:'商品图片'})).toBeEnabled();
     expect(screen.getByLabelText('待处理出图请求')).toHaveTextContent('0');
+  });
+});
+
+describe('shared studio navigation',()=>{
+  it('loads the module editor on demand and retains its frame across tabs',async()=>{
+    await loaded();
+    expect(screen.queryByTitle('FORME 模组 DIY 设计工作台')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab',{name:'模组 DIY'}));
+    const frame=screen.getByTitle('FORME 模组 DIY 设计工作台');
+    expect(frame).toHaveAttribute('src','/forme/index.html?embedded=1');
+    expect(window.location.hash).toBe('#/modules');
+    expect(screen.queryByText('测试模型就绪')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab',{name:'珠宝展台'}));
+    await screen.findByRole('button',{name:'测试模型就绪'});
+    fireEvent.click(screen.getByRole('tab',{name:'模组 DIY'}));
+    expect(screen.getByTitle('FORME 模组 DIY 设计工作台')).toBe(frame);
+  });
+  it('opens shared designs in the module tab and supports browser navigation',async()=>{
+    window.history.replaceState(null,'','/#/modules?design=example');
+    render(<App/>);
+    expect(screen.getByRole('tab',{name:'模组 DIY'})).toHaveAttribute('aria-selected','true');
+    expect(screen.getByTitle('FORME 模组 DIY 设计工作台')).toHaveAttribute('src','/forme/index.html?embedded=1#design=example');
+    act(()=>{window.history.replaceState(null,'','/#/showroom');window.dispatchEvent(new HashChangeEvent('hashchange'));});
+    expect(screen.getByRole('tab',{name:'珠宝展台'})).toHaveAttribute('aria-selected','true');
+    fireEvent.keyDown(screen.getByRole('tab',{name:'珠宝展台'}),{key:'ArrowRight'});
+    expect(screen.getByRole('tab',{name:'模组 DIY'})).toHaveFocus();
   });
 });

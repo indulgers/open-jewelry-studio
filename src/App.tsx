@@ -12,13 +12,14 @@ import {SAMPLE_IMAGES,type ProductImage} from './assets/productMedia';
 import {FINISHED_RINGS,finishedRing,type FinishedRingId} from './assets/finishedRings';
 import {STAGE_MODES,type StageMode} from './viewer/stageMode';
 import {ProductGallery} from './components/ProductGallery';
+import {ModuleStudio} from './components/ModuleStudio';
 const JewelryStage=lazy(()=>import('./viewer/JewelryStage').then(module=>({default:module.JewelryStage})));
 
 function restore(){
   try{return loadConfiguration(window.localStorage);}
   catch{return loadConfiguration({getItem:()=>{throw new Error('Storage blocked');}});}
 }
-export default function App(){
+function JewelryStudio({active}:{active:boolean}){
   const [initial]=useState(restore);
   const [configuration,dispatch]=useReducer(configurationReducer,initial.configuration);
   const [quality,onQualityChange]=useState<Quality>('standard');
@@ -59,6 +60,7 @@ export default function App(){
     const timer=window.setTimeout(()=>onCaptureProgress('生成超时，请等待预览恢复后重试。'),60000);
     return()=>window.clearTimeout(timer);
   },[captureBusy,onCaptureProgress]);
+  useEffect(()=>{if(!active){setCaptureBusy(false);setCaptureRequest(0);setCaptureMessage('');setCaptureReady(false);}},[active]);
   const capture=()=>{onAutoRotateChange(false);setCaptureBusy(true);setCaptureMessage('正在生成商品预览');setCaptureRequest(n=>n+1);};
   const catalogSample=modelMode==='reference'&&ringStyle==='solitaire'&&configuration.metalFinish==='yellow'
     &&stageMode==='listing'&&studioPreset==='catalog'&&quality==='standard';
@@ -71,14 +73,11 @@ export default function App(){
     try{const result=saveConfiguration(window.localStorage,configuration);setMessage(result.ok?'已保存，刷新页面后可继续。':result.warning??'保存失败。');}
     catch{setMessage('浏览器未允许保存，当前选择仍然保留。');}
   };
-  return <div className="app-shell">
-    <header className="site-header"><a className="brand" href="/" aria-label="戒指实验室首页">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m5 11 6-6h10l6 6-11 17L5 11Zm0 0h22M11 5l5 23L21 5M11 5l-1 6m11-6 1 6"/></svg>
-      <span>戒指实验室</span></a><span className="header-note">让想法，成为形状。</span><span className="demo-tag">开源技术演示</span></header>
+  return <div>
     <main className="studio-layout">
       <div className="preview-column"><div className="preview-heading"><h1>{modelMode==='gem'?'每一种切工，都有自己的光。':modelMode==='reference'?'光，落在切面之间。':configuration.shankStyle==='plain'?'纯粹，恰如其分。':'交汇，自有光芒。'}</h1>
         <p>{modelMode==='gem'?atelierGem(gemShape).name:modelMode==='reference'?finishedRing(ringStyle).note:configuration.shankStyle==='plain'?'素圈戒臂':'分叉戒臂'}<span> / </span>{modelMode==='gem'?STUDIO_PRESETS[studioPreset].name:METALS[configuration.metalFinish].name}</p></div>
-        {display==='images'?<ProductGallery images={images??SAMPLE_IMAGES}/>:<Suspense fallback={<div className="loading-indicator" role="status">{poster&&<img className="catalog-poster" src={poster} alt="黄金色枕形光环戒指"/>}正在准备三维预览</div>}>
+        {!active?null:display==='images'?<ProductGallery images={images??SAMPLE_IMAGES}/>:<Suspense fallback={<div className="loading-indicator" role="status">{poster&&<img className="catalog-poster" src={poster} alt="黄金色枕形光环戒指"/>}正在准备三维预览</div>}>
           <JewelryStage {...{configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,gemShape,ringStyle,stageMode,studioPreset,captureRequest,onImages,onCaptureProgress,captureBusy,poster}} onCaptureReady={setCaptureReady}/>
         </Suspense>}
         {display==='3d'&&<div className="preview-footer"><span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7h14M6 4 3 7l3 3m8 0 3-3-3-3M7 13h6m-3-2v6"/></svg>拖动旋转 · 滚轮或双指缩放</span><span>实时 3D</span></div>}
@@ -106,5 +105,31 @@ export default function App(){
       </aside>
     </main>
     <footer className="site-footer"><span>开源渲染样板，展示比例不代表实际克拉或生产规格。</span><span>成品戒指 / 19 款切工 / 结构 DIY</span></footer>
+  </div>;
+}
+
+const tabs=[{id:'showroom',label:'珠宝展台'},{id:'modules',label:'模组 DIY'}] as const;
+type StudioTab=typeof tabs[number]['id'];
+const readTab=():StudioTab=>window.location.hash.startsWith('#/modules')?'modules':'showroom';
+export default function App(){
+  const [tab,setTab]=useState<StudioTab>(readTab);
+  const [modulesVisited,setModulesVisited]=useState(()=>readTab()==='modules');
+  useEffect(()=>{
+    const sync=()=>{const next=readTab();setTab(next);if(next==='modules')setModulesVisited(true);};
+    window.addEventListener('hashchange',sync);return()=>window.removeEventListener('hashchange',sync);
+  },[]);
+  const select=(next:StudioTab)=>{setTab(next);if(next==='modules')setModulesVisited(true);window.location.hash=next==='modules'?'/modules':'/showroom';};
+  return <div className="app-shell">
+    <header className="site-header"><a className="brand" href="/" aria-label="戒指实验室首页">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m5 11 6-6h10l6 6-11 17L5 11Zm0 0h22M11 5l5 23L21 5M11 5l-1 6m11-6 1 6"/></svg>
+      <span>戒指实验室</span></a><span className="header-note">让想法，成为形状。</span><span className="demo-tag">开源技术演示</span></header>
+    <div className="workspace-tabs" role="tablist" aria-label="工作空间">
+      {tabs.map((item,index)=><button key={item.id} id={`tab-${item.id}`} role="tab" aria-selected={tab===item.id} aria-controls={`panel-${item.id}`} tabIndex={tab===item.id?0:-1} onClick={()=>select(item.id)} onKeyDown={event=>{
+        const target=event.key==='Home'?0:event.key==='End'?tabs.length-1:event.key==='ArrowRight'?(index+1)%tabs.length:event.key==='ArrowLeft'?(index+tabs.length-1)%tabs.length:null;
+        if(target===null)return;event.preventDefault();select(tabs[target].id);document.getElementById(`tab-${tabs[target].id}`)?.focus();
+      }}>{item.label}</button>)}
+    </div>
+    <section id="panel-showroom" role="tabpanel" aria-labelledby="tab-showroom" hidden={tab!=='showroom'}><JewelryStudio active={tab==='showroom'}/></section>
+    <section id="panel-modules" role="tabpanel" aria-labelledby="tab-modules" hidden={tab!=='modules'}>{modulesVisited&&<ModuleStudio active={tab==='modules'}/>}</section>
   </div>;
 }
