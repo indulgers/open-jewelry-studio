@@ -3,14 +3,13 @@ export function qualitySettings(quality:Quality,simplified=false){
   const high=quality==='high';
   return {
     maxDpr:high?2:1.75,
-    bounces:high?7:5,
+    bounces:high?10:7,
     aberrationStrength:0.004,
     fastChroma:false,
     reflectionResolution:simplified?0:high?1024:512,
     postprocessing:!simplified,
     shadowResolution:simplified?256:high?1024:512,
     shadowBlurPasses:!simplified&&high?2:1,
-    bloomIntensity:high?0.007:0.004,
     multisampling:high?4:2,
   };
 }

@@ -26,8 +26,8 @@ import {PRODUCT_VIEWS,VIEW_LABELS,SAMPLE_IMAGES,type ProductImage} from '../asse
 import {ProductCapture} from './ProductCapture';
 import {ProductGallery} from '../components/ProductGallery';
 
-function JewelryScene({configuration,quality,simplified,onReady,modelMode,autoRotate,preset,gemShape,ringStyle,stageMode}:{
-  configuration:Configuration;quality:Quality;simplified:boolean;onReady:()=>void;modelMode:ModelMode;autoRotate:boolean;preset:StudioPreset;gemShape:GemShapeId;ringStyle:FinishedRingId;stageMode:StageMode;
+function JewelryScene({configuration,quality,simplified,onReady,modelMode,captureBusy,preset,gemShape,ringStyle,stageMode}:{
+  configuration:Configuration;quality:Quality;simplified:boolean;onReady:()=>void;modelMode:ModelMode;captureBusy:boolean;preset:StudioPreset;gemShape:GemShapeId;ringStyle:FinishedRingId;stageMode:StageMode;
 }){
   const settings=qualitySettings(quality,simplified);
   const gl=useThree(s=>s.gl),invalidate=useThree(s=>s.invalidate);
@@ -39,8 +39,8 @@ function JewelryScene({configuration,quality,simplified,onReady,modelMode,autoRo
       :<RingAssembly {...{configuration,preset}}>
       <GemAsset size={configuration.stoneSize} {...{quality,simplified,environment,onReady,preset}}/>
     </RingAssembly>}</JewelryLighting>
-    <JewelryShadows key={`${modelMode}/${gemShape}/${ringStyle}`} {...{configuration,quality,simplified}} contentKey={ringStyle} ready shadowOpacity={stageMode==='listing'?0.46:0.72}/>
-    {settings.postprocessing&&<JewelryPostprocessing quality={quality} active={autoRotate}
+    <JewelryShadows key={`${modelMode}/${gemShape}/${ringStyle}`} {...{configuration,quality,simplified}} contentKey={ringStyle} ready shadowOpacity={stageMode==='listing'?0.28:0.72}/>
+    {settings.postprocessing&&<JewelryPostprocessing quality={quality} capturing={captureBusy}
       contentKey={`${modelMode}/${ringStyle}/${gemShape}/${stageMode}/${preset.id}/${configuration.shankStyle}/${configuration.metalFinish}/${configuration.stoneSize}`}/>}
   </>;
 }
@@ -61,15 +61,15 @@ function CameraControl({autoRotate,resetToken,inspection,onPerformanceWarning,mo
     samples.current=result.sample;
     if(result.warn&&!warned.current){warned.current=true;onPerformanceWarning();}
   });
-  return <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping dampingFactor={0.08}
-    minDistance={1.5} maxDistance={9} minPolarAngle={0.18} maxPolarAngle={Math.PI/2-0.03}
+  return <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping={false}
+    minDistance={1.5} maxDistance={9} minPolarAngle={0.015} maxPolarAngle={Math.PI/2-0.03}
     autoRotate={autoRotate&&!interacting} autoRotateSpeed={0.7}
     onStart={()=>setInteracting(true)} onEnd={()=>setInteracting(false)} target={cameraView(inspection,compact,modelMode).target}/>;
 }
 
-export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,studioPreset,gemShape,ringStyle,stageMode,captureRequest,onImages,onCaptureProgress,captureBusy,onCaptureReady}:{
+export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,studioPreset,gemShape,ringStyle,stageMode,captureRequest,onImages,onCaptureProgress,captureBusy,onCaptureReady,poster}:{
   configuration:Configuration;quality:Quality;autoRotate:boolean;resetToken:number;onPerformanceWarning:()=>void;modelMode:ModelMode;ringStyle:FinishedRingId;stageMode:StageMode;
-  studioPreset:StudioPresetId;gemShape:GemShapeId;captureRequest:number;onImages:(images:ProductImage[])=>void;onCaptureProgress:(message:string)=>void;captureBusy:boolean;onCaptureReady:(ready:boolean)=>void;
+  studioPreset:StudioPresetId;gemShape:GemShapeId;captureRequest:number;onImages:(images:ProductImage[])=>void;onCaptureProgress:(message:string)=>void;captureBusy:boolean;onCaptureReady:(ready:boolean)=>void;poster?:string;
 }){
   const [readyMode,setReadyMode]=useState<string|null>(null),[simplified,setSimplified]=useState(false),[contextLost,setContextLost]=useState(false);
   const [failed,setFailed]=useState(false);
@@ -118,12 +118,12 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
         {stageMode==='gallery'&&<StudioBackdrop/>}
         <StudioFillLights/>
         <Suspense fallback={null}>
-          <JewelryScene {...{configuration,quality,simplified,modelMode,autoRotate,preset,gemShape,ringStyle,stageMode}} onReady={readyCallback}/>
+          <JewelryScene {...{configuration,quality,simplified,modelMode,captureBusy,preset,gemShape,ringStyle,stageMode}} onReady={readyCallback}/>
         </Suspense>
         <CameraControl {...{autoRotate,resetToken,inspection,onPerformanceWarning,modelMode}}/>
         <ProductCapture request={captureRequest} {...{contentKey,modelMode,simplified,ready,onImages}} onProgress={onCaptureProgress}/>
       </Canvas>
-      {rendererCreated&&!ready&&<div className="loading-indicator" role="status"><span/>正在准备你的戒指</div>}
+      {rendererCreated&&!ready&&<div className="loading-indicator" role="status">{poster&&<img className="catalog-poster" src={poster} alt="黄金色枕形光环戒指"/>}<span/>正在准备你的戒指</div>}
     </ViewerBoundary>
     <div className="inspection-views" role="group" aria-label="观察视角">
       {PRODUCT_VIEWS.map(view=><button key={view} disabled={captureBusy} aria-pressed={inspection===view}

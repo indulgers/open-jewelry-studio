@@ -12,16 +12,21 @@ describe('open gemstone optics',()=>{
   });
   it('uses actual mirrored/jittered draw camera and framebuffer pixel dimensions',()=>{
     const geometry=new BoxGeometry(),environment=new DataTexture(),owned=createGemOptics(geometry,environment,'standard');
+    expect(owned.material.uniforms.stoneDiameter.value).toBeCloseTo(Math.sqrt(3));
     const camera=new PerspectiveCamera(25,1,0.1,50);camera.position.set(1,-3,4);camera.updateMatrixWorld();
     camera.setViewOffset(512,512,0.25,-0.25,512,512);
     let target:WebGLRenderTarget|null=new WebGLRenderTarget(512,512);
     const renderer={getRenderTarget:()=>target,getDrawingBufferSize:(out:Vector2)=>out.set(1800,1200)} as WebGLRenderer;
     syncGemDraw(owned.material,renderer,camera);
     expect(owned.material.uniforms.resolution.value.toArray()).toEqual([512,512]);
+    expect(owned.material.uniforms.detailResolution.value.toArray()).toEqual([1800,1200]);
     expect(owned.material.uniforms.viewMatrixInverse.value.equals(camera.matrixWorld)).toBe(true);
     const inverse=owned.material.uniforms.projectionMatrixInverse.value as Matrix4;
     expect(new Matrix4().multiplyMatrices(camera.projectionMatrix,inverse).elements[0]).toBeCloseTo(1);
     expect(inverse.equals(new Matrix4().copy(camera.projectionMatrix).invert())).toBe(true);
+    target!.setSize(256,256);syncGemDraw(owned.material,renderer,camera);
+    expect(owned.material.uniforms.resolution.value.toArray()).toEqual([256,256]);
+    expect(owned.material.uniforms.detailResolution.value.toArray()).toEqual([1800,1200]);
     target!.dispose();target=null;syncGemDraw(owned.material,renderer,camera);
     expect(owned.material.uniforms.resolution.value.toArray()).toEqual([1800,1200]);
     owned.dispose();geometry.dispose();environment.dispose();

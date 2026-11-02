@@ -18,12 +18,12 @@ const fragmentShader=/* glsl */`
 precision highp isampler2D;
 precision highp usampler2D;
 varying vec3 vWorldPosition;
-varying vec3 vNormal;
 varying mat4 vModelMatrixInverse;
 uniform sampler2D envMap;
 uniform float bounces;
 uniform float ior;
 uniform float aberrationStrength;
+uniform float stoneDiameter;
 uniform float environmentIntensity;
 uniform float environmentRotation;
 uniform bool hasMount;
@@ -31,6 +31,7 @@ uniform vec3 mountColor;
 uniform float mountRoughness;
 uniform vec3 attenuation;
 uniform vec2 resolution;
+uniform vec2 detailResolution;
 uniform mat4 projectionMatrixInverse;
 uniform mat4 viewMatrixInverse;
 uniform mat4 modelMatrix;
@@ -39,6 +40,7 @@ ${shaderIntersectFunction}
 uniform BVH bvh;
 uniform BVH mountBvh;
 #include <common>
+float mountDetail;
 
 vec3 rotateEnvironment(vec3 d){
   float c=cos(environmentRotation),s=sin(environmentRotation);
@@ -57,7 +59,11 @@ float fresnelDielectric(float c,float n1,float n2){
   return (rs*rs+rp*rp)*0.5;
 }
 vec3 outsideRadiance(vec3 origin,vec3 direction,vec3 smoothRay){
-  if(hasMount){
+  // A soft camera obstruction preserves dark facets against the white sweep.
+  float facingObserver=dot(direction,normalize(cameraPosition-origin));
+  float obstruction=smoothstep(0.9563,0.9848,facingObserver);
+  vec3 studio=environment(direction,smoothRay)*mix(1.0,0.12,obstruction);
+  if(hasMount&&mountDetail>0.0){
     uvec4 face=uvec4(0u);vec3 normal=vec3(0.0,1.0,0.0),bary=vec3(0.0);float side=1.0,distance=0.0;
     if(bvhIntersectFirstHit(mountBvh,origin+direction*0.00015,direction,face,normal,bary,side,distance)){
       normal=normalize(normal);if(dot(normal,direction)>0.0)normal=-normal;
@@ -68,13 +74,10 @@ vec3 outsideRadiance(vec3 origin,vec3 direction,vec3 smoothRay){
       radiance+=environment(normalize(reflected+t*mountRoughness),smoothRay)*0.25;
       radiance+=environment(normalize(reflected-t*mountRoughness),smoothRay)*0.25;
       vec3 f=mix(mountColor,vec3(1),pow(1.0-clamp(dot(-direction,normal),0.0,1.0),5.0));
-      return radiance*f;
+      return mix(studio,radiance*f,mountDetail);
     }
   }
-  // shortcut: a soft camera/observer cone, replace with an explicit capture rig for measured assets.
-  float facingObserver=dot(direction,normalize(cameraPosition-origin));
-  float obstruction=smoothstep(0.9563,0.9848,facingObserver);
-  return environment(direction,smoothRay)*mix(1.0,0.12,obstruction);
+  return studio;
 }
 vec3 traceRadiance(vec3 incoming,vec3 normal,float eta,vec3 smoothRay){
   vec3 direction=refract(incoming,normal,1.0/eta);
@@ -108,19 +111,25 @@ vec3 traceRadiance(vec3 incoming,vec3 normal,float eta,vec3 smoothRay){
 }
 void main(){
   vec3 incident=normalize(vWorldPosition-cameraPosition);
-  vec3 normal=normalize(vNormal);
+  // Use the same planar facet for entry as the BVH uses for internal hits.
+  vec3 normal=normalize(cross(dFdx(vWorldPosition),dFdy(vWorldPosition)));
   if(dot(incident,normal)>0.0)normal=-normal;
   vec2 uv=gl_FragCoord.xy/resolution;
   vec3 smoothRay=(projectionMatrixInverse*vec4(uv*2.0-1.0,0.0,1.0)).xyz;
   smoothRay=normalize((viewMatrixInverse*vec4(smoothRay,0.0)).xyz);
-  vec3 transmitted=vec3(traceRadiance(incident,normal,ior*(1.0-aberrationStrength),smoothRay).r,
-    traceRadiance(incident,normal,ior,smoothRay).g,traceRadiance(incident,normal,ior*(1.0+aberrationStrength),smoothRay).b);
+  float scale=max(length(modelMatrix[0].xyz),max(length(modelMatrix[1].xyz),length(modelMatrix[2].xyz)));
+  float pixelDiameter=stoneDiameter*scale*detailResolution.y*0.5*gl_FragCoord.w/projectionMatrixInverse[1][1];
+  // A small accent samples the studio; resolve the nearby prongs as their reflection becomes visible.
+  mountDetail=smoothstep(24.0,48.0,pixelDiameter);
+  vec3 transmitted=traceRadiance(incident,normal,ior,smoothRay);
+  // Resolve separate wavelengths as the stone grows on screen; tiny pavé keeps one full-color path.
+  float spread=aberrationStrength*smoothstep(24.0,52.0,pixelDiameter);
+  if(spread>0.0){
+    transmitted.r=traceRadiance(incident,normal,ior*(1.0-spread),smoothRay).r;
+    transmitted.b=traceRadiance(incident,normal,ior*(1.0+spread),smoothRay).b;
+  }
   float fresnel=fresnelDielectric(dot(-incident,normal),1.0,ior);
   vec3 reflected=outsideRadiance(vWorldPosition,reflect(incident,normal),smoothRay);
-  // A trace budget that ends inside the stone is absorbed; lift the remaining
-  // energy a touch so photographed diamonds keep their white body instead of
-  // collapsing to black between bright facets.
-  transmitted=transmitted*1.05+0.006;
   gl_FragColor=vec4(mix(transmitted,reflected,fresnel),1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -131,6 +140,8 @@ export function syncGemDraw(material:ShaderMaterial,renderer:WebGLRenderer,camer
   uniforms.viewMatrixInverse.value.copy(camera.matrixWorld);
   // Reflector oblique clipping changes projectionMatrix without updating its inverse.
   uniforms.projectionMatrixInverse.value.copy(camera.projectionMatrix).invert();
+  // Optical detail follows the display size, even when motion lowers the render resolution.
+  renderer.getDrawingBufferSize(uniforms.detailResolution.value);
   const resolution=uniforms.resolution.value as Vector2;
   if(target)resolution.set(target.width,target.height);else renderer.getDrawingBufferSize(resolution);
 }
@@ -166,6 +177,9 @@ export function createGemOptics(geometry:BufferGeometry,environment:Texture,qual
   material.uniforms.bvh.value=bvh;
   material.uniforms.bounces.value=settings.bounces;
   material.uniforms.ior.value=2.42;
+  if(!geometry.boundingSphere)geometry.computeBoundingSphere();
+  material.uniforms.detailResolution={value:new Vector2()};
+  material.uniforms.stoneDiameter={value:geometry.boundingSphere!.radius*2};
   material.uniforms.aberrationStrength.value=settings.aberrationStrength;
   material.uniforms.environmentIntensity={value:1.0};
   material.uniforms.environmentRotation={value:0};material.uniforms.hasMount={value:false};

@@ -25,8 +25,8 @@ export const FINISHED_RINGS: FinishedRing[] = [
   },
   {
     id: 'solitaire',
-    name: '铺钻单钻',
-    note: '圆形主石 · 密钉戒臂',
+    name: '枕形光环',
+    note: '圆角方形主石 · 密钉戒臂',
     url: '/models/webgi/ring2_webgi3.glb',
     draco: DRACO,
     rotation: [0, 0, 0],

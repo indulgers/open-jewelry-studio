@@ -10,7 +10,7 @@ export function createContactShadowResources(resolution:number){
   const target=new WebGLRenderTarget(resolution,resolution),blurTarget=new WebGLRenderTarget(resolution,resolution);
   target.texture.generateMipmaps=blurTarget.texture.generateMipmaps=false;
   const planeGeometry=new PlaneGeometry(8,8),quadGeometry=new PlaneGeometry(2,2);
-  const depthMaterial=new MeshDepthMaterial({depthTest:false,depthWrite:false});
+  const depthMaterial=new MeshDepthMaterial();
   depthMaterial.onBeforeCompile=shader=>{
     shader.fragmentShader=shader.fragmentShader.replace(
       'vec4( vec3( 1.0 - fragCoordZ ), opacity );',
@@ -35,7 +35,8 @@ export function createContactShadowResources(resolution:number){
       }`,
     transparent:true,depthWrite:false,side:DoubleSide,
   });
-  const shadowCamera=new OrthographicCamera(-4,4,4,-4,0,3);
+  // Only geometry close to the sweep casts this contact shadow.
+  const shadowCamera=new OrthographicCamera(-4,4,4,-4,0,0.72);
   shadowCamera.position.set(0,GROUND_Y,0);shadowCamera.up.set(0,0,1);
   shadowCamera.lookAt(0,1,0);shadowCamera.updateMatrixWorld();
   const quadCamera=new OrthographicCamera(-1,1,1,-1,0,2);
@@ -67,7 +68,7 @@ export function renderContactShadow(gl:WebGLRenderer,scene:Scene,ground:Mesh,res
     gl.autoClear=true;gl.setClearColor(0x000000,0);
     gl.setRenderTarget(resources.target);gl.clear();gl.render(scene,resources.shadowCamera);
     for(let pass=0;pass<passes;pass++){
-      const blur=(pass===0?2.8:1.12)/256;
+      const blur=(pass===0?1.0:0.55)/256;
       resources.quad.material=resources.horizontalMaterial;
       resources.horizontalMaterial.uniforms.tDiffuse.value=resources.target.texture;
       resources.horizontalMaterial.uniforms.h.value=blur;

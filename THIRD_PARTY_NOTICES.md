@@ -17,7 +17,7 @@ The local optical tracer retains drei's MIT vertex/BVH foundation, with independ
 
 Two finished-ring meshes are copied from the local `webgi-jewelry` sample project into `public/models/webgi/`:
 
-- `ring2_webgi3.glb` (1,123,816 bytes) — round centre stone, halo and pavé shank, used as “铺钻单钻”.
+- `ring2_webgi3.glb` (1,123,816 bytes) — cushion-shaped centre stone, halo and pavé shank, displayed as “枕形光环”.
 - `ring_webgi.glb` (972,836 bytes) — oval centre stone and two-band vintage shank, used as “复古椭圆”.
 
 Both are Draco-compressed glTF with `WEBGI_materials_diamond` and related WebGI extensions. This project loads only their geometry; the proprietary WebGi shaders and SDK are not copied or executed. The source repository (`ektogamat/webgi-jewelry`) is distributed under **CC BY-NC-ND 4.0** and depends on a proprietary WebGi SDK. Its model-asset licensing has not been separately confirmed. These files are included solely for the user's local rendering study. **Do not publish them as commercial assets, and replace them with owned or cleared models before any public deployment.** Their appearance here is not a licence grant.
@@ -48,7 +48,7 @@ Commercial redistribution/use rights for the reference model and EXRs have NOT b
 
 ## Original geometry and archived generated lighting
 
-The procedural six-petal setting, rounded prong tips, capped sweeps and shank refinements are original project geometry. Original neutral softboxes are the active lighting for the P0–P4 sample.
+The procedural six-petal setting, rounded prong tips, capped sweeps and shank refinements are original project geometry. The P0–P4 sample used the earlier generated softboxes.
 
 ## Optical material and mirror floor
 
@@ -59,13 +59,11 @@ The planar floor uses Three.js Reflector with a local ground fragment shader. Th
 
 Draco glTF decoders copied from the installed Three.js examples to public/draco are Google Draco, Apache-2.0. Decoder source notices are preserved. Source: https://github.com/google/draco.
 
-## Active studio HDR
+## Catalog studio lighting
 
-`public/environments/studio_small_09_1k.hdr` is used as the metal IBL.
-Studio Small 09 by Poly Haven, CC0. Source: https://polyhaven.com/a/studio_small_09
-License: https://polyhaven.com/license
-The 1K Radiance file is served locally; no runtime network dependency.
-The five large area lights are project code, not baked assets.
+`public/environments/catalog-studio.hdr` lights the metal and gemstones. The authoring script `scripts/prepare-catalog-studio.mjs` combines the luminance of the bundled Studio Small 09 photograph with neutral softboxes and dark flags. The fixed gallery images are local study renders of the WebGI sample identified above.
+
+Studio Small 09 by Sergej Majboroda / Poly Haven, CC0. [Original HDR](https://polyhaven.com/a/studio_small_09), [license](https://polyhaven.com/license).
 
 ## Archived lighting (not currently used)
 
@@ -88,21 +86,6 @@ The local contact-shadow capture/blur implementation is based on drei's ContactS
 Source: https://github.com/pmndrs/drei/blob/master/src/core/ContactShadows.tsx
 Its render targets, geometries and materials have explicit local disposal, and renderer state is restored in a finally block.
 MIT copyright/license notice retained in LICENSES/drei-MIT.txt. Blur shaders are imported from the installed three-stdlib dependency.
-
-## Active studio HDR
-
-`public/environments/studio_small_09_1k.hdr` is used as the metal IBL.
-Studio Small 09 by Poly Haven, CC0. Source: https://polyhaven.com/a/studio_small_09
-License: https://polyhaven.com/license
-The 1K Radiance file is served locally; no runtime network dependency.
-The five large area lights are project code, not baked assets.
-
-## Archived lighting (not currently used)
-
-Studio Small 09 by Sergej Majboroda / Poly Haven, CC0.
-Source: https://polyhaven.com/a/studio_small_09
-License: https://polyhaven.com/license
-Local 1K HDR: public/environments/studio_small_09_1k.hdr. No runtime remote dependency.
 
 ## Archived prototype gemstone (not shipped in the viewer)
 

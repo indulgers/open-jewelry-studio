@@ -7,6 +7,7 @@ export function cameraView(view:InspectionView,compact=false,modelMode:ModelMode
     return {position:view==='stone'?(compact?[2,3.7,4.7]:[1.5,3.1,4]):[2.4,3.2,5.4],target:[0,0,0]};
   }
   if(modelMode==='reference'){
+    if(view==='front')return {position:[0,compact?6.7:5.25,0.12],target:[0,0.72,0]};
     if(view==='stone')return {position:compact?[1.55,3.0,2.85]:[1.5,2.82,2.7],target:[0,1.18,0]};
     if(view==='side')return {position:[0,1.24,compact?3.6:3.15],target:[0,0.98,0]};
   }

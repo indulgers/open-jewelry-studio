@@ -1,6 +1,14 @@
 import {expect,it} from 'vitest';
 import {cameraView} from './cameraViews';
 import {PerspectiveCamera,Vector3} from 'three';
+it('shows the crown face-on and keeps the full shank in frame on both layouts',()=>{
+  for(const compact of [false,true]){
+    const view=cameraView('front',compact,'reference'),camera=new PerspectiveCamera(32,compact?300/470:900/740,0.1,50);
+    camera.position.set(...view.position);camera.lookAt(...view.target);camera.updateMatrixWorld();
+    expect(camera.getWorldDirection(new Vector3()).y).toBeLessThan(-0.99);
+    expect(Math.abs(new Vector3(1.2,0,0).project(camera).x)).toBeLessThan(1);
+  }
+});
 it('frames the gemstone rather than the ring centre in detail views',()=>{
   const full=cameraView('overall'),detail=cameraView('stone'),side=cameraView('side');
   expect(detail.target[1]).toBeGreaterThan(1.3);
