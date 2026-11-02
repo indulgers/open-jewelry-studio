@@ -1,0 +1,25 @@
+services:
+  web:
+    build: .
+    ports:
+      - "${PORT:-8080}:80"
+    depends_on:
+      geometry:
+        condition: service_healthy
+    restart: unless-stopped
+  geometry:
+    build: ./services/forme
+    expose:
+      - "8787"
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+    mem_limit: 2g
+    cpus: 2
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/api/forme/health',timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped

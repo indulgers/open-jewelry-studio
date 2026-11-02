@@ -67,3 +67,7 @@ npm run dev -- --port 5179
 不是 iJewel / Helzberg 的等效商用渲染器：没有离线路径追踪、真实焦散、镜头效果或全光谱色散。折射出射主要采样环境，不追踪镶爪等场景对象；未加入屏幕空间 SSR/SSAO、运动重投影 TAA，也没有复制复杂编织戒臂。参考模型/EXR 的商业授权仍未确认，不应直接发布成商用素材。高质量模式增加 GPU 成本，窄屏检查不等于移动真机性能测试。构建仍可能有主包体积警告。
 
 素材来源、许可证见 THIRD_PARTY_NOTICES.md；实施与验证记录见 IMPLEMENTATION-LEDGER.md / TEST-REPORT.md。
+
+## 模组 DIY（FORME V1.3）
+
+同一个前端新增「珠宝展台 / 模组 DIY」Tab，支持四照花重复结构的正交编辑与 STL / OBJ / JSON / PNG 导出。实体融合通过同域 `/api/forme/*` 接入 Python 几何服务。开发、Vercel 接入和单服务器 Docker Compose 部署步骤见 [模组 DIY 部署说明](docs/module-diy-deployment.md)。
