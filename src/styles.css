@@ -26,3 +26,10 @@ select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.viewer-
 @media(min-width:701px){.stage .compatibility-control{bottom:108px}.studio-layout{min-height:740px}}
 @media(max-width:700px){.preview-heading h1{font-size:24px}.model-modes button,.preset-choices button,.media-modes button{min-height:42px}.product-gallery{padding:100px 20px 24px;gap:12px}.gallery-thumbnails img{height:45px}.gallery-downloads{padding:0}.inspection-views button{font-size:11px;padding:10px 9px}.capture-button{min-height:44px}.capture-status,.capture-panel .field-help{font-size:12px}}
 .ring-style-field{margin-bottom:20px}.ring-styles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.ring-styles button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:9px 10px;border:1px solid #d9d9ce;border-radius:4px;text-align:left;transition:border-color .18s,background-color .18s}.ring-styles button strong{font-size:12px;font-weight:500}.ring-styles button span{font-size:9px;color:var(--muted);letter-spacing:.02em}.ring-styles button:hover{border-color:#9c957e}.ring-styles button[aria-pressed=true]{border-color:#776b4e;background:#f4efe4}
+
+.workspace-tabs{display:flex;gap:28px;padding:0 42px;background:#fbf9f5;border-bottom:1px solid var(--line)}
+.workspace-tabs [role=tab]{min-height:50px;padding:0 4px;border-bottom:2px solid transparent;font-size:13px;color:var(--muted)}
+.workspace-tabs [aria-selected=true]{border-bottom-color:var(--accent);color:var(--ink);font-weight:600}
+[role=tabpanel][hidden]{display:none}.workspace-tabs~section .studio-layout{height:calc(100vh - 183px)}
+.module-studio{position:relative;background:#f7f6f2}.module-studio iframe{display:block;width:100%;border:0;min-height:900px}.module-loading{padding:28px 42px;font-size:13px;color:var(--muted)}
+@media(max-width:700px){.workspace-tabs{padding:0 22px;gap:24px}.workspace-tabs [role=tab]{min-height:46px}.workspace-tabs~section .studio-layout{height:auto}.module-studio iframe{min-height:1900px}}
