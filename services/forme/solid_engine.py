@@ -15,8 +15,10 @@ import numpy as np
 import trimesh
 from scipy import ndimage
 from skimage.measure import marching_cubes
-import vtk
-from vtk.util.numpy_support import numpy_to_vtk, numpy_to_vtkIdTypeArray, vtk_to_numpy
+from vtkmodules.vtkCommonCore import vtkPoints, VTK_UNSIGNED_CHAR
+from vtkmodules.vtkCommonDataModel import vtkCellArray, vtkPolyData, vtkImageData
+from vtkmodules.vtkImagingStencil import vtkPolyDataToImageStencil, vtkImageStencil
+from vtkmodules.util.numpy_support import numpy_to_vtk, numpy_to_vtkIdTypeArray, vtk_to_numpy
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 
@@ -41,29 +43,29 @@ def health():
 def voxelize_piece(mesh:trimesh.Trimesh, origin:np.ndarray, step:float, dims:np.ndarray) -> np.ndarray:
     # Create VTK mesh for closed component; isolate components so overlapping shells
     # do not XOR each other under even-odd stencil filling.
-    pts = vtk.vtkPoints()
+    pts = vtkPoints()
     pts.SetData(numpy_to_vtk(np.asarray(mesh.vertices, dtype=np.float64), deep=True))
     faces = np.asarray(mesh.faces, dtype=np.int64)
     connectivity = numpy_to_vtkIdTypeArray(faces.ravel(), deep=True)
     offsets = numpy_to_vtkIdTypeArray(np.arange(0, 3 * len(faces) + 1, 3, dtype=np.int64), deep=True)
-    cells = vtk.vtkCellArray()
+    cells = vtkCellArray()
     cells.SetData(offsets, connectivity)
-    poly = vtk.vtkPolyData()
+    poly = vtkPolyData()
     poly.SetPoints(pts)
     poly.SetPolys(cells)
-    stencil_source = vtk.vtkPolyDataToImageStencil()
+    stencil_source = vtkPolyDataToImageStencil()
     stencil_source.SetInputData(poly)
     stencil_source.SetOutputOrigin(*map(float,origin))
     stencil_source.SetOutputSpacing(float(step),float(step),float(step))
     stencil_source.SetOutputWholeExtent(0,int(dims[0]-1),0,int(dims[1]-1),0,int(dims[2]-1))
     stencil_source.Update()
-    image = vtk.vtkImageData()
+    image = vtkImageData()
     image.SetOrigin(*map(float,origin))
     image.SetSpacing(step,step,step)
     image.SetDimensions(*map(int,dims))
-    image.AllocateScalars(vtk.VTK_UNSIGNED_CHAR,1)
+    image.AllocateScalars(VTK_UNSIGNED_CHAR,1)
     vtk_to_numpy(image.GetPointData().GetScalars())[:] = 1
-    cutter=vtk.vtkImageStencil()
+    cutter=vtkImageStencil()
     cutter.SetInputData(image)
     cutter.SetStencilConnection(stencil_source.GetOutputPort())
     cutter.SetBackgroundValue(0)
@@ -76,7 +78,7 @@ def ball(radius:int):
     return sum(q*q for q in np.meshgrid(a,a,a,indexing='ij'))<=radius*radius
 
 def solidify(data:bytes, *, step:float=.12, repair:float=.36,
-             min_join:float=.65, count:int=12, diameter:float=18, product:str='ring'):
+             min_join:float=.65, count:int=12, diameter:float=18, product:str='ring', bore_diameter:float|None=None):
     if len(data)>20_000_000: raise ValueError('STL 超出 20MB 上限')
     model=trimesh.load(io.BytesIO(data), file_type='stl', force='mesh',process=True)
     if not isinstance(model,trimesh.Trimesh) or len(model.faces)<10: raise ValueError('无法解析有效 STL')
@@ -112,6 +114,14 @@ def solidify(data:bytes, *, step:float=.12, repair:float=.36,
     vertices += lo-2*step
     fused=trimesh.Trimesh(vertices=vertices,faces=faces,process=True)
     if fused.volume<0: fused.invert()
+    if bore_diameter is not None:
+        # Closing and marching cubes may put metal back inside the bore.
+        segments = count * int(np.ceil(360 / count))
+        radius = bore_diameter / (2 * np.cos(np.pi / segments))
+        tool = trimesh.creation.cylinder(radius=radius, sections=segments,
+            segment=[[0, lo[1]-1, 0], [0, hi[1]+1, 0]])
+        fused = trimesh.boolean.difference([fused, tool], engine='manifold')
+        if fused.is_empty: raise ValueError('内孔已切去全部材料，请减小直径')
     pieces=fused.split(only_watertight=False)
     shells=len(pieces)
     watertight=bool(fused.is_watertight)
@@ -134,6 +144,7 @@ def solidify(data:bytes, *, step:float=.12, repair:float=.36,
                              (vertical-lo[1])/step,
                              (radial*np.cos(a)-lo[2])/step])
             section=ndimage.map_coordinates(occupancy.astype(np.uint8),coords,order=0,mode='constant')>0
+            if bore_diameter is not None: section[radial < bore_diameter / 2] = False
             labels,nsec=ndimage.label(section,structure=ndimage.generate_binary_structure(2,1))
             bridges=[]
             for j in range(1,nsec+1):
@@ -171,9 +182,11 @@ def write_results(model, uid):
 
 @app.post(API + '/solidify')
 async def run_solidify(request:Request, step:float=.12, repair:float=.36,
-                       min_join:float=.65, count:int=12, diameter:float=18,product:str='ring'):
+                       min_join:float=.65, count:int=12, diameter:float=18,product:str='ring',bore_diameter:float|None=None):
     if not (.08<=step<=.35 and 0<=repair<=.48 and .2<=min_join<=2 and 4<=count<=50 and 10<=diameter<=40 and product in ('ring','necklace')):
         raise HTTPException(400,'参数不在安全范围内')
+    if bore_diameter is not None and (product != 'ring' or not 15 <= bore_diameter <= 26):
+        raise HTTPException(400,'内孔直径须在 15–26 mm 之间，且仅适用于戒指')
     if compute_slot.locked():
         raise HTTPException(429, '几何服务正在处理其他设计，请稍后重试')
     async with compute_slot:
@@ -184,7 +197,7 @@ async def run_solidify(request:Request, step:float=.12, repair:float=.36,
             data.extend(chunk)
         try:
             model, report = await run_in_threadpool(solidify, bytes(data), step=step, repair=repair,
-                                min_join=min_join, count=count, diameter=diameter, product=product)
+                                min_join=min_join, count=count, diameter=diameter, product=product, bore_diameter=bore_diameter)
         except (ValueError, RuntimeError) as e:
             raise HTTPException(422, detail=str(e))
         cleanup_results()

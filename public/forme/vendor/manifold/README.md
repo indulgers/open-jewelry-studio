@@ -1,0 +1,1 @@
+manifold.js and manifold.wasm: manifold-3d 3.5.4 from the official npm package, distributed under the included Apache-2.0 license. Kept together so the standalone editor can cut meshes offline without a CDN or geometry server.

@@ -38,3 +38,13 @@ def test_health_and_invalid_input():
     assert client.post('/api/forme/solidify?step=0', content=b'bad').status_code == 400
     assert client.post('/api/forme/solidify', content=b'bad').status_code == 422
     assert client.get('/api/forme/solids/invalid.stl').status_code == 404
+
+def test_repaired_ring_preserves_cylindrical_bore():
+    from solid_engine import solidify
+    stock = trimesh.creation.box(extents=[21, 2, 21])
+    mesh, report = solidify(stock.export(file_type='stl'), step=.22, repair=.22, bore_diameter=18)
+    assert report['geometry_ok']
+    # Vertices and face centers catch both an undersized and a filled-in hole.
+    for pts in [mesh.vertices, mesh.triangles_center]:
+        assert np.linalg.norm(pts[:, [0, 2]], axis=1).min() >= 9 - 1e-4
+    assert abs(np.linalg.norm(mesh.vertices[:, [0, 2]], axis=1).min() - 9) < .01
