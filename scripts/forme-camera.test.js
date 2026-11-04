@@ -24,6 +24,6 @@ it('orbits, pans in the view plane, and pinch zooms without spinning the model',
   expect(r.camera.target[0]).toBeLessThan(0);expect(r.camera.target[1]).toBeCloseTo(0);
   const before=r.camera.distance;
   send('down',1,0,0);send('down',2,50,0);send('move',2,100,0);
-  expect(r.camera.distance).toBeCloseTo(before/2);expect(r.camera.pitch).toBe(Math.PI/2);
-  send('cancel',2,100,0);send('move',2,200,10);expect(r.camera.distance).toBeCloseTo(before/2);
+  expect(r.camera.distance).toBe(Math.max(19,before/2));expect(r.camera.pitch).toBe(Math.PI/2);
+  send('cancel',2,100,0);send('move',2,200,10);expect(r.camera.distance).toBe(Math.max(19,before/2));
 });

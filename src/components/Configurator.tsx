@@ -3,8 +3,8 @@ import type {Configuration,ConfigurationAction,MetalFinish} from '../configurati
 import {METALS} from '../viewer/materials';
 import type {Quality} from '../viewer/quality';
 type Props={configuration:Configuration;dispatch:Dispatch<ConfigurationAction>;quality:Quality;onQualityChange:(value:Quality)=>void;
-  autoRotate:boolean;onAutoRotateChange:(value:boolean)=>void;onSave:()=>void;onResetView:()=>void;reference?:boolean;hideStructure?:boolean;stoneOnly?:boolean};
-export function Configurator({configuration,dispatch,quality,onQualityChange,autoRotate,onAutoRotateChange,onSave,onResetView,reference=false,hideStructure=false,stoneOnly=false}:Props){
+  autoRotate:boolean;onAutoRotateChange:(value:boolean)=>void;onResetEditing:()=>void;onResetView:()=>void;reference?:boolean;hideStructure?:boolean;stoneOnly?:boolean};
+export function Configurator({configuration,dispatch,quality,onQualityChange,autoRotate,onAutoRotateChange,onResetEditing,onResetView,reference=false,hideStructure=false,stoneOnly=false}:Props){
   return <div className="configurator">
     {reference&&!hideStructure&&<p className="reference-note">当前为固定六爪参考模型，可切换金属。切换至「参数化 DIY」可调整戒臂与主石；原有配置不会丢失。</p>}
     {!hideStructure&&<fieldset disabled={reference}><legend>{reference?'已保留的 DIY 戒臂':'戒臂结构'}</legend><div className="choice-grid shank-choices">
@@ -40,7 +40,7 @@ export function Configurator({configuration,dispatch,quality,onQualityChange,aut
     </div></fieldset>
     <div className="view-preferences"><label><input type="checkbox" checked={autoRotate} onChange={e=>onAutoRotateChange(e.target.checked)}/><span>自动旋转</span></label>
       <button className="text-button" onClick={onResetView}>重置视角</button></div>
-    {!stoneOnly&&<><button className="save-button" onClick={onSave}>保存到本机<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button>
-    <p className="save-help">保存戒臂、金属和 DIY 主石尺寸，仅限当前浏览器。</p></>}
+    {!stoneOnly&&<><button className="save-button" onClick={onResetEditing}>重置编辑<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button>
+    <p className="save-help">恢复默认戒臂、金属和 DIY 主石尺寸。</p></>}
   </div>;
 }

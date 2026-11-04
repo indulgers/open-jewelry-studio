@@ -1,6 +1,6 @@
 import {lazy,Suspense,useCallback,useEffect,useReducer,useState} from 'react';
-import {configurationReducer} from './configuration/configuration';
-import {loadConfiguration,saveConfiguration} from './configuration/storage';
+import {DEFAULT_CONFIGURATION,configurationReducer} from './configuration/configuration';
+import {STORAGE_KEY} from './configuration/storage';
 import {Configurator} from './components/Configurator';
 import {AssetCredits} from './components/AssetCredits';
 import {METALS} from './viewer/materials';
@@ -16,13 +16,8 @@ import {ModuleStudio} from './components/ModuleStudio';
 import {StageLoading} from './components/StageLoading';
 const JewelryStage=lazy(()=>import('./viewer/JewelryStage').then(module=>({default:module.JewelryStage})));
 
-function restore(){
-  try{return loadConfiguration(window.localStorage);}
-  catch{return loadConfiguration({getItem:()=>{throw new Error('Storage blocked');}});}
-}
 function JewelryStudio({active}:{active:boolean}){
-  const [initial]=useState(restore);
-  const [configuration,dispatch]=useReducer(configurationReducer,initial.configuration);
+  const [configuration,dispatch]=useReducer(configurationReducer,DEFAULT_CONFIGURATION);
   const [quality,onQualityChange]=useState<Quality>('standard');
   const [modelMode,setModelMode]=useState<ModelMode>('reference');
   const [gemShape,setGemShape]=useState<GemShapeId>('round');
@@ -35,7 +30,7 @@ function JewelryStudio({active}:{active:boolean}){
   const [captureReady,setCaptureReady]=useState(false);
   const [autoRotate,onAutoRotateChange]=useState(false);
   const [resetToken,setResetToken]=useState(0);
-  const [message,setMessage]=useState(initial.warning??'');
+  const [message,setMessage]=useState('');
   const [slow,setSlow]=useState(false);
   useEffect(()=>{
     const query=window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -70,10 +65,8 @@ function JewelryStudio({active}:{active:boolean}){
     if(images||catalogSample){setDisplay('images');return;}
     setDisplay('preparing');capture();
   };
-  const save=()=>{
-    try{const result=saveConfiguration(window.localStorage,configuration);setMessage(result.ok?'已保存，刷新页面后可继续。':result.warning??'保存失败。');}
-    catch{setMessage('浏览器未允许保存，当前选择仍然保留。');}
-  };
+  useEffect(()=>{try{window.localStorage.removeItem(STORAGE_KEY);}catch{}},[]);
+  const resetEditing=()=>{dispatch({type:'reset'});setMessage('已恢复默认模型参数。');};
   return <div>
     <main className="studio-layout">
       <div className="preview-column"><div className="preview-heading"><h1>{modelMode==='gem'?'每一种切工，都有自己的光。':modelMode==='reference'?'光，落在切面之间。':configuration.shankStyle==='plain'?'纯粹，恰如其分。':'交汇，自有光芒。'}</h1>
@@ -97,7 +90,7 @@ function JewelryStudio({active}:{active:boolean}){
           <fieldset><legend>观察光线</legend><div className="preset-choices">{Object.values(STUDIO_PRESETS).map(preset=><button key={preset.id} aria-pressed={studioPreset===preset.id} onClick={()=>setStudioPreset(preset.id)}>{preset.name}</button>)}</div><p className="field-help">{STUDIO_PRESETS[studioPreset].description}</p></fieldset>
           <fieldset><legend>展台背景</legend><div className="preset-choices">{STAGE_MODES.map(mode=><button key={mode.id} aria-pressed={stageMode===mode.id} onClick={()=>setStageMode(mode.id)}>{mode.name}</button>)}</div><p className="field-help">{STAGE_MODES.find(mode=>mode.id===stageMode)?.note}；商品图导出会压到白底。</p></fieldset>
           <div className="media-modes" role="group" aria-label="预览方式"><button aria-pressed={display==='3d'} onClick={()=>setDisplay('3d')}>实时 3D</button><button disabled={!catalogSample&&!images&&!captureReady} aria-pressed={display!=='3d'} onClick={openImages}>商品图片</button></div>
-          <Configurator {...{configuration,dispatch,quality,onQualityChange,autoRotate,onAutoRotateChange}} reference={modelMode!=='procedural'} hideStructure={modelMode!=='procedural'} stoneOnly={modelMode==='gem'} onSave={save} onResetView={()=>setResetToken(n=>n+1)}/>
+          <Configurator {...{configuration,dispatch,quality,onQualityChange,autoRotate,onAutoRotateChange}} reference={modelMode!=='procedural'} hideStructure={modelMode!=='procedural'} stoneOnly={modelMode==='gem'} onResetEditing={resetEditing} onResetView={()=>setResetToken(n=>n+1)}/>
         </fieldset>
         <section className="capture-panel" aria-label="商品图输出"><button className="capture-button" disabled={captureBusy||!captureReady||display!=='3d'} onClick={capture}>{captureBusy?'正在生成…':'生成四个角度的商品图'}</button><p className="field-help">停止旋转后生成当前配置的渲染预览，分辨率随画布与画质设置变化。</p><p className="capture-status" role="status">{captureMessage}</p>{images&&<ProductGallery images={images} downloads/>}</section>
         <div className="feedback" role="status" aria-live="polite">{message}</div>
@@ -120,7 +113,7 @@ export default function App(){
     window.addEventListener('hashchange',sync);return()=>window.removeEventListener('hashchange',sync);
   },[]);
   const select=(next:StudioTab)=>{setTab(next);if(next==='modules')setModulesVisited(true);window.location.hash=next==='modules'?'/modules':'/showroom';};
-  return <div className="app-shell">
+  return <div className="app-shell" data-workspace={tab}>
     <header className="site-header"><a className="brand" href="/" aria-label="戒指实验室首页">
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m5 11 6-6h10l6 6-11 17L5 11Zm0 0h22M11 5l5 23L21 5M11 5l-1 6m11-6 1 6"/></svg>
       <span>戒指实验室</span></a><span className="header-note">让想法，成为形状。</span><span className="demo-tag">开源技术演示</span></header>

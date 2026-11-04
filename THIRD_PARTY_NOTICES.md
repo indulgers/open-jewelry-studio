@@ -1,5 +1,9 @@
 # Third-party notices
 
+## FORME interface fonts
+
+Cormorant Garamond and Manrope are self-hosted in `public/fonts/forme/`, sourced from Google Fonts. Cormorant Garamond is copyright 2015 the Cormorant Project Authors; Manrope is copyright 2018 the Manrope Project Authors. Both use SIL Open Font License 1.1. Full notices are retained beside the font files as `OFL-CormorantGaramond.txt` and `OFL-Manrope.txt`. `fonts.css` records the family, weight and style for each file; no runtime font request leaves the app's origin.
+
 ## Active complete ring — 2026-10-28
 
 Diamond Shader Lab by Ehsan Moradi, MIT, commit edd718e34c081d3ea0f6c99017b87cf8d022f329.

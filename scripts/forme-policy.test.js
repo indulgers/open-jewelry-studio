@@ -40,7 +40,7 @@ it('does not allow unknown STL shapes to opt into calibrated flower deformation'
 it('rejects malformed project meshes and normalizes untrusted settings',()=>{
   expect(()=>projectData({type:'FORME_JEWELRY_DESIGN',schemaVersion:2,settings:{}})).toThrow();
   const s=constrain({...defaults,bloom:NaN,twist:Infinity,band:'8',material:'<script>',finish:'unknown',name:' '.repeat(100)},defaults);
-  expect(s).toMatchObject({bloom:0,twist:0,band:6,material:'silver',finish:'polished',name:defaults.name});
+  expect(s).toMatchObject({bloom:0,twist:0,band:6,material:defaults.material,finish:'polished',name:defaults.name});
   for(const mesh of [
     {positions:[0,0,0,1,0,0,0,1,0],indices:[0,1,3]},
     {positions:[0,0,0,1,0,0,0,1,0],indices:[0,1,1.5]},

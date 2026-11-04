@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FORME · 三种设计方向</title><link rel="stylesheet" href="../fonts/forme/fonts.css"><link rel="stylesheet" href="./study.css"></head>
+<body>
+<header class="review-bar"><a class="review-home" href="/#/modules">返回现有编辑器</a><nav aria-label="设计方向"><button data-look="gallery" aria-pressed="true"><span>A</span> 铂纸画廊</button><button data-look="noir" aria-pressed="false"><span>B</span> 夜色展柜</button><button data-look="celadon" aria-pressed="false"><span>C</span> 青瓷工坊</button></nav><button id="device" aria-pressed="false">手机预览</button></header>
+<div class="preview-surround">
+<main id="concept" data-look="gallery" aria-label="设计方案预览">
+<header class="brand-bar"><div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 16C4 15 3 3 3 3s12 1 13 13ZM16 16C17 4 29 3 29 3s-1 12-13 13ZM16 16C28 17 29 29 29 29s-12-1-13-13ZM16 16C15 28 3 29 3 29s1-12 13-13Z"/></svg><span>FORME</span></div><span class="workspace-name">模组珠宝工作室</span><div class="history"><button id="undo" aria-label="撤销编辑" disabled><svg viewBox="0 0 24 24"><path d="m8 5-5 5 5 5M3 10h10a6 6 0 0 1 0 12"/></svg></button><button id="redo" aria-label="重做编辑" disabled><svg viewBox="0 0 24 24"><path d="m16 5 5 5-5 5m5-5H11a6 6 0 0 0 0 12"/></svg></button><button id="reset" class="reset" disabled>重置编辑</button></div></header>
+<section class="model-stage" aria-label="实时三维模型">
+<div class="object-heading"><h1>四照花</h1><p>以一枚花形，构成一圈。</p></div>
+<div class="stage-topline"><span class="object-type">花纹戒指</span><div class="view-options"><select id="projection" aria-label="投影方式"><option value="ortho">正交</option><option value="perspective">透视</option></select><select id="orientation" aria-label="观察方向"><option value="free">自由视角</option><option value="front">正面</option><option value="top">俯视</option><option value="right">侧面</option></select></div></div>
+<iframe id="model" title="四照花实时三维画布"></iframe>
+<div class="loading" id="loading" role="status"><span></span><p>正在准备四照花模型</p></div>
+<div class="stage-actions"><button id="center" aria-label="模型居中" title="模型居中"><svg viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/><circle cx="12" cy="12" r="3"/></svg></button><button id="wire" aria-pressed="false">线框</button></div>
+<div class="object-caption"><div><span class="caption-name">四照花 · 模组戒指</span><span class="caption-detail" id="spec">准备中</span></div><p class="gesture">拖动旋转 · 滚轮缩放 · 右键平移</p></div>
+<div class="model-strip" aria-hidden="true"><span class="motif-label">基础花形</span><svg viewBox="0 0 120 120"><path d="M60 60Q17 56 11 11Q56 17 60 60ZM60 60Q64 17 109 11Q103 56 60 60ZM60 60Q103 64 109 109Q64 103 60 60ZM60 60Q56 103 11 109Q17 64 60 60Z"/></svg><span>四照花<span class="motif-detail">原始模组</span></span><span class="strip-count" id="stripCount"></span></div>
+</section>
+<aside class="editor" aria-label="编辑模型">
+<div class="editor-heading"><h2>塑造你的四照花</h2><p>从金属的光泽开始。</p></div>
+<nav class="editor-tabs" aria-label="编辑类别"><button data-panel="material" aria-pressed="true">材质</button><button data-panel="shape" aria-pressed="false">花形</button><button data-panel="size" aria-pressed="false">尺寸</button></nav>
+<div class="editor-body">
+<section data-content="material"><div class="field-heading"><h3>金属色泽</h3><span id="metalName">银色</span></div><div class="metals" role="group" aria-label="金属色泽"><button data-material="silver" aria-pressed="true"><span class="metal silver"></span><span>银色</span></button><button data-material="gold" aria-pressed="false"><span class="metal gold"></span><span>金色</span></button><button data-material="rose" aria-pressed="false"><span class="metal rose"></span><span>玫瑰金</span></button><button data-material="graphite" aria-pressed="false"><span class="metal graphite"></span><span>石墨色</span></button></div><div class="finish-group"><h3>表面处理</h3><div class="finishes"><button data-finish="polished" aria-pressed="true"><span>抛光</span><small>清晰光泽</small><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></button><button data-finish="satin" aria-pressed="false"><span>柔缎</span><small>柔和漫反射</small><svg viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></svg></button></div></div><p class="material-note">转动戒指，观察花瓣间的光影。<br>色泽为视觉示意，不代表合金成色。</p></section>
+<section data-content="shape" hidden><div class="field-heading"><h3>花形微调</h3><span>保留原始轮廓</span></div><div id="shapeControls" class="controls"></div><p class="field-note">细微调整花瓣姿态，让相邻花形自然衔接。</p></section>
+<section data-content="size" hidden><div class="field-heading"><h3>佩戴与比例</h3><span>毫米</span></div><div id="sizeControls" class="controls"></div><p class="field-note">调整内径时，花纹数量会随比例变化。</p></section>
+</div>
+<div class="design-summary"><h3>当前组合</h3><dl><div><dt>模组</dt><dd>四照花</dd></div><div><dt>排列</dt><dd id="summaryCount">—</dd></div><div><dt>内径</dt><dd id="summaryDiameter">—</dd></div></dl></div>
+<p class="edit-status" id="feedback" role="status">准备模型后即可编辑</p>
+</aside>
+</main>
+</div>
+<footer class="review-note"><strong id="lookTitle">A · 铂纸画廊</strong><span id="lookNote">衬线字与纸白画布，右侧参数像一张珠宝作品签。</span><button id="about" aria-expanded="false" aria-controls="research">设计依据</button></footer>
+<section id="research" hidden><button id="closeResearch">关闭说明</button><h2>这三套设计改变了什么</h2><p>这是可交互的视觉提案。三套使用相同的现有四照花模型与渲染器；材质、花形、尺寸、视角、撤销与重置可实际操作。切换方案保留当前模型，不下载或保存设计。并未宣称提升模型渲染画质。</p><dl><div><dt>A · 铂纸画廊</dt><dd>纸白与暗红，衬线品牌字。画布、作品签、右侧控制栏组成清晰的三层阅读顺序。适合品牌展示与轻量定制；高密度编辑时需切换参数类别。</dd></div><div><dt>B · 夜色展柜</dt><dd>炭黑全景画布，反白字。工具在底部横向展开，模型获得更大的横向空间。适合集中观察反光；明亮户外的可读性需要真机验证。</dd></div><div><dt>C · 青瓷工坊</dt><dd>青灰、墨绿、圆润无衬线字。左侧调整、右侧观察，基础花形卡片连接模组与成品。适合频繁编辑；珠宝品牌的仪式感弱于 A。</dd></div></dl><h3>参考资料</h3><ul><li><a href="https://impeccable.style/" target="_blank" rel="noreferrer">Impeccable 官方：明确视觉方向，控制构图与字体层级</a></li><li><a href="https://github.com/Leonxlnx/taste-skill" target="_blank" rel="noreferrer">Taste 官方：产品自己的对象成为画面主体</a></li><li><a href="https://www.figma.com/blog/our-approach-to-designing-ui3/" target="_blank" rel="noreferrer">Figma UI3：画布空间、固定面板与清晰标签</a></li><li><a href="https://linear.app/now/how-we-redesigned-the-linear-ui" target="_blank" rel="noreferrer">Linear：界面层级、对齐与视觉噪声</a></li><li><a href="https://www.pentagram.com/work/cartier" target="_blank" rel="noreferrer">Pentagram / Cartier：字体表达与珠宝展陈</a></li></ul><p>字体：Cormorant Garamond、Manrope（Google Fonts，SIL OFL）；中文使用设备字体。所有模型都在本机加载，未上传至设计服务。</p></section>
+<script type="module" src="./study.js"></script>
+</body></html>

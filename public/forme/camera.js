@@ -2,7 +2,7 @@ const halfFov = 39*Math.PI/360;
 export function viewHalfHeight(cam,canvas){return cam.distance*Math.tan(halfFov)/Math.min(1,canvas.clientWidth/canvas.clientHeight);}
 export function home(r,ring){
   const small=r.canvas.clientWidth<520;
-  r.camera={yaw:ring?.59:0,pitch:ring?.45:.04,distance:ring?(small?52:48):(small?109:86),
+  r.camera={yaw:ring?.59:0,pitch:ring?.45:.04,distance:ring?(small?35:32):(small?109:86),
     target:[0,ring?0:-1,0],projection:r.camera?.projection||'ortho'};
 }
 export function orient(cam,view) {

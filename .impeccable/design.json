@@ -1,15 +1,236 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-19T10:00:00+08:00",
+  "generatedAt": "2026-11-04T08:43:09+00:00",
   "title": "Design System: 戒指实验室",
   "extensions": {
-    "breakpoints": [{"name":"stacked","value":"700px"}],
-    "motion": [{"name":"selection","value":"180ms","purpose":"Selection state feedback; reduced motion respected."}]
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "主展台 · 深橄榄",
+        "tonalRamp": ["oklch(15.0% 0.0275 136.8)", "oklch(26.4% 0.0275 136.8)", "oklch(37.9% 0.0275 136.8)", "oklch(49.3% 0.0275 136.8)", "oklch(60.7% 0.0275 136.8)", "oklch(72.1% 0.0275 136.8)", "oklch(83.6% 0.0275 136.8)", "oklch(95.0% 0.0275 136.8)"]
+      },
+      "secondary": {
+        "role": "secondary",
+        "displayName": "主展台 · 黄铜",
+        "tonalRamp": ["oklch(15.0% 0.0613 86.1)", "oklch(26.4% 0.0613 86.1)", "oklch(37.9% 0.0613 86.1)", "oklch(49.3% 0.0613 86.1)", "oklch(60.7% 0.0613 86.1)", "oklch(72.1% 0.0613 86.1)", "oklch(83.6% 0.0613 86.1)", "oklch(95.0% 0.0613 86.1)"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "主展台 · 象牙白",
+        "tonalRamp": ["oklch(15.0% 0.0045 78.3)", "oklch(26.4% 0.0045 78.3)", "oklch(37.9% 0.0045 78.3)", "oklch(49.3% 0.0045 78.3)", "oklch(60.7% 0.0045 78.3)", "oklch(72.1% 0.0045 78.3)", "oklch(83.6% 0.0045 78.3)", "oklch(95.0% 0.0045 78.3)"]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "主展台 · 石灰石",
+        "tonalRamp": ["oklch(15.0% 0.0115 84.6)", "oklch(26.4% 0.0115 84.6)", "oklch(37.9% 0.0115 84.6)", "oklch(49.3% 0.0115 84.6)", "oklch(60.7% 0.0115 84.6)", "oklch(72.1% 0.0115 84.6)", "oklch(83.6% 0.0115 84.6)", "oklch(95.0% 0.0115 84.6)"]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "主展台 · 细边线",
+        "tonalRamp": ["oklch(15.0% 0.0174 84.6)", "oklch(26.4% 0.0174 84.6)", "oklch(37.9% 0.0174 84.6)", "oklch(49.3% 0.0174 84.6)", "oklch(60.7% 0.0174 84.6)", "oklch(72.1% 0.0174 84.6)", "oklch(83.6% 0.0174 84.6)", "oklch(95.0% 0.0174 84.6)"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "主展台 · 次要文字",
+        "tonalRamp": ["oklch(15.0% 0.0134 128.8)", "oklch(26.4% 0.0134 128.8)", "oklch(37.9% 0.0134 128.8)", "oklch(49.3% 0.0134 128.8)", "oklch(60.7% 0.0134 128.8)", "oklch(72.1% 0.0134 128.8)", "oklch(83.6% 0.0134 128.8)", "oklch(95.0% 0.0134 128.8)"]
+      },
+      "listing": {
+        "role": "neutral",
+        "displayName": "主展台 · 纯白 Listing",
+        "tonalRamp": ["oklch(15.0% 0.0000 0.0)", "oklch(26.4% 0.0000 0.0)", "oklch(37.9% 0.0000 0.0)", "oklch(49.3% 0.0000 0.0)", "oklch(60.7% 0.0000 0.0)", "oklch(72.1% 0.0000 0.0)", "oklch(83.6% 0.0000 0.0)", "oklch(95.0% 0.0000 0.0)"]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "主展台 · 正文",
+        "tonalRamp": ["oklch(15.0% 0.0091 145.3)", "oklch(26.4% 0.0091 145.3)", "oklch(37.9% 0.0091 145.3)", "oklch(49.3% 0.0091 145.3)", "oklch(60.7% 0.0091 145.3)", "oklch(72.1% 0.0091 145.3)", "oklch(83.6% 0.0091 145.3)", "oklch(95.0% 0.0091 145.3)"]
+      },
+      "forme-ink": {
+        "role": "neutral",
+        "displayName": "FORME · 石墨文字",
+        "tonalRamp": ["oklch(15.0% 0.0079 59.4)", "oklch(26.4% 0.0079 59.4)", "oklch(37.9% 0.0079 59.4)", "oklch(49.3% 0.0079 59.4)", "oklch(60.7% 0.0079 59.4)", "oklch(72.1% 0.0079 59.4)", "oklch(83.6% 0.0079 59.4)", "oklch(95.0% 0.0079 59.4)"]
+      },
+      "forme-muted": {
+        "role": "neutral",
+        "displayName": "FORME · 次要文字",
+        "tonalRamp": ["oklch(15.0% 0.0181 67.4)", "oklch(26.4% 0.0181 67.4)", "oklch(37.9% 0.0181 67.4)", "oklch(49.3% 0.0181 67.4)", "oklch(60.7% 0.0181 67.4)", "oklch(72.1% 0.0181 67.4)", "oklch(83.6% 0.0181 67.4)", "oklch(95.0% 0.0181 67.4)"]
+      },
+      "forme-frame": {
+        "role": "neutral",
+        "displayName": "FORME · 纸白画布",
+        "tonalRamp": ["oklch(15.0% 0.0070 88.6)", "oklch(26.4% 0.0070 88.6)", "oklch(37.9% 0.0070 88.6)", "oklch(49.3% 0.0070 88.6)", "oklch(60.7% 0.0070 88.6)", "oklch(72.1% 0.0070 88.6)", "oklch(83.6% 0.0070 88.6)", "oklch(95.0% 0.0070 88.6)"]
+      },
+      "forme-surface": {
+        "role": "neutral",
+        "displayName": "FORME · 近白面板",
+        "tonalRamp": ["oklch(15.0% 0.0041 91.4)", "oklch(26.4% 0.0041 91.4)", "oklch(37.9% 0.0041 91.4)", "oklch(49.3% 0.0041 91.4)", "oklch(60.7% 0.0041 91.4)", "oklch(72.1% 0.0041 91.4)", "oklch(83.6% 0.0041 91.4)", "oklch(95.0% 0.0041 91.4)"]
+      },
+      "forme-line": {
+        "role": "neutral",
+        "displayName": "FORME · 细边线",
+        "tonalRamp": ["oklch(15.0% 0.0150 80.7)", "oklch(26.4% 0.0150 80.7)", "oklch(37.9% 0.0150 80.7)", "oklch(49.3% 0.0150 80.7)", "oklch(60.7% 0.0150 80.7)", "oklch(72.1% 0.0150 80.7)", "oklch(83.6% 0.0150 80.7)", "oklch(95.0% 0.0150 80.7)"]
+      },
+      "forme-active": {
+        "role": "neutral",
+        "displayName": "FORME · 选中底",
+        "tonalRamp": ["oklch(15.0% 0.0121 67.7)", "oklch(26.4% 0.0121 67.7)", "oklch(37.9% 0.0121 67.7)", "oklch(49.3% 0.0121 67.7)", "oklch(60.7% 0.0121 67.7)", "oklch(72.1% 0.0121 67.7)", "oklch(83.6% 0.0121 67.7)", "oklch(95.0% 0.0121 67.7)"]
+      },
+      "forme-accent": {
+        "role": "primary",
+        "displayName": "FORME · 暗红",
+        "tonalRamp": ["oklch(15.0% 0.0811 1.8)", "oklch(26.4% 0.0811 1.8)", "oklch(37.9% 0.0811 1.8)", "oklch(49.3% 0.0811 1.8)", "oklch(60.7% 0.0811 1.8)", "oklch(72.1% 0.0811 1.8)", "oklch(83.6% 0.0811 1.8)", "oklch(95.0% 0.0811 1.8)"]
+      }
+    },
+    "typographyMeta": {
+      "forme-brand": {
+        "displayName": "FORME 品牌",
+        "purpose": "FORME 品牌字；手机为 25px。"
+      },
+      "forme-title": {
+        "displayName": "FORME 画布标题",
+        "purpose": "中文作品标题；1000px / 700px / 380px 以下分别为 28px / 26px / 24px。"
+      },
+      "forme-panel-title": {
+        "displayName": "FORME 参数栏标题",
+        "purpose": "桌面参数栏引导标题；手机隐藏。"
+      },
+      "forme-body": {
+        "displayName": "FORME 正文",
+        "purpose": "编辑器基础字号与字体。"
+      },
+      "forme-control": {
+        "displayName": "FORME 控件",
+        "purpose": "参数标签、页签和名称输入。"
+      },
+      "forme-caption": {
+        "displayName": "FORME 说明",
+        "purpose": "按钮文字、作品信息与次要说明；正常可见文字下限。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "forme-dropdown",
+        "value": "0 10px 35px #302c2926",
+        "purpose": "浮动导出菜单。"
+      },
+      {
+        "name": "forme-modal",
+        "value": "0 20px 50px #0002",
+        "purpose": "导入与几何检查对话框。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "showroom-selection",
+        "value": "180ms",
+        "purpose": "主展台既有选择反馈。"
+      },
+      {
+        "name": "forme-state",
+        "value": "160ms",
+        "purpose": "按钮底色、文字与边线过渡；减少动态效果偏好下关闭。"
+      },
+      {
+        "name": "forme-toggle",
+        "value": "150ms",
+        "purpose": "开关位移；减少动态效果偏好下关闭。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "showroom-stacked",
+        "value": "700px"
+      },
+      {
+        "name": "forme-compact",
+        "value": "1000px"
+      },
+      {
+        "name": "forme-stacked",
+        "value": "700px"
+      },
+      {
+        "name": "forme-narrow",
+        "value": "380px"
+      },
+      {
+        "name": "forme-short-desktop",
+        "value": "(max-height:760px) and (min-width:701px)"
+      },
+      {
+        "name": "forme-short-mobile",
+        "value": "(max-height:660px) and (max-width:700px)"
+      }
+    ]
   },
-  "components": [{
-    "name":"Save locally","kind":"button","description":"Explicit local-only persistence action.",
-    "html":"<button class=\"ds-save\">保存到本机</button>",
-    "css":".ds-save{background:#303a2c;color:#fff;border:0;border-radius:4px;padding:15px 17px;font:inherit;cursor:pointer}.ds-save:hover{background:#47523f}.ds-save:focus-visible{outline:2px solid #76643c;outline-offset:5px}"
-  }],
-  "narrative": {"northStar":"珠宝是主角","overview":"安静、温暖的观察台。真实的三维物件承担视觉表达，界面让位于选择、比较与观察。","dos":["Do 以可检查的真实几何、光照与清晰度改善珠宝展示。","Do 保留来源与许可证入口。"],"donts":["Don't 用过度泛光掩盖切工、镶座或法线问题。","Don't 将视觉比例标为实际克拉、戒围或生产规格。"]}
+  "components": [
+    {
+      "name": "FORME · 重置编辑",
+      "kind": "button",
+      "refersTo": "forme-button",
+      "description": "现有浅底操作按钮；重置可撤销，不承担本机保存。",
+      "html": "<button class=\"ds-forme-button\">重置编辑</button>",
+      "css": ".ds-forme-button{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 12px;border:1px solid var(--line,#dfd9cf);border-radius:2px;background:var(--surface,#fffefb);color:var(--ink,#302c29);font:12px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;cursor:pointer;transition:background-color .16s,color .16s,border-color .16s}.ds-forme-button:hover:not(:disabled){background:var(--active,#ede6df)}.ds-forme-button:focus-visible{outline:2px solid var(--accent,#71394a);outline-offset:3px}.ds-forme-button:disabled{opacity:.42;cursor:default}@media(max-width:700px){.ds-forme-button{min-height:44px}}@media(prefers-reduced-motion:reduce){.ds-forme-button{transition:none}}"
+    },
+    {
+      "name": "FORME · 作品名称",
+      "kind": "input",
+      "refersTo": "forme-input",
+      "description": "素材页的名称输入框，保留可见标签和 80 字符上限。",
+      "html": "<label class=\"ds-forme-label\" for=\"ds-forme-name\">作品名称</label><input class=\"ds-forme-input\" id=\"ds-forme-name\" maxlength=\"80\" value=\"四照花 · 独立拼接戒指\"/>",
+      "css": ".ds-forme-label{display:block;margin:24px 0 12px;color:var(--ink,#302c29);font:13px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.ds-forme-input{width:100%;min-width:0;padding:7px 9px;border:1px solid var(--line,#dfd9cf);border-radius:2px;background:var(--surface,#fffefb);color:var(--ink,#302c29);caret-color:var(--accent,#71394a);font:13px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.ds-forme-input:focus-visible{outline:2px solid var(--accent,#71394a);outline-offset:3px}@media(max-width:700px){.ds-forme-label{margin:16px 0 8px}}"
+    },
+    {
+      "name": "FORME · 参数页签",
+      "kind": "nav",
+      "refersTo": "forme-tab-selected",
+      "description": "现有五类编辑页签；暗红文字和下边线共同表示选中。",
+      "html": "<div class=\"ds-forme-tabs\" role=\"tablist\" aria-label=\"编辑工具\"><button role=\"tab\" aria-selected=\"true\">材质</button><button role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">花形</button><button role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">尺寸</button><button role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">款式</button><button role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">素材</button></div>",
+      "css": ".ds-forme-tabs{display:flex;gap:4px;margin-top:24px;border-bottom:1px solid var(--line,#dfd9cf)}.ds-forme-tabs button{flex:1;min-width:0;min-height:44px;padding:0 8px;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted,#6b6259);font:13px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;white-space:nowrap;cursor:pointer;transition:background-color .16s,color .16s,border-color .16s}.ds-forme-tabs [aria-selected=true]{border-bottom-color:var(--accent,#71394a);color:var(--accent,#71394a);font-weight:600}.ds-forme-tabs button:hover{background:var(--active,#ede6df)}.ds-forme-tabs button:focus-visible{outline:2px solid var(--accent,#71394a);outline-offset:3px}@media(max-width:700px){.ds-forme-tabs{margin:0;gap:0}.ds-forme-tabs button{flex:1;min-height:44px}}@media(prefers-reduced-motion:reduce){.ds-forme-tabs button{transition:none}}"
+    },
+    {
+      "name": "FORME · 金属色样",
+      "kind": "custom",
+      "refersTo": "forme-material-selected",
+      "description": "现有带名称的四种金属色样；渐变只用于表达材质，默认金色。",
+      "html": "<div class=\"ds-forme-materials\"><button><span class=\"ds-forme-metal ds-forme-silver\" aria-hidden=\"true\"></span>银色</button><button class=\"ds-active\"><span class=\"ds-forme-metal ds-forme-gold\" aria-hidden=\"true\"></span>金色</button><button><span class=\"ds-forme-metal ds-forme-rose\" aria-hidden=\"true\"></span>玫瑰金</button><button><span class=\"ds-forme-metal ds-forme-graphite\" aria-hidden=\"true\"></span>石墨色</button></div>",
+      "css": ".ds-forme-materials{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:18px}.ds-forme-materials button{display:flex;flex-direction:column;gap:10px;align-items:center;min-height:78px;padding:8px 0 10px;border:1px solid transparent;border-radius:2px;background:none;color:var(--ink,#302c29);font:12px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;white-space:nowrap;cursor:pointer;transition:background-color .16s,color .16s,border-color .16s}.ds-forme-materials .ds-active{border-color:var(--accent,#71394a);background:var(--active,#ede6df)}.ds-forme-materials button:hover{background:var(--active,#ede6df)}.ds-forme-materials button:focus-visible{outline:2px solid var(--accent,#71394a);outline-offset:3px}.ds-forme-metal{display:block;position:relative;overflow:hidden;flex:none;width:33px;height:33px;border:1px solid #00000016;border-radius:50%;background:var(--sample)}.ds-forme-silver{--sample:#bfc4c4}.ds-forme-gold{--sample:#d4b477}.ds-forme-rose{--sample:#d6a38e}.ds-forme-graphite{--sample:#666b68}.ds-forme-metal:after{content:\"\";position:absolute;inset:0;background:linear-gradient(130deg,#ffffff80 5%,transparent 36%,#ffffff90 48%,transparent 64%,#00000015 90%)}@media(max-width:700px){.ds-forme-materials{gap:12px;margin-top:10px}.ds-forme-materials button{min-height:74px;padding:8px 0;gap:6px}.ds-forme-metal{width:32px;height:32px}}@media(prefers-reduced-motion:reduce){.ds-forme-materials button{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "珠宝是主角",
+    "overview": "安静、温暖的展陈台。三维物件承担视觉表达；展台可在纯白 Listing 与暖调展陈之间切换。纯白模式用透明画布与纯白页面底，只保留接触阴影；暖调模式是一块跟随相机的棚拍 sweep（顶部纸白、底部暖灰，中心一层很轻的灯池）。界面以白瓷面板和细边线让位给选择、比较与观察。\n\nFORME 采用用户选定的 A · 铂纸画廊。珠宝先行。纸白画布、平直参数栏与作品签式信息承载模组编辑，暗红只提示操作和选择；这一视觉已整合到正式 `/#/modules`，尚未发布。",
+    "keyCharacteristics": [
+      "主展台保留纯白 Listing 与暖调展陈两种背景。",
+      "FORME 用纸白、细线与平直面板组织编辑，圆形金属色样帮助识别材质。",
+      "同一真实模型连接材质、花形、尺寸与作品信息，界面变化不代表渲染质量升级。"
+    ],
+    "rules": [
+      {
+        "name": "The FORME Scope Rule",
+        "body": "`forme-*` 词元用于 FORME 编辑器与两工作空间共用的顶部导航；其来源为 `public/forme/studio.css`、`public/forme/index.html` 与 `src/styles.css` 的共享导航规则。主展台内容区保持原有视觉。",
+        "section": "colors"
+      },
+      {
+        "name": "The FORME Legibility Rule",
+        "body": "FORME 正常可见文字不小于 12px；数字使用等宽数字，次要文字统一使用 `forme-muted`，不把主展台的历史小字号沿用到模组端。",
+        "section": "typography"
+      },
+      {
+        "name": "The FORME Quiet Surface Rule",
+        "body": "FORME 常驻面板靠表面色与细边线分区；阴影仅用于浮动导出菜单和对话框，金属色样的渐变只表达材质，不作为页面装饰。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do 以可检查的真实几何、光照与清晰度改善珠宝展示。",
+      "Do 保留来源与许可证入口。",
+      "Do 将 `forme-*` 词元限定在模组工作空间，并保留主展台既有视觉。",
+      "Do 保留 FORME 的可见标签、焦点、可撤销重置与局部滚动参数区。"
+    ],
+    "donts": [
+      "Don't 用过度泛光掩盖切工、镶座或法线问题。",
+      "Don't 将视觉比例标为实际克拉、戒围或生产规格。",
+      "Don't 把本地整合、浏览器响应式检查或几何预筛选写成已部署、手机真机验证或制造认证。"
+    ]
+  }
 }
