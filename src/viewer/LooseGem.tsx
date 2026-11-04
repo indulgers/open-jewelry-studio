@@ -10,6 +10,6 @@ export function LooseGem({shape,environment,quality,simplified,onReady,preset}:{
   const gltf=useGLTF(atelierGem(shape).url);
   const geometry=useMemo(()=>{const source=firstMeshGeometry(gltf.scene);try{return normalizeLooseGem(source);}finally{source.dispose();}},[gltf.scene]);
   const options=useMemo(()=>({environmentRotation:preset.rotation,environmentIntensity:preset.gemIntensity,dispersion:preset.dispersion}),[preset]);
-  useEffect(()=>()=>geometry.dispose(),[geometry]);useEffect(onReady,[environment,onReady]);
-  return <OpticalGem geometry={geometry} {...{environment,quality,simplified,options}}/>;
+  useEffect(()=>()=>geometry.dispose(),[geometry]);
+  return <OpticalGem geometry={geometry} {...{environment,quality,simplified,options,onReady}}/>;
 }

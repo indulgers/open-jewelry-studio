@@ -31,4 +31,6 @@ for(const [diameter,mirror,count] of [[19.5,false,12],[19.8,true,7],[15,false,12
   assert(closest>=diameter/2-.00002,`material intrudes: ${closest} vs Ø${diameter}`);
   if(diameter>15)assert(closest<diameter/2+.001);
 }
-console.log('FORME bore: exported clearances, mirrored motifs, no-contact and empty cuts passed');
+const openMesh={positions:new Float32Array([-1,-1,0,1,-1,0,0,1,0]),indices:new Uint32Array([0,1,2])};
+assert.throws(()=>cutRing(kernel,openMesh,openMesh,{count:1,boreDiameter:19.5}),/不是封闭实体/);
+console.log('FORME bore: exported clearances, mirrored motifs, no-contact, empty cuts and invalid-source rejection passed');

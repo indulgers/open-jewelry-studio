@@ -1,7 +1,8 @@
 const halfFov = 39*Math.PI/360;
+export function viewHalfHeight(cam,canvas){return cam.distance*Math.tan(halfFov)/Math.min(1,canvas.clientWidth/canvas.clientHeight);}
 export function home(r,ring){
   const small=r.canvas.clientWidth<520;
-  r.camera={yaw:ring?.59:0,pitch:ring?.28:.04,distance:ring?(small?52:48):(small?109:86),
+  r.camera={yaw:ring?.59:0,pitch:ring?.45:.04,distance:ring?(small?52:48):(small?109:86),
     target:[0,ring?0:-1,0],projection:r.camera?.projection||'ortho'};
 }
 export function orient(cam,view) {
@@ -14,7 +15,7 @@ export function basis(cam){
 export function bindCamera(r,onOrbit){
   const el=r.canvas, pts=new Map(), redraw=()=>r.fallback&&r.draw();
   function pan(dx,dy){
-    const cam=r.camera, {right,up}=basis(cam),scale=2*cam.distance*Math.tan(halfFov)/el.clientHeight;
+    const cam=r.camera, {right,up}=basis(cam),scale=2*viewHalfHeight(cam,el)/el.clientHeight;
     cam.target=cam.target.map((v,i)=>v+scale*(-dx*right[i]+dy*up[i]));
   }
   function zoom(k){r.camera.distance=Math.max(19,Math.min(180,r.camera.distance*k));}

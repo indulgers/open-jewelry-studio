@@ -17,6 +17,5 @@ export function GemAsset({size,quality,simplified,environment,onReady,preset}:{s
   const placement=getGemPlacement(geometry.boundingBox as Box3,size);
   const options=useMemo(()=>preset?{environmentRotation:preset.rotation,environmentIntensity:preset.gemIntensity,dispersion:preset.dispersion}:undefined,[preset]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
-  useEffect(onReady,[environment,onReady]);
-  return <OpticalGem geometry={geometry} position={placement.position} scale={placement.scale} {...{environment,quality,simplified,options}}/>;
+  return <OpticalGem geometry={geometry} position={placement.position} scale={placement.scale} {...{environment,quality,simplified,options,onReady}}/>;
 }

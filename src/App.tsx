@@ -13,6 +13,7 @@ import {FINISHED_RINGS,finishedRing,type FinishedRingId} from './assets/finished
 import {STAGE_MODES,type StageMode} from './viewer/stageMode';
 import {ProductGallery} from './components/ProductGallery';
 import {ModuleStudio} from './components/ModuleStudio';
+import {StageLoading} from './components/StageLoading';
 const JewelryStage=lazy(()=>import('./viewer/JewelryStage').then(module=>({default:module.JewelryStage})));
 
 function restore(){
@@ -77,10 +78,10 @@ function JewelryStudio({active}:{active:boolean}){
     <main className="studio-layout">
       <div className="preview-column"><div className="preview-heading"><h1>{modelMode==='gem'?'每一种切工，都有自己的光。':modelMode==='reference'?'光，落在切面之间。':configuration.shankStyle==='plain'?'纯粹，恰如其分。':'交汇，自有光芒。'}</h1>
         <p>{modelMode==='gem'?atelierGem(gemShape).name:modelMode==='reference'?finishedRing(ringStyle).note:configuration.shankStyle==='plain'?'素圈戒臂':'分叉戒臂'}<span> / </span>{modelMode==='gem'?STUDIO_PRESETS[studioPreset].name:METALS[configuration.metalFinish].name}</p></div>
-        {!active?null:display==='images'?<ProductGallery images={images??SAMPLE_IMAGES}/>:<Suspense fallback={<div className="loading-indicator" role="status">{poster&&<img className="catalog-poster" src={poster} alt="黄金色枕形光环戒指"/>}正在准备三维预览</div>}>
+        {!active?null:display==='images'?<ProductGallery images={images??SAMPLE_IMAGES}/>:<Suspense fallback={<StageLoading poster={poster}/>}>
           <JewelryStage {...{configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,gemShape,ringStyle,stageMode,studioPreset,captureRequest,onImages,onCaptureProgress,captureBusy,poster}} onCaptureReady={setCaptureReady}/>
         </Suspense>}
-        {display==='3d'&&<div className="preview-footer"><span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7h14M6 4 3 7l3 3m8 0 3-3-3-3M7 13h6m-3-2v6"/></svg>拖动旋转 · 滚轮或双指缩放</span><span>实时 3D</span></div>}
+        {display==='3d'&&<div className="preview-footer"><span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7h14M6 4 3 7l3 3m8 0 3-3-3-3M7 13h6m-3-2v6"/></svg>{captureReady?'拖动旋转 · 滚轮或双指缩放':'三维准备中，完成后即可拖动'}</span><span>{captureReady?'实时 3D':'准备中'}</span></div>}
       </div>
       <aside className="configuration-column" aria-label="戒指配置">
         <div className="panel-heading"><h2>设计你的戒指</h2><p>选择结构与光泽，慢慢找到你的组合。</p></div>

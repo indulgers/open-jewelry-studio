@@ -1,9 +1,17 @@
 import {it,expect} from 'vitest';
-import {home,orient,basis,bindCamera} from '../public/forme/camera.js';
+import {home,orient,basis,bindCamera,viewHalfHeight} from '../public/forme/camera.js';
+
+it('keeps the same horizontal clearance when the canvas becomes a narrow portrait',()=>{
+  const cam={distance:52};
+  const wide={clientWidth:800,clientHeight:500},narrow={clientWidth:360,clientHeight:750};
+  const halfWidth=viewHalfHeight(cam,narrow)*narrow.clientWidth/narrow.clientHeight;
+  expect(halfWidth).toBeCloseTo(viewHalfHeight(cam,wide));
+  expect(halfWidth).toBeGreaterThan(12);
+});
 
 it('orbits, pans in the view plane, and pinch zooms without spinning the model',()=>{
   const canvas=document.createElement('canvas');
-  Object.defineProperty(canvas,'clientHeight',{value:500});canvas.setPointerCapture=()=>{};
+  Object.defineProperty(canvas,'clientHeight',{value:500});Object.defineProperty(canvas,'clientWidth',{value:400});canvas.setPointerCapture=()=>{};
   const r={canvas};home(r,true);bindCamera(r,()=>{});
   function send(type,id,x,y,buttons=1){
     const e=new MouseEvent('pointer'+type,{clientX:x,clientY:y,buttons});

@@ -1,11 +1,10 @@
 import {useEffect,useRef} from 'react';
 import {useFrame,useThree} from '@react-three/fiber';
-import {Matrix4,Mesh,Vector2} from 'three';
+import {Matrix4,Mesh} from 'three';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {TAARenderPass} from 'three/addons/postprocessing/TAARenderPass.js';
-import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
-import {CopyShader} from 'three/addons/shaders/CopyShader.js';
+import {liveResolve} from './liveResolve';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {movedSinceSample,nextRefinement,type RefinementState} from './progressiveState';
 import {qualitySettings,type Quality} from './quality';
@@ -32,19 +31,7 @@ export function JewelryPostprocessing({quality,contentKey,capturing}:{quality:Qu
     }
     const output=new OutputPass();
     // Four bilinear taps integrate isolated subpixel highlights over a small, fixed screen footprint.
-    const offset=new Vector2(0.32/composer.readBuffer.width,0.32/composer.readBuffer.height);
-    const resolve=capturing?null:new ShaderPass({
-      uniforms:{tDiffuse:{value:null},offset:{value:offset}},
-      vertexShader:CopyShader.vertexShader,
-      fragmentShader:`uniform sampler2D tDiffuse;
-        uniform vec2 offset;
-        varying vec2 vUv;
-        void main(){
-          vec2 mirror=vec2(offset.x,-offset.y);
-          gl_FragColor=0.25*(texture2D(tDiffuse,vUv+offset)+texture2D(tDiffuse,vUv-offset)
-            +texture2D(tDiffuse,vUv+mirror)+texture2D(tDiffuse,vUv-mirror));
-        }`,
-    });
+    const resolve=capturing?null:liveResolve(composer.readBuffer.width,composer.readBuffer.height);
     composer.addPass(scenePass);composer.addPass(output);
     if(resolve)composer.addPass(resolve);
     const owned={composer,taa,dispose(){scenePass.dispose();output.dispose();resolve?.dispose();composer.dispose();}};

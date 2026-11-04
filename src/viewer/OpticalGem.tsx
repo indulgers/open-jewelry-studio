@@ -5,16 +5,18 @@ import {createGemOptics,syncGemDraw,updateGemOptics,type GemOpticsOptions} from 
 import type {Quality} from './quality';
 
 type Props=Omit<ThreeElements['mesh'],'geometry'|'material'>&{
-  geometry:BufferGeometry;environment:Texture;quality:Quality;simplified:boolean;options?:GemOpticsOptions;
+  geometry:BufferGeometry;environment:Texture;quality:Quality;simplified:boolean;options?:GemOpticsOptions;onReady?:()=>void;
 };
-export function OpticalGem({geometry,environment,quality,simplified,options,...props}:Props){
-  const [owned,setOwned]=useState<ReturnType<typeof createGemOptics>|null>(null);
+export function OpticalGem({geometry,environment,quality,simplified,options,onReady,...props}:Props){
+  const [built,setOwned]=useState<{geometry:BufferGeometry;environment:Texture;quality:Quality;value:ReturnType<typeof createGemOptics>}|null>(null);
+  const owned=built?.geometry===geometry&&built.environment===environment&&built.quality===quality?built.value:null;
   useEffect(()=>{
     if(simplified){setOwned(null);return;}
-    const next=createGemOptics(geometry,environment,quality);setOwned(next);
+    const next=createGemOptics(geometry,environment,quality);setOwned({geometry,environment,quality,value:next});
     return ()=>next.dispose();
   },[geometry,environment,quality,simplified]);
   useLayoutEffect(()=>{if(owned)updateGemOptics(owned.material,options);},[owned,options]);
+  useEffect(()=>{if(simplified||owned)onReady?.()},[simplified,owned,onReady]);
   if(simplified)return <mesh {...props} geometry={geometry}>
     <meshPhysicalMaterial color="white" metalness={0} roughness={0.025} transmission={0.98} thickness={0.7} ior={2.42}/>
   </mesh>;
