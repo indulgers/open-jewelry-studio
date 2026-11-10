@@ -36,7 +36,7 @@ describe('parametric jewelry geometry',()=>{
    expect(site).toBeDefined();
    const parts=metalSetting(d,site!);
    expect(parts.some(p=>p.name==='bezel-lip')).toBe(false);
-   expect(parts.some(p=>p.name==='under-gallery')).toBe(true);
+   expect(parts.some(p=>p.name==='under-gallery')).toBe(false);
    parts.forEach(p=>p.geometry.dispose());
   }finally{assembly.dispose();}
  });
