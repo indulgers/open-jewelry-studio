@@ -1,0 +1,108 @@
+import {BufferGeometry,Float32BufferAttribute} from 'three';
+import {createFusionInput} from './fusionInput';
+import {buildStoneLayout,constrainDesign,type Design} from '../recipe';
+import {metalSetting} from '../geometry';
+type MeshInput={numProp:number;vertProperties:Float32Array;triVerts:Uint32Array;merge:()=>unknown};
+type Solid={status:()=>string;volume:()=>number;isEmpty:()=>boolean;delete:()=>void;
+  subtract:(b:Solid)=>Solid;add:(b:Solid)=>Solid;decompose:()=>Solid[];getMesh:(arg?:number)=>MeshInput;
+  numTri:()=>number;};
+type Kernel={
+ setup:()=>void;
+ Mesh:new(o:{numProp:number;vertProperties:Float32Array;triVerts:Uint32Array})=>MeshInput;
+ Manifold:{new(mesh:MeshInput):Solid;union:(items:Solid[])=>Solid;}
+};
+let shared:Promise<Kernel>|null=null;
+async function loadKernel():Promise<Kernel>{
+ if(shared)return shared;
+ shared=(async()=>{
+  // The repository already bundles Manifold 3.5.4 for the FORME editor.
+  // Keep using that local Apache-2.0 engine instead of a remote SDK.
+  const url='/forme/vendor/manifold/manifold.js';
+  const module=await import(/* @vite-ignore */ url);
+  const runtime=await module.default({locateFile:(name:string)=>'/forme/vendor/manifold/'+name}) as Kernel;
+  runtime.setup();
+  return runtime;
+ })();
+ try{return await shared;}catch(error){shared=null;throw error;}
+}
+export type BooleanReport={
+  status:'fused'|'fragmented'|'error';inputCount:number;cutterCount:number;triangles:number;
+  volumeSceneUnits3:number;connectedComponents:number;minSurfaceWallMm:null;
+  clearanceValidated:false;manufacturingPassed:false;warnings:string[];
+};
+export type BooleanResult={geometry:BufferGeometry;report:BooleanReport;dispose:()=>void};
+function inputMesh(g:BufferGeometry,kernel:Kernel){
+ const p=g.getAttribute('position'),index=g.getIndex();
+ if(!p||p.itemSize!==3)throw Error('Missing XYZ mesh attributes');
+ const verts=new Float32Array(p.count*3);
+ for(let i=0;i<p.count;i++){verts[i*3]=p.getX(i);verts[i*3+1]=p.getY(i);verts[i*3+2]=p.getZ(i);}
+ if(!verts.every(Number.isFinite))throw Error('Nonfinite metal vertices');
+ const face=index?Uint32Array.from(index.array):Uint32Array.from({length:p.count},(_,i)=>i);
+ if(face.length%3!==0)throw Error('Broken triangle indices');
+ const mesh=new kernel.Mesh({numProp:3,vertProperties:verts,triVerts:face});
+ mesh.merge();return mesh;
+}
+function toSolid(g:BufferGeometry,kernel:Kernel,label:string):Solid{
+ const mesh=inputMesh(g,kernel);
+ let solid:Solid;
+ try{solid=new kernel.Manifold(mesh);}catch(error){throw Error(label+': '+String(error));}
+ if(solid.status()!=='NoError'||solid.isEmpty()){
+  const why=solid.status();solid.delete();
+  throw Error(label+': non-manifold source ('+why+')');
+ }
+ return solid;
+}
+function metalGeometry(mesh:MeshInput){
+ const p=mesh.vertProperties,i=mesh.triVerts;
+ const out=new BufferGeometry();
+ if(mesh.numProp===3)out.setAttribute('position',new Float32BufferAttribute(p.slice(),3));
+ else{
+  const buf=new Float32Array(p.length/mesh.numProp*3);
+  for(let v=0;v<buf.length/3;v++)for(let j=0;j<3;j++)buf[v*3+j]=p[v*mesh.numProp+j];
+  out.setAttribute('position',new Float32BufferAttribute(buf,3));
+ }
+ out.setIndex(Uint32Array.from(i));out.computeVertexNormals();out.computeBoundingSphere();return out;
+}
+/** No graceful fallback to overlapping Meshes. If CSG fails we surface an
+ * explicit error and keep the last valid closed solid until a new edit succeeds. */
+export async function fuseDesign(input:Design):Promise<BooleanResult>{
+ const d=constrainDesign(input),k=await loadKernel(),source=createFusionInput(d);
+ const owned:Solid[]=[];
+ const hold=(s:Solid)=>{owned.push(s);return s;};
+ try{
+  const solids=source.parts.map(p=>hold(toSolid(p.geometry,k,p.name)));
+  const stock=hold(k.Manifold.union(solids));
+  if(stock.isEmpty()||stock.status()!=='NoError')throw Error('Metal union failed '+stock.status());
+  const cutters=source.cutters.map(p=>hold(toSolid(p.geometry,k,p.name)));
+  const tool=hold(k.Manifold.union(cutters));
+  const drilled=hold(stock.subtract(tool));
+  if(drilled.isEmpty()||drilled.status()!=='NoError')throw Error('Cavity subtraction failed: '+drilled.status());
+  // Mounts are added AFTER cavities so the cutter cannot erase contact prongs.
+  const mounting:Solid[]=[];
+  for(const site of source.stones){
+   const geometry=metalSetting(d,site);
+   for(const part of geometry){
+    try{
+     const g=part.geometry;
+     g.rotateZ(-site.tilt);g.translate(site.x,site.y,site.z);
+     const solid=hold(toSolid(g,k,'mount '+site.id+' '+part.name));
+     mounting.push(solid);
+    }finally{part.geometry.dispose();}
+   }
+  }
+  const completed=hold(k.Manifold.union([drilled,...mounting]));
+  if(completed.isEmpty()||completed.status()!=='NoError')throw Error('Final metal fuse '+completed.status());
+  const connected=completed.decompose();
+  const count=connected.length;connected.forEach(s=>s.delete());
+  const geom=metalGeometry(completed.getMesh());
+  const report:BooleanReport={status:count===1?'fused':'fragmented',inputCount:source.parts.length+mounting.length,
+   cutterCount:cutters.length,triangles:completed.numTri(),volumeSceneUnits3:completed.volume(),connectedComponents:count,
+   minSurfaceWallMm:null,clearanceValidated:false,manufacturingPassed:false,
+   warnings:[
+    count===1?'金属网格已经完成布尔并集和镶口差集':'仍有 '+count+' 个不连通金属实体；不得生产导出',
+    '局部最小壁厚、爪根安全、宝石与金属精确干涉尚未验证',
+    '网格水密并不代表已通过铸造或镶石工艺验收'
+   ]};
+  return {geometry:geom,report,dispose:()=>geom.dispose()};
+ }finally{source.dispose();for(const o of owned)o.delete();}
+}
