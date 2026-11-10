@@ -5,10 +5,17 @@ const browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-g
 const page=await browser.newPage({viewport:{width:1500,height:940},deviceScaleFactor:1});
 const errors=[];
 page.on('pageerror',e=>errors.push(e.message));
+page.on('console',msg=>{if(msg.type()==='error')console.log('BROWSER_CONSOLE_ERROR',msg.text());});
 try{
  await page.goto('http://127.0.0.1:5179/#/stonefirst',{waitUntil:'networkidle',timeout:40000});
  await page.getByText('镶嵌优先的珠宝 DIY').waitFor();
  await page.locator('.stone-first-canvas canvas').waitFor({timeout:25000});
+ const overlay=await page.locator('vite-error-overlay').count();
+ if(overlay){
+   const detail=await page.locator('vite-error-overlay').first().evaluate(el=>el.shadowRoot?.textContent?.slice(0,7000)||'No error detail');
+   console.log('VITE_ERROR_OVERLAY',detail);
+   throw new Error('Vite dev compile error: '+detail.slice(0,1200));
+ }
  const webgl=await page.evaluate(()=>{
   const c=document.querySelector('.stone-first-canvas canvas');
   return Boolean(c?.getContext('webgl2')||c?.getContext('webgl'));
@@ -24,7 +31,7 @@ try{
   await page.waitForFunction(()=>{
     const status=document.querySelector('.stone-first-canvas')?.getAttribute('data-solid-status');
     return status==='fused'||status==='fragmented'||status==='error';
-  },{timeout:90000});
+  },null,{timeout:90000});
   const solidStatus=await page.locator('.stone-first-canvas').getAttribute('data-solid-status');
   const detail=await page.locator('.stone-fusion-status').innerText();
   console.log('SOLID_STATUS='+id+':'+solidStatus+' / '+detail);
