@@ -61,3 +61,8 @@
 
 .stone-first-camera-views{display:flex;justify-content:center;flex-wrap:wrap;gap:7px;padding:9px 15px 14px;border-top:1px solid #ded9d2;background:rgba(255,255,255,.28)}
 .stone-first-camera-views button{padding:7px 12px;font-size:11px}
+
+/* A solid is never considered delivered before the Boolean kernel reports. */
+.stone-fusion-status{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:3;max-width:94%;border:1px solid #d9d3c9;background:rgba(255,255,255,.9);border-radius:10px;padding:8px 13px;color:#5d5a53;font-size:11px;line-height:1.5;box-shadow:0 4px 22px #00000010;pointer-events:none;text-align:center}
+.stone-fusion-fused{color:#256645;border-color:#b7d4c5}
+.stone-fusion-error,.stone-fusion-fragmented{color:#a63c33;border-color:#e9b2ab;background:rgba(255,248,246,.97)}
