@@ -6,7 +6,7 @@ import {STONE_APPEARANCES} from '../viewer/stoneAppearance';
 import {STUDIO_PRESETS,type StudioPresetId} from '../viewer/studioPresets';
 import {StoneFirstStage} from './StoneFirstStage';
 import {createAssembly,metalSetting} from './geometry';
-import {RECIPES,STRUCTURES,GRAMMARS,PARAMS,SETTINGS,MOUNTS,buildStoneLayout,checkDesign,constrainDesign,recipeDesign,summary,type Design,type RecipeId,type Check} from './recipe';
+import {RECIPES,STRUCTURES,GRAMMARS,PARAMS,SETTINGS,MOUNTS,GEM_CUTS,buildStoneLayout,checkDesign,constrainDesign,recipeDesign,summary,type Design,type RecipeId,type Check} from './recipe';
 import './stone-first.css';
 
 const STEPS=['戒指结构原型','造型语言','参数化组合','宝石镶嵌','设计与工艺校验'] as const;
@@ -91,6 +91,7 @@ export function StoneFirstStudio(){
         <h2>01 / 选戒指结构</h2><p>先决定镶座承力形式，再选金属与宝石占据的比例。全部五种结构均可预览。</p>
         <h3>选择专业配方</h3><div className="stone-first-recipe-grid">{RECIPES.map(r=><button key={r.id} aria-pressed={d.recipe===r.id} onClick={()=>selectRecipe(r.id)}><strong>{r.name}</strong><small>{r.description}</small></button>)}</div>
         <h3>戒指结构原型</h3><div className="stone-first-options">{STRUCTURES.map(([id,name])=><button key={id} aria-pressed={d.structure===id} onClick={()=>update('structure',id)}>{name}</button>)}</div>
+        <h3>金属材质</h3><div className="stone-first-options">{([['white','白金色'],['yellow','黄金色'],['rose','玫瑰金色']] as const).map(([id,name])=><button key={id} aria-pressed={d.metal===id} onClick={()=>update('metal',id)}>{name}</button>)}</div>
         <label className="stone-first-range"><span>戒圈内径（参数标称）</span><output>{d.ringDiameter.toFixed(1)} mm</output><input type="range" min="15" max="23" step=".5" value={d.ringDiameter} onChange={e=>update('ringDiameter',Number(e.target.value))}/></label>
        </>}
        {step===1&&<>
@@ -107,6 +108,7 @@ export function StoneFirstStudio(){
        {step===3&&<>
         <h2>04 / 宝石镶嵌策略</h2><p>先选构图，再生成可见的宝石、下托、镶爪与包边。系统按照真实直径和设计间隙重排，不按固定数量随意散点。</p>
         <h3>镶嵌构图</h3><div className="stone-first-options">{SETTINGS.map(([id,name])=><button key={id} aria-pressed={d.setting===id} onClick={()=>update('setting',id)}>{name}</button>)}</div>
+        <h3>主石切形</h3><div className="stone-first-options">{GEM_CUTS.map(([id,name])=><button key={id} aria-pressed={d.gemCut===id} onClick={()=>update('gemCut',id)}>{name}</button>)}</div>
         <h3>镶嵌工艺</h3><div className="stone-first-options">{MOUNTS.map(([id,name])=><button key={id} aria-pressed={d.mount===id} onClick={()=>update('mount',id)}>{name}</button>)}</div>
         <h3>宝石尺寸和密度</h3>
         {([['mainDiameter','主石直径',2,6,.1],['accentDiameter','配钻直径',.55,1.4,.05],['gapMm','目标腰棱净距',.1,.3,.01]] as const).map(([key,label,min,max,increment])=>
