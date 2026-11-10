@@ -1,5 +1,5 @@
-import {BufferGeometry,DoubleSide,Float32BufferAttribute,Group,Mesh,MeshPhysicalMaterial,Vector3} from 'three';
-import {MM,bandRadius,constrainDesign,petalSample,type Design,type Site} from './recipe';
+import {BufferGeometry,Float32BufferAttribute,Vector3} from 'three';
+import {bandRadius,constrainDesign,petalSample,type Design,type Site} from './recipe';
 export type GeometryPart={name:string;geometry:BufferGeometry;kind:'metal'|'seat'};
 export type Assembly={parts:GeometryPart[];dispose:()=>void};
 
@@ -43,7 +43,7 @@ export function petalGeometry(d:Design,leaf:number):BufferGeometry{
  }
  for(let layer=0;layer<2;layer++)for(let i=0;i<tSegments;i++)for(let j=0;j<uSegments;j++){
   const a=layer*n+i*(uSegments+1)+j,b=a+1,c=a+(uSegments+1),e=c+1;
-  if(layer===0)tri.push(a,c,b,b,c,e);else tri.push(a,b,c,b,e,c);
+  if(layer===0)tri.push(a,b,c,b,e,c);else tri.push(a,c,b,b,c,e);
  }
  for(let i=0;i<tSegments;i++)for(const edge of [0,uSegments]){
   const a=i*(uSegments+1)+edge,b=(i+1)*(uSegments+1)+edge;
@@ -85,6 +85,16 @@ export function createAssembly(input:Design):Assembly{
     new Vector3(x*.92,y*.92,-.17*d.parameters.emphasis),new Vector3(x,y,.02),new Vector3(x*.92,y*.92,.17*d.parameters.emphasis)
    ],.019*d.parameters.taper),kind:'metal'});
   }
+ }
+ // Connect the raised center setting into the shank. A visible gallery is not a floating decal.
+ if(d.setting!=='none'){
+   const r=bandRadius(d);
+   for(const side of [-1,1]){
+     parts.push({name:'center-basket-bridge-'+side,
+       geometry:tubeGeometry([
+         new Vector3(side*.18,r+.10,0),new Vector3(side*.12,r+.17,0),new Vector3(side*.14,r+.255,0)
+       ],.024*d.parameters.taper),kind:'metal'});
+   }
  }
  return {parts,dispose:()=>parts.forEach(p=>p.geometry.dispose())};
 }
