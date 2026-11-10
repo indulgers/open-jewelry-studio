@@ -53,11 +53,11 @@ export function bandRadius(d:Design){return d.ringDiameter*MM/2;}
 export function petalSample(d:Design,petal:number,t:number,u:number){
  const n=d.parameters.repeat;
  const phi=2*Math.PI*petal/n+d.parameters.rotation*Math.PI/180+Math.PI/n;
- const rad=0.10+(0.49*d.parameters.emphasis*d.parameters.bend)*t;
- const width=0.22*d.parameters.emphasis*Math.pow(Math.max(0,Math.sin(Math.PI*t)),0.85);
+ const rad=0.085+(0.56*d.parameters.emphasis*d.parameters.bend)*t;
+ const width=0.295*d.parameters.emphasis*Math.pow(Math.max(0,Math.sin(Math.PI*t)),0.85);
  const x=Math.cos(phi)*rad-Math.sin(phi)*width*u;
  const z=Math.sin(phi)*rad+Math.cos(phi)*width*u;
- const y=bandRadius(d)+0.12+d.parameters.blend*0.045+0.07*(1-u*u)*Math.sin(Math.PI*t)+0.035*t;
+ const y=bandRadius(d)+0.17+d.parameters.blend*0.045+0.085*(1-u*u)*Math.sin(Math.PI*t)+0.025*t;
  return {x,y,z,width,phi};
 }
 function shoulder(d:Design,x:number){
@@ -106,7 +106,7 @@ export function buildStoneLayout(unbounded:Design):Site[]{
   if(d.grammar==='floral'){
    // Diamond sites follow each petal's physical envelope. Alternate rows are staggered.
    const pitch=small+gap;
-   const rows=Math.max(3,Math.floor(0.45*d.parameters.emphasis/pitch));
+   const rows=Math.max(4,Math.floor(0.65*d.parameters.emphasis/pitch));
    for(let leaf=0;leaf<d.parameters.repeat;leaf++)for(let row=0;row<rows;row++){
     const t=0.19+0.72*(row+0.5)/rows;
     const sample=petalSample(d,leaf,t,0);
