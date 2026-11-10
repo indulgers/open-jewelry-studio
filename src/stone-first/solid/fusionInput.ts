@@ -61,7 +61,7 @@ export function cappedCurve(points:Vector3[],radius:number){
  g.setIndex(tri);g.computeVertexNormals();return g;
 }
 function cutterForSite(site:Site,main:boolean):BufferGeometry{
- const radius=site.diameter*(main?.31:.435),height=main?.20:site.zone==='petal'?.15:.12;
+ const radius=site.diameter*(main?.31:.29),height=main?.20:site.zone==='petal'?.15:.12;
  const tool=new CylinderGeometry(radius,radius,height,28,1,false);
  const centerY=site.y-(main?.12:.025);
  const t=new Matrix4().makeTranslation(site.x,centerY,site.z);
