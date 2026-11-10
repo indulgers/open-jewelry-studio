@@ -11,6 +11,7 @@ import {STUDIO_PRESETS,type StudioPresetId} from './viewer/studioPresets';
 import {SAMPLE_IMAGES,type ProductImage} from './assets/productMedia';
 import {FINISHED_RINGS,finishedRing,type FinishedRingId} from './assets/finishedRings';
 import {STAGE_MODES,type StageMode} from './viewer/stageMode';
+import {STONE_APPEARANCES, STONE_APPEARANCE_IDS,type StoneAppearance} from './viewer/stoneAppearance';
 import {ProductGallery} from './components/ProductGallery';
 import {ModuleStudio} from './components/ModuleStudio';
 import {StageLoading} from './components/StageLoading';
@@ -22,6 +23,7 @@ function JewelryStudio({active}:{active:boolean}){
   const [modelMode,setModelMode]=useState<ModelMode>('reference');
   const [gemShape,setGemShape]=useState<GemShapeId>('round');
   const [ringStyle,setRingStyle]=useState<FinishedRingId>('solitaire');
+  const [stoneAppearance,setStoneAppearance]=useState<StoneAppearance>('diamond');
   const [studioPreset,setStudioPreset]=useState<StudioPresetId>('catalog');
   const [stageMode,setStageMode]=useState<StageMode>('listing');
   const [display,setDisplay]=useState<'3d'|'preparing'|'images'>('3d');
@@ -49,7 +51,7 @@ function JewelryStudio({active}:{active:boolean}){
       setDisplay(current=>current==='preparing'?'3d':current);
     }
   },[]);
-  useEffect(()=>{setImages(null);setCaptureMessage('');setDisplay('3d');},[configuration,modelMode,gemShape,ringStyle,stageMode,studioPreset,quality]);
+  useEffect(()=>{setImages(null);setCaptureMessage('');setDisplay('3d');},[configuration,modelMode,gemShape,ringStyle,stageMode,studioPreset,quality,stoneAppearance]);
   useEffect(()=>{
     if(!captureBusy)return;
     // Also ends a capture if the browser stops delivering animation frames.
@@ -72,7 +74,7 @@ function JewelryStudio({active}:{active:boolean}){
       <div className="preview-column"><div className="preview-heading"><h1>{modelMode==='gem'?'每一种切工，都有自己的光。':modelMode==='reference'?'光，落在切面之间。':configuration.shankStyle==='plain'?'纯粹，恰如其分。':'交汇，自有光芒。'}</h1>
         <p>{modelMode==='gem'?atelierGem(gemShape).name:modelMode==='reference'?finishedRing(ringStyle).note:configuration.shankStyle==='plain'?'素圈戒臂':'分叉戒臂'}<span> / </span>{modelMode==='gem'?STUDIO_PRESETS[studioPreset].name:METALS[configuration.metalFinish].name}</p></div>
         {!active?null:display==='images'?<ProductGallery images={images??SAMPLE_IMAGES}/>:<Suspense fallback={<StageLoading poster={poster}/>}>
-          <JewelryStage {...{configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,gemShape,ringStyle,stageMode,studioPreset,captureRequest,onImages,onCaptureProgress,captureBusy,poster}} onCaptureReady={setCaptureReady}/>
+          <JewelryStage {...{configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,gemShape,ringStyle,stageMode,studioPreset,stoneAppearance,captureRequest,onImages,onCaptureProgress,captureBusy,poster}} onCaptureReady={setCaptureReady}/>
         </Suspense>}
         {display==='3d'&&<div className="preview-footer"><span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7h14M6 4 3 7l3 3m8 0 3-3-3-3M7 13h6m-3-2v6"/></svg>{captureReady?'拖动旋转 · 滚轮或双指缩放':'三维准备中，完成后即可拖动'}</span><span>{captureReady?'实时 3D':'准备中'}</span></div>}
       </div>
@@ -86,7 +88,11 @@ function JewelryStudio({active}:{active:boolean}){
           </div>
           {modelMode==='gem'?<label className="shape-picker">宝石切形 <span>19 款</span><select value={gemShape} onChange={e=>setGemShape(e.target.value as GemShapeId)}>{ATELIER_GEMS.map(gem=><option key={gem.id} value={gem.id}>{gem.name}</option>)}</select></label>
             :modelMode==='reference'&&<fieldset className="ring-style-field"><legend>成品款式 <span>{FINISHED_RINGS.length} 款</span></legend><div className="ring-styles">{FINISHED_RINGS.map(ring=>
-              <button key={ring.id} aria-pressed={ringStyle===ring.id} onClick={()=>{setRingStyle(ring.id);setResetToken(n=>n+1);}}><strong>{ring.name}</strong><span>{ring.note}</span></button>)}</div><p className="field-help">成品模型来自本地 WebGI 珠宝样板（仅作研究），保留原始雕蜡与宝石切工。</p></fieldset>}
+              <button key={ring.id} aria-pressed={ringStyle===ring.id} onClick={()=>{setRingStyle(ring.id);setResetToken(n=>n+1);}}><strong>{ring.name}</strong><span>{ring.note}</span></button>)}</div><p className="field-help">成品模型保留原始金属、镶爪、配钻与真实切形；当前可调整金属、摄影棚光照及经典光环的主石光学外观。模型不是可任意改石径的制造 CAD。</p></fieldset>}
+          {modelMode==='reference'&&<fieldset className="ring-style-field"><legend>主石光学预览 <span>{ringStyle==='halo'?'可修改':'原模型保留'}</span></legend>
+            <div className="preset-choices" role="group" aria-label="主石光学预览">{STONE_APPEARANCE_IDS.map(id=><button key={id} aria-pressed={stoneAppearance===id} disabled={ringStyle!=='halo'&&id!=='diamond'} onClick={()=>setStoneAppearance(id)}>{STONE_APPEARANCES[id].name}</button>)}</div>
+            <p className="field-help">{ringStyle==='halo'?'仅替换经典光环款的中心圆石光学外观。原主石轮廓、金属镶座、配钻与爪位保持不变；其他颜色为视觉实验，不代表实际库存石或工艺适配。':'这两款 WebGi 成品主石尚未建立可靠的可替换装配锚点，因此保留原切形、配钻与镶座，防止假 DIY 造成穿模。'}</p>
+          </fieldset>}
           <fieldset><legend>观察光线</legend><div className="preset-choices">{Object.values(STUDIO_PRESETS).map(preset=><button key={preset.id} aria-pressed={studioPreset===preset.id} onClick={()=>setStudioPreset(preset.id)}>{preset.name}</button>)}</div><p className="field-help">{STUDIO_PRESETS[studioPreset].description}</p></fieldset>
           <fieldset><legend>展台背景</legend><div className="preset-choices">{STAGE_MODES.map(mode=><button key={mode.id} aria-pressed={stageMode===mode.id} onClick={()=>setStageMode(mode.id)}>{mode.name}</button>)}</div><p className="field-help">{STAGE_MODES.find(mode=>mode.id===stageMode)?.note}；商品图导出会压到白底。</p></fieldset>
           <div className="media-modes" role="group" aria-label="预览方式"><button aria-pressed={display==='3d'} onClick={()=>setDisplay('3d')}>实时 3D</button><button disabled={!catalogSample&&!images&&!captureReady} aria-pressed={display!=='3d'} onClick={openImages}>商品图片</button></div>
