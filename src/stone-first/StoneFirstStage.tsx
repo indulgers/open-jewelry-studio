@@ -14,6 +14,7 @@ import {STUDIO_PRESETS,type StudioPresetId} from '../viewer/studioPresets';
 import {bandRadius,buildStoneLayout,constrainDesign,type Design,type Site} from './recipe';
 import {createAssembly,metalSetting} from './geometry';
 import type {Quality} from '../viewer/quality';
+import type {OrbitControls as OrbitControlsImpl} from 'three-stdlib';
 
 function OpticalAccentBatch({geometry,sites,environment,quality,preset}:{geometry:BufferGeometry;sites:Site[];environment:Texture;quality:Quality;preset:typeof STUDIO_PRESETS[StudioPresetId]}){
  const owned=useMemo(()=>createGemOptics(geometry,environment,quality,{environmentRotation:preset.rotation,
@@ -92,7 +93,32 @@ function Exposure({studio}:{studio:StudioPresetId}){
  useEffect(()=>{gl.toneMappingExposure=preset.exposure;},[gl,preset]);
  return null;
 }
-export function StoneFirstStage({design,quality,studio}:{design:Design;quality:Quality;studio:StudioPresetId}){
+export type StoneView='overall'|'top'|'side'|'macro';
+function DesignCamera({view,ringRadius}:{view:StoneView;ringRadius:number}){
+ const ref=useRef<OrbitControlsImpl>(null);
+ const camera=useThree(s=>s.camera),invalidate=useThree(s=>s.invalidate);
+ useEffect(()=>{
+  const positions:Record<StoneView,[number,number,number]>={
+   overall:[2.15,4.1,3.0],
+   top:[0,5.0,.001],
+   side:[2.65,ringRadius+.45,2.2],
+   macro:[.95,ringRadius+1.5,1.22]
+  };
+  const targets:Record<StoneView,[number,number,number]>={
+   overall:[0,ringRadius*.38,0],
+   top:[0,ringRadius+.18,0],
+   side:[0,ringRadius+.20,0],
+   macro:[0,ringRadius+.25,0]
+  };
+  camera.position.set(...positions[view]);
+  ref.current?.target.set(...targets[view]);
+  ref.current?.update();
+  invalidate();
+ },[view,ringRadius,camera,invalidate]);
+ return <OrbitControls ref={ref} target={[0,ringRadius*.38,0]} enablePan={false}
+    minDistance={.6} maxDistance={7} minPolarAngle={.03} maxPolarAngle={Math.PI-.1}/>;
+}
+export function StoneFirstStage({design,quality,studio,view='overall'}:{design:Design;quality:Quality;studio:StudioPresetId;view?:StoneView}){
  const d=constrainDesign(design);
  return <div className="stone-first-canvas" aria-label="参数化珠宝三维预览">
   <Canvas dpr={[1,quality==='high'?2:1.5]} camera={{position:[2.15,4.1,3.0],fov:35,near:0.03,far:40}}
@@ -100,8 +126,7 @@ export function StoneFirstStage({design,quality,studio}:{design:Design;quality:Q
     <color attach="background" args={['#f5f3f0']}/>
     <ambientLight intensity={0.2}/><StudioFillLights/><Exposure studio={studio}/>
     <Suspense fallback={null}><JewelryObject {...{design:d,quality,studio}}/></Suspense>
-    <OrbitControls target={[0,bandRadius(d)*.38,0]} enablePan={false} minDistance={1.3} maxDistance={7}
-      minPolarAngle={.03} maxPolarAngle={Math.PI-.1}/>
+    <DesignCamera view={view} ringRadius={bandRadius(d)}/>
   </Canvas>
  </div>;
 }
