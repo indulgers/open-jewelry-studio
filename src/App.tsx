@@ -24,6 +24,7 @@ function JewelryStudio({active}:{active:boolean}){
   const [gemShape,setGemShape]=useState<GemShapeId>('round');
   const [ringStyle,setRingStyle]=useState<FinishedRingId>('solitaire');
   const [stoneAppearance,setStoneAppearance]=useState<StoneAppearance>('diamond');
+  useEffect(()=>{if(ringStyle!=='halo')setStoneAppearance('diamond');},[ringStyle]);
   const [studioPreset,setStudioPreset]=useState<StudioPresetId>('catalog');
   const [stageMode,setStageMode]=useState<StageMode>('listing');
   const [display,setDisplay]=useState<'3d'|'preparing'|'images'>('3d');
@@ -60,7 +61,7 @@ function JewelryStudio({active}:{active:boolean}){
   },[captureBusy,onCaptureProgress]);
   useEffect(()=>{if(!active){setCaptureBusy(false);setCaptureRequest(0);setCaptureMessage('');setCaptureReady(false);}},[active]);
   const capture=()=>{onAutoRotateChange(false);setCaptureBusy(true);setCaptureMessage('正在生成商品预览');setCaptureRequest(n=>n+1);};
-  const catalogSample=modelMode==='reference'&&ringStyle==='solitaire'&&configuration.metalFinish==='yellow'
+  const catalogSample=modelMode==='reference'&&ringStyle==='solitaire'&&stoneAppearance==='diamond'&&configuration.metalFinish==='yellow'
     &&stageMode==='listing'&&studioPreset==='catalog'&&quality==='standard';
   const poster=catalogSample?SAMPLE_IMAGES[0].url:undefined;
   const openImages=()=>{
