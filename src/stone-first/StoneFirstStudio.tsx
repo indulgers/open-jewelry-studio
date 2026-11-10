@@ -1,10 +1,10 @@
-import {useMemo,useState,type ChangeEvent} from 'react';
+import {useCallback,useMemo,useState,type ChangeEvent} from 'react';
 import {BoxGeometry,Group,Mesh,MeshStandardMaterial,SphereGeometry,Matrix4} from 'three';
 import {OBJExporter} from 'three/addons/exporters/OBJExporter.js';
 import {STLExporter} from 'three/addons/exporters/STLExporter.js';
 import {STONE_APPEARANCES} from '../viewer/stoneAppearance';
 import {STUDIO_PRESETS,type StudioPresetId} from '../viewer/studioPresets';
-import {StoneFirstStage,type StoneView} from './StoneFirstStage';
+import {StoneFirstStage,type StoneView,type FusionStatus} from './StoneFirstStage';
 import {createAssembly,metalSetting} from './geometry';
 import {RECIPES,STRUCTURES,GRAMMARS,PARAMS,SETTINGS,MOUNTS,GEM_CUTS,buildStoneLayout,checkDesign,constrainDesign,recipeDesign,summary,type Design,type RecipeId,type Check} from './recipe';
 import './stone-first.css';
@@ -44,9 +44,21 @@ export function StoneFirstStudio(){
  const [studio,setStudio]=useState<StudioPresetId>('contrast');
  const [view,setView]=useState<StoneView>('overall');
  const [message,setMessage]=useState('');
+ const [fusionState,setFusionState]=useState<{designKey:string;status:FusionStatus}|null>(null);
  const d=useMemo(()=>constrainDesign(design),[design]);
+ const designKey=JSON.stringify(d);
+ const onFusionChange=useCallback((status:FusionStatus)=>setFusionState({designKey,status}),[designKey]);
  const sites=useMemo(()=>buildStoneLayout(d),[d]),stats=useMemo(()=>summary(d,sites),[d,sites]);
- const checks=useMemo(()=>checkDesign(d,sites),[d,sites]);
+ const fusion=fusionState?.designKey===designKey?fusionState.status:null;
+ const checks=useMemo(()=>{
+   const base=checkDesign(d,sites);
+   const status:Check=!fusion||fusion.state==='loading'
+     ?{severity:'unverified',title:'金属实体融合中',detail:'正在检查整体金属拓扑，尚未允许融合网格导出。'}
+     :fusion.state==='fused'&&fusion.report?.connectedComponents===1
+       ?{severity:'pass',title:'金属实体布尔融合通过',detail:`WASM 完成金属并集与镶口切除；结果为 ${fusion.report.triangles} 面的单一连通网格。工艺与壁厚仍需专项验证。`}
+       :{severity:'block',title:'金属实体不合格',detail:fusion.error||`当前仍有 ${fusion.report?.connectedComponents??'未知'} 个不连通的金属部分，须调整连接结构。`};
+   return [status,...base];
+ },[d,sites,fusion]);
  const update=<K extends Key>(key:K,value:Design[K])=>setDesign(prev=>({...prev,[key]:value}));
  const param=(key:keyof Design['parameters'],value:number)=>setDesign(prev=>({...prev,parameters:{...prev.parameters,[key]:value}}));
  const selectRecipe=(id:RecipeId)=>{setDesign(recipeDesign(id));setMessage('已加载设计配方，五步均可继续修改。');};
@@ -71,7 +83,7 @@ export function StoneFirstStudio(){
    <section className="stone-first-preview">
     <div className="stone-first-preview-label"><div><span>LIVE PARAMETRIC ASSEMBLY</span><h2>{selected?.name}</h2></div>
      <span>{stats.total} STONES</span></div>
-    <StoneFirstStage design={d} quality={quality} studio={studio} view={view}/>
+    <StoneFirstStage design={d} quality={quality} studio={studio} view={view} onFusionChange={onFusionChange}/>
     <div className="stone-first-camera-views" role="group" aria-label="戒指观察视角">{([['overall','整体'],['top','戒面俯视'],['side','镶座侧面'],['macro','镶钻特写']] as const).map(([id,name])=><button key={id} aria-pressed={view===id} onClick={()=>setView(id)}>{name}</button>)}</div>
     <div className="stone-first-preview-bottom">
       <div><strong>{stats.main}</strong><span>主石</span></div><div><strong>{stats.accent}</strong><span>配钻</span></div>
