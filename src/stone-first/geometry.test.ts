@@ -67,6 +67,24 @@ describe('parametric jewelry geometry',()=>{
    expect(ringOuterY(d,site!.x,site!.z)-site!.y).toBeGreaterThan(0);
   }finally{g.dispose();mesh.material.dispose();}
  });
+ it('rebuilds the whole crown with four or six actual formed prongs',()=>{
+  const d=recipeDesign('floral-solitaire'),site=buildStoneLayout(d)[0];
+  const four=metalSetting(d,site),six=metalSetting({...d,prongCount:6},site);
+  try{
+   expect(four.filter(p=>p.name.startsWith('formed-prong-'))).toHaveLength(4);
+   expect(six.filter(p=>p.name.startsWith('formed-prong-'))).toHaveLength(6);
+   expect(six.filter(p=>p.name.startsWith('burnished-prong-tip-'))).toHaveLength(6);
+   expect(six.some(p=>p.name==='under-gallery')).toBe(true);
+  }finally{[...four,...six].forEach(p=>p.geometry.dispose());}
+ });
+ it('moves a stone into the socket when the designer changes the embed depth',()=>{
+  const d=recipeDesign('floral-pave');
+  const a=buildStoneLayout(d).find(p=>p.zone==='petal');
+  const b=buildStoneLayout({...d,seatDepthMm:.24}).find(p=>p.zone==='petal');
+  expect(a).toBeDefined();expect(b).toBeDefined();
+  expect(a!.x).toBeCloseTo(b!.x);expect(a!.z).toBeCloseTo(b!.z);
+  expect(a!.y-b!.y).toBeCloseTo((.24-d.seatDepthMm)*.1);
+ });
  it('rebuilds different mounts for prong and bezel without losing the gallery',()=>{
   const d=recipeDesign('floral-solitaire'),site=buildStoneLayout(d)[0];
   const prong=metalSetting(d,site),bezel=metalSetting(d,{...site,mount:'bezel'});
