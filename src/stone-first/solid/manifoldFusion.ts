@@ -74,7 +74,11 @@ export async function fuseDesign(input:Design):Promise<BooleanResult>{
  const owned:Solid[]=[];
  const hold=(s:Solid)=>{owned.push(s);return s;};
  try{
-  const solids=source.parts.map(p=>hold(toSolid(p.geometry,k,p.name)));
+  // Avoid drilling through the struts that need to support the crown.
+  // Cavity subtraction is for the base ring and sculptural leaves only.
+  const galleryBridges=source.parts.filter(p=>p.name.startsWith('crown-to-band-'));
+  const solids=source.parts.filter(p=>!p.name.startsWith('crown-to-band-'))
+    .map(p=>hold(toSolid(p.geometry,k,p.name)));
   const stock=hold(k.Manifold.union(solids));
   if(stock.isEmpty()||stock.status()!=='NoError')throw Error('Metal union failed '+stock.status());
   const cutters=source.cutters.map(p=>hold(toSolid(p.geometry,k,p.name)));
@@ -85,7 +89,7 @@ export async function fuseDesign(input:Design):Promise<BooleanResult>{
     if(drilled.isEmpty()||drilled.status()!=='NoError')throw Error('Cavity subtraction failed: '+drilled.status());
   }
   // Mounts are added AFTER cavities so the cutter cannot erase contact prongs.
-  const mounting:Solid[]=[];
+  const mounting:Solid[]=galleryBridges.map(p=>hold(toSolid(p.geometry,k,p.name)));
   for(const site of source.stones){
    const geometry=metalSetting(d,site);
    for(const part of geometry){
