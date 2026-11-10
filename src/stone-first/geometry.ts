@@ -35,7 +35,7 @@ export function ringOuterY(d:Design,x:number,z:number){
  */
 export function bandGeometry(input:Design,sites:Site[]=[]):BufferGeometry{
  const d=constrainDesign(input),r=bandRadius(d),verts:number[]=[],indices:number[]=[];
- const segments=384,profile=72,holes=sites.filter(s=>s.zone==='shoulder'&&s.kind==='accent');
+ const segments=384,profile=72;
  function at(theta:number,a:number){
    const {width,thick}=ringDimensions(d,theta);
    const radial=r+thick*Math.cos(a),z=(width/2)*Math.sin(a);
@@ -45,18 +45,8 @@ export function bandGeometry(input:Design,sites:Site[]=[]):BufferGeometry{
    const theta=i/segments*2*Math.PI;
    for(let j=0;j<profile;j++)verts.push(...at(theta,j/profile*2*Math.PI));
  }
- function underAperture(theta:number,a:number){
-   if(Math.sin(theta)<.1||Math.cos(a)<.13)return false;
-   const [x,y,z]=at(theta,a);
-   return holes.some(s=>{
-     const rOpen=s.diameter*.43;
-     return Math.hypot(x-s.x,z-s.z)<rOpen&&Math.abs(y-s.y)<s.diameter*.55;
-   });
- }
  for(let i=0;i<segments;i++)for(let j=0;j<profile;j++){
    const a=i*profile+j,b=i*profile+(j+1)%profile,c=((i+1)%segments)*profile+(j+1)%profile,f=((i+1)%segments)*profile+j;
-   const theta=(i+.5)/segments*Math.PI*2,ang=(j+.5)/profile*Math.PI*2;
-   if(underAperture(theta,ang))continue;
    indices.push(a,f,b,b,f,c);
  }
  return meshFromFaces(verts,indices);
@@ -216,7 +206,9 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
  }
  if(site.mount==='bezel'){
    const wallHeight=rad*.23;
-   const wall=new CylinderGeometry(rad*1.045,rad*1.03,wallHeight,48,1,true);
+   const wall=new TorusGeometry(rad*1.035,Math.max(.006,rad*.085),10,48);
+   wall.scale(1,1,wallHeight/(rad*.17));
+   wall.rotateX(Math.PI/2);
    wall.translate(0,-rad*.035,0);
    parts.push({name:'bezel-wall',geometry:wall,kind:'seat'});
    torus('bezel-lip',rad*1.006,Math.max(.006,rad*.07),rad*.12);
