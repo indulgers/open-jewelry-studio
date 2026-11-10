@@ -4,7 +4,7 @@ import {OBJExporter} from 'three/addons/exporters/OBJExporter.js';
 import {STLExporter} from 'three/addons/exporters/STLExporter.js';
 import {STONE_APPEARANCES} from '../viewer/stoneAppearance';
 import {STUDIO_PRESETS,type StudioPresetId} from '../viewer/studioPresets';
-import {StoneFirstStage} from './StoneFirstStage';
+import {StoneFirstStage,type StoneView} from './StoneFirstStage';
 import {createAssembly,metalSetting} from './geometry';
 import {RECIPES,STRUCTURES,GRAMMARS,PARAMS,SETTINGS,MOUNTS,GEM_CUTS,buildStoneLayout,checkDesign,constrainDesign,recipeDesign,summary,type Design,type RecipeId,type Check} from './recipe';
 import './stone-first.css';
@@ -44,6 +44,7 @@ export function StoneFirstStudio(){
  const [step,setStep]=useState(0),[design,setDesign]=useState<Design>(()=>recipeDesign('floral-pave'));
  const [quality,setQuality]=useState<'standard'|'high'>('standard');
  const [studio,setStudio]=useState<StudioPresetId>('contrast');
+ const [view,setView]=useState<StoneView>('overall');
  const [message,setMessage]=useState('');
  const d=useMemo(()=>constrainDesign(design),[design]);
  const sites=useMemo(()=>buildStoneLayout(d),[d]),stats=useMemo(()=>summary(d,sites),[d,sites]);
@@ -72,7 +73,8 @@ export function StoneFirstStudio(){
    <section className="stone-first-preview">
     <div className="stone-first-preview-label"><div><span>LIVE PARAMETRIC ASSEMBLY</span><h2>{selected?.name}</h2></div>
      <span>{stats.total} STONES</span></div>
-    <StoneFirstStage design={d} quality={quality} studio={studio}/>
+    <StoneFirstStage design={d} quality={quality} studio={studio} view={view}/>
+    <div className="stone-first-camera-views" role="group" aria-label="戒指观察视角">{([['overall','整体'],['top','戒面俯视'],['side','镶座侧面'],['macro','镶钻特写']] as const).map(([id,name])=><button key={id} aria-pressed={view===id} onClick={()=>setView(id)}>{name}</button>)}</div>
     <div className="stone-first-preview-bottom">
       <div><strong>{stats.main}</strong><span>主石</span></div><div><strong>{stats.accent}</strong><span>配钻</span></div>
       <div><strong>{stats.minGapMm===null?'—':stats.minGapMm.toFixed(2)+' mm'}</strong><span>最小平面净距</span></div>
