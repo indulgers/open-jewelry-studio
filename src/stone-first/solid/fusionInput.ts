@@ -32,7 +32,7 @@ export function solidPetalGeometry(d:Design,leaf:number){
   // Sink ONLY the petal's root into the shank. The earlier 1-t taper
   // continued lowering the entire flower by >0.3 mm under the stone sites,
   // so the pavé beads were suspended above a different metal surface.
-  const rootZone=Math.max(0,(.24-t)/.24);
+  const rootZone=Math.max(0,(.16-t)/.16);
   const overlap=.130*rootZone*rootZone;
   p.setXYZ(i,point.x,point.y-overlap-z,point.z);
  }
