@@ -27,7 +27,10 @@ export function ringOuterY(d:Design,x:number,z:number){
  const r=bandRadius(d),angle=Math.acos(Math.max(-1,Math.min(1,x/r)));
  const {width,thick}=ringDimensions(d,angle);
  const transverse=Math.min(.999,Math.abs(z)/(width/2));
- return Math.sqrt(Math.max(0,r*r-x*x))+thick*Math.sqrt(1-transverse*transverse);
+ const radial=r+thick*Math.sqrt(1-transverse*transverse);
+ // The ring is swept radially. Adding its thickness directly to world Y
+ // underestimates the actual gold shoulder by up to ~0.6 mm near the sides.
+ return Math.sqrt(Math.max(0,radial*radial-x*x));
 }
 /** Explicit rendering apertures are cut from the OUTER shoulder surface.
  * Ring's inner face remains intact. This is a visual socket opening, not a
