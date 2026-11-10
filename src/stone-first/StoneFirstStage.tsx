@@ -24,7 +24,7 @@ function OpticalAccentBatch({geometry,sites,environment,quality,preset}:{geometr
     position={[site.x,site.y,site.z]} rotation={[0,0,-site.tilt]} scale={site.diameter/2}
     onBeforeRender={(renderer,_scene,camera)=>syncGemDraw(owned.material,renderer,camera)}/>)}</group>;
 }
-type FusionStatus={state:'loading'|'fused'|'fragmented'|'error';report?:BooleanReport;error?:string};
+export type FusionStatus={state:'loading'|'fused'|'fragmented'|'error';report?:BooleanReport;error?:string};
 function JewelryObject({design,quality,studio,onSolidStatus}:{design:Design;quality:Quality;studio:StudioPresetId;onSolidStatus:(state:FusionStatus)=>void}){
  const d=constrainDesign(design),preset=STUDIO_PRESETS[studio];
  const gltf=useGLTF('/models/atelier/gems/round.glb');
@@ -123,9 +123,10 @@ function DesignCamera({view,ringRadius}:{view:StoneView;ringRadius:number}){
  return <OrbitControls ref={ref} target={[0,ringRadius*.38,0]} enablePan={false}
     minDistance={.6} maxDistance={7} minPolarAngle={.03} maxPolarAngle={Math.PI-.1}/>;
 }
-export function StoneFirstStage({design,quality,studio,view='overall'}:{design:Design;quality:Quality;studio:StudioPresetId;view?:StoneView}){
+export function StoneFirstStage({design,quality,studio,view='overall',onFusionChange}:{design:Design;quality:Quality;studio:StudioPresetId;view?:StoneView;onFusionChange?:(status:FusionStatus)=>void}){
  const d=constrainDesign(design);
  const [fusion,setFusion]=useState<FusionStatus>({state:'loading'});
+ useEffect(()=>onFusionChange?.(fusion),[fusion,onFusionChange]);
  return <div className="stone-first-canvas" aria-label="参数化珠宝三维预览" data-solid-status={fusion.state}>
   <Canvas dpr={[1,quality==='high'?2:1.5]} camera={{position:[2.15,4.1,3.0],fov:35,near:0.03,far:40}}
     gl={{antialias:true,alpha:true,powerPreference:'high-performance',preserveDrawingBuffer:true}}>
