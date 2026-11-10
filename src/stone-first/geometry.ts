@@ -85,7 +85,7 @@ export function petalGeometry(d:Design,leaf:number,sites:Site[]=[]):BufferGeomet
    cut.absellipse(t,lateral,rx,ry,0,Math.PI*2,true);
    shape.holes.push(cut);
  }
- const g=new ExtrudeGeometry(shape,{depth:.080*d.parameters.taper,bevelEnabled:false,curveSegments:16,steps:1});
+ const g=new ExtrudeGeometry(shape,{depth:.050*d.parameters.taper,bevelEnabled:false,curveSegments:16,steps:1});
  const p=g.getAttribute('position');
  for(let i=0;i<p.count;i++){
    const t=Math.min(.997,Math.max(.003,p.getX(i))),transverse=p.getY(i),depth=p.getZ(i);
@@ -190,8 +190,13 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
    parts.push({name,geometry:g,kind:'seat'});
  };
  // Seat is only visible at the girdle edge; it does NOT fill the pavilion.
- if(site.mount!=='channel')torus('girdle-seat',rad*.905,Math.max(.004,rad*.068),-rad*.11);
- torus('under-gallery',rad*.69,Math.max(.005,rad*.065),-rad*.30);
+ // Tiny pavé stones share the perforated metal sheet, rather than carrying
+ // dozens of overlapping independent basket rings. Channel stones share rails.
+ const individualSeat=site.kind==='main'||site.mount==='bezel'||site.mount==='prong';
+ if(individualSeat){
+   torus('girdle-seat',rad*.905,Math.max(.004,rad*.068),-rad*.11);
+   torus('under-gallery',rad*.69,Math.max(.005,rad*.065),-rad*.30);
+ }
  if(site.mount==='bezel'){
    const wallHeight=rad*.23;
    const wall=new CylinderGeometry(rad*1.045,rad*1.03,wallHeight,48,1,true);
