@@ -49,7 +49,7 @@ export function StoneFirstStudio(){
  const sites=useMemo(()=>buildStoneLayout(d),[d]),stats=useMemo(()=>summary(d,sites),[d,sites]);
  const checks=useMemo(()=>checkDesign(d,sites),[d,sites]);
  const update=<K extends Key>(key:K,value:Design[K])=>setDesign(prev=>({...prev,[key]:value}));
- const param=(key:keyof Design['parameters'],value:number)=>setDesign(prev=>({...prev,parameters:{...prev.parameters,[key]:value}}}));
+ const param=(key:keyof Design['parameters'],value:number)=>setDesign(prev=>({...prev,parameters:{...prev.parameters,[key]:value}}));
  const selectRecipe=(id:RecipeId)=>{setDesign(recipeDesign(id));setMessage('已加载设计配方，五步均可继续修改。');};
  const importJson=async(e:ChangeEvent<HTMLInputElement>)=>{
   const file=e.target.files?.[0];if(!file)return;
