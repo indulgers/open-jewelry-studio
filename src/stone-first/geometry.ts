@@ -224,25 +224,35 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
      parts.push({name:'burnished-prong-tip-'+j,geometry:head,kind:'seat'});
    }
  }else if(site.mount==='bead'){
-   // Continuous, ultra-low-profile rim of the *same* gold sheet, not a
-   // separate multi-level basket under each micro stone. This tiny annular
-   // interface makes all bead tips part of a single connected metal solid,
-   // including the bead nearest the petal edge.
-   const lip=new TorusGeometry(rad*1.06,Math.max(.0035,rad*.08),8,32);
-   lip.rotateX(Math.PI/2);
-   // Stretch the *buried* section down into the shared gold rather than
-   // balancing a flat torus on top of the curved petal. The short upper edge
-   // still meets all four bead tips near the girdle.
-   lip.scale(1,5,1);
-   lip.translate(0,-.011,0);
-   parts.push({name:'pave-shared-sheet-lip',geometry:lip,kind:'seat'});
+   // Beads must originate IN the parent gold sheet. On a curved petal the
+   // local surface height changes at each bead; a flat 4-bead array leaves
+   // some tips floating even though its central gem is perfectly aligned.
+   // No separate circular basket is used for micro-pavé.
+   const topY=(ox:number,oz:number)=>{
+     if(site.zone==='petal'&&site.leaf!==undefined){
+       const phi=petalSample(d,site.leaf,.5,0).phi;
+       const cosine=Math.cos(phi),sine=Math.sin(phi);
+       const x=site.x+ox,z=site.z+oz;
+       const along=x*cosine+z*sine;
+       const sideways=-x*sine+z*cosine;
+       const slope=.56*d.parameters.emphasis*d.parameters.bend;
+       const t=Math.max(.003,Math.min(.997,(along-.085)/slope));
+       const width=Math.max(.002,petalSample(d,site.leaf,t,0).width);
+       return petalSample(d,site.leaf,t,Math.max(-1,Math.min(1,sideways/width))).y;
+     }
+     if(site.zone==='shoulder')return ringOuterY(d,site.x+ox,site.z+oz);
+     return site.y;
+   };
    for(let j=0;j<4;j++){
      const phi=j*Math.PI/2+Math.PI/4;
-     const radius=rad*.96;
-     const beadRadius=Math.max(.007,rad*.20);
-     const bead=new SphereGeometry(beadRadius,10,8);
-     bead.translate(Math.cos(phi)*radius,d.seatDepthMm*.1+.001,Math.sin(phi)*radius);
-     parts.push({name:'micro-bead-'+j,geometry:bead,kind:'seat'});
+     const radius=rad*.91,ox=Math.cos(phi)*radius,oz=Math.sin(phi)*radius;
+     const beadRadius=Math.max(.008,rad*.23);
+     // The centre lies below the measured metal surface. The metal and bead
+     // thus share a genuine CSG volume, not a zero-area tangential contact.
+     const centerY=topY(ox,oz)-site.y-beadRadius*.47;
+     const bead=new SphereGeometry(beadRadius,12,9);
+     bead.translate(ox,centerY,oz);
+     parts.push({name:'pave-anchored-bead-'+j,geometry:bead,kind:'seat'});
    }
  }
  return parts;
