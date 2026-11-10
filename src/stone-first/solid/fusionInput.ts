@@ -77,9 +77,14 @@ export function cappedCurve(points:Vector3[],radius:number){
  g.setIndex(tri);g.computeVertexNormals();return g;
 }
 function cutterForSite(site:Site,main:boolean):BufferGeometry{
- const radius=site.diameter*(main?.31:.29),height=main?.20:site.zone==='petal'?.15:.12;
+ const radius=site.diameter*(main?.31:.29);
+ // A shallow cutter entirely inside a curved shoulder forms a hidden void
+ // (negative-volume cavity shell), not a real setting opening. Extend shoulder
+ // pockets above the ring's highest local surface, while retaining the inner
+ // comfort-fit wall. Petal pavé remains a through-sheet piercing.
+ const height=main?.20:site.zone==='shoulder'?.22:site.zone==='petal'?.15:.12;
  const tool=new CylinderGeometry(radius,radius,height,28,1,false);
- const centerY=site.y-(main?.12:.025);
+ const centerY=main?site.y-.12:site.zone==='shoulder'?site.y+.022:site.y-.025;
  const t=new Matrix4().makeTranslation(site.x,centerY,site.z);
  const rotation=new Matrix4().makeRotationZ(-site.tilt);
  tool.applyMatrix4(t.multiply(rotation));
