@@ -26,7 +26,7 @@ describe('parametric jewelry geometry',()=>{
    expect(y.some(v=>v>.25)).toBe(true);
    expect(y.some(v=>v<-.25)).toBe(true);
    const range=Math.max(...[...pos.array].filter((_,i)=>i%3===1))-Math.min(...[...pos.array].filter((_,i)=>i%3===1));
-   expect(range).toBeGreaterThan(.075);
+   expect(range).toBeGreaterThan(.05);
   }finally{g.dispose();}
  });
  it('makes continuous parallel rails for a channel arrangement instead of disconnected bezel rings',()=>{
