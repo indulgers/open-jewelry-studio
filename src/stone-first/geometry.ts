@@ -12,11 +12,11 @@ function meshFromFaces(vertices:number[],indices:number[],smooth=true):BufferGeo
 /** Parametric comfort band with continuously changing thickness and shank width. */
 export function bandGeometry(input:Design):BufferGeometry{
  const d=constrainDesign(input),r=bandRadius(d),verts:number[]=[],indices:number[]=[];
- const segments=192,profile=24,baseWidth=d.structure==='slim'?.22:d.structure==='wide'?.49:d.structure==='signet'?.55:d.structure==='open'?.25:.3;
+ const segments=192,profile=24,baseWidth=d.structure==='slim'?.20:d.structure==='wide'?.38:d.structure==='signet'?.37:d.structure==='open'?.23:.28;
  for(let i=0;i<=segments;i++){
   const t=i/segments,theta=2*Math.PI*t,top=Math.max(0,Math.sin(theta));
   const shoulder=Math.pow(top,4.5), taper=d.parameters.taper;
-  const width=(baseWidth+(d.structure==='signet'?.30:d.structure==='wide'?.08:0)*shoulder)*taper;
+  const width=(baseWidth+(d.structure==='signet'?.18:d.structure==='wide'?.07:0)*shoulder)*taper;
   const thick=(d.structure==='signet'?.175:.135)+(d.structure==='wide'?.035:0)+d.parameters.blend*.025*shoulder;
   for(let j=0;j<profile;j++){
    const a=j/profile*Math.PI*2; // oval bevelled inner and outer ring cross section
