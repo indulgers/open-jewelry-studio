@@ -1,9 +1,8 @@
 import {
- BufferGeometry, Float32BufferAttribute, Vector3, Shape, Path, ShapeGeometry,
+ BufferGeometry, Float32BufferAttribute, Vector3, Shape, Path, ExtrudeGeometry,
  TorusGeometry, SphereGeometry, CylinderGeometry, CatmullRomCurve3, TubeGeometry
 } from 'three';
 import {bandRadius,buildStoneLayout,constrainDesign,petalSample,type Design,type Site} from './recipe';
-import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 export type GeometryPart={name:string;geometry:BufferGeometry;kind:'metal'|'seat'};
 export type Assembly={parts:GeometryPart[];dispose:()=>void};
@@ -42,7 +41,7 @@ export function bandGeometry(input:Design,sites:Site[]=[]):BufferGeometry{
    const radial=r+thick*Math.cos(a),z=(width/2)*Math.sin(a);
    return [Math.cos(theta)*radial,Math.sin(theta)*radial,z] as const;
  }
- for(let i=0;i<=segments;i++){
+ for(let i=0;i<segments;i++){
    const theta=i/segments*2*Math.PI;
    for(let j=0;j<profile;j++)verts.push(...at(theta,j/profile*2*Math.PI));
  }
@@ -55,7 +54,7 @@ export function bandGeometry(input:Design,sites:Site[]=[]):BufferGeometry{
    });
  }
  for(let i=0;i<segments;i++)for(let j=0;j<profile;j++){
-   const a=i*profile+j,b=i*profile+(j+1)%profile,c=b+profile,f=a+profile;
+   const a=i*profile+j,b=i*profile+(j+1)%profile,c=((i+1)%segments)*profile+(j+1)%profile,f=((i+1)%segments)*profile+j;
    const theta=(i+.5)/segments*Math.PI*2,ang=(j+.5)/profile*Math.PI*2;
    if(underAperture(theta,ang))continue;
    indices.push(a,f,b,b,f,c);
@@ -85,45 +84,23 @@ export function petalGeometry(d:Design,leaf:number,sites:Site[]=[]):BufferGeomet
    cut.absellipse(t,lateral,rx,ry,0,Math.PI*2,true);
    shape.holes.push(cut);
  }
- // Use a true pierced surface on each side, rather than deep individual
- // cylindrical shafts: those deep shafts were dominating the metal highlights
- // in visual reviews and made each micro stone look like a glass bar.
- const face=new ShapeGeometry(shape,20);
- const back=face.clone();
- const depth=.050*d.parameters.taper;
- const project=(g:BufferGeometry,offset:number)=>{
-   const p=g.getAttribute('position');
-   for(let i=0;i<p.count;i++){
-     const t=Math.min(.997,Math.max(.003,p.getX(i))),transverse=p.getY(i);
-     const width=Math.max(.002,bound(t));
-     const u=Math.max(-1.15,Math.min(1.15,transverse/width));
-     const sample=petalSample(d,leaf,t,u);
-     p.setXYZ(i,sample.x,sample.y-offset,sample.z);
-   }
-   p.needsUpdate=true;
-   g.computeVertexNormals();
- };
- project(face,0);project(back,depth);
- // The 2D shape's winding changes under the non-planar XYZ projection.
- // Enforce opposing physical front/back normals before applying metal PBR.
- const orient=(g:BufferGeometry,up:boolean)=>{
-   const normal=g.getAttribute('normal');
-   let mean=0;for(let i=0;i<normal.count;i++)mean+=normal.getY(i);
-   if((mean>=0)===up)return;
-   const index=g.getIndex();
-   if(!index)throw new Error('The pierced flower requires an indexed shape');
-   for(let i=0;i<index.count;i+=3){
-     const b=index.getX(i+1),c=index.getX(i+2);
-     index.setX(i+1,c);index.setX(i+2,b);
-   }
-   index.needsUpdate=true;g.computeVertexNormals();
- };
- orient(face,true);orient(back,false);
- const both=mergeGeometries([face,back],false);
- face.dispose();back.dispose();
- if(!both)throw new Error('Could not create pierced petal surface');
- both.computeBoundingSphere();
- return both;
+ // A pierced, **closed** metal sheet. The sidewalls around each opening are
+ // necessary for manifold Boolean operations; disconnected front/back faces
+ // only create the appearance of a solid and hide interpenetrations.
+ const depth=.060*d.parameters.taper;
+ const g=new ExtrudeGeometry(shape,{depth,bevelEnabled:false,curveSegments:18,steps:1});
+ const positions=g.getAttribute('position');
+ for(let i=0;i<positions.count;i++){
+   const t=Math.min(.997,Math.max(.003,positions.getX(i)));
+   const transverse=positions.getY(i),inside=positions.getZ(i);
+   const width=Math.max(.002,bound(t));
+   const u=Math.max(-1.15,Math.min(1.15,transverse/width));
+   const sample=petalSample(d,leaf,t,u);
+   positions.setXYZ(i,sample.x,sample.y-inside,sample.z);
+ }
+ positions.needsUpdate=true;
+ g.computeVertexNormals();g.computeBoundingSphere();
+ return g;
 }
 export function petalOutline(d:Design,leaf:number):Vector3[]{
  const points:Vector3[]=[];
@@ -132,7 +109,22 @@ export function petalOutline(d:Design,leaf:number):Vector3[]{
  return points;
 }
 export function tubeGeometry(points:Vector3[],radius:number):BufferGeometry{
- return new TubeGeometry(new CatmullRomCurve3(points),Math.max(18,points.length*9),radius,10,false);
+ const curve=new CatmullRomCurve3(points);
+ const tubular=Math.max(18,points.length*9),radial=10;
+ const g=new TubeGeometry(curve,tubular,radius,radial,false);
+ const vertices=Array.from(g.getAttribute('position').array as ArrayLike<number>);
+ const indices=Array.from(g.getIndex()!.array as ArrayLike<number>);
+ const start=vertices.length/3,head=curve.getPoint(0),tail=curve.getPoint(1);
+ vertices.push(head.x,head.y,head.z,tail.x,tail.y,tail.z);
+ for(let j=0;j<radial;j++){
+   // TubeGeometry uses radialSegments+1, with duplicated seam vertices.
+   indices.push(start,j+1,j);
+   const b=tubular*(radial+1);
+   indices.push(start+1,b+j,b+j+1);
+ }
+ g.setAttribute('position',new Float32BufferAttribute(vertices,3));
+ g.setIndex(indices);g.computeVertexNormals();g.computeBoundingSphere();
+ return g;
 }
 export function createAssembly(input:Design):Assembly{
  const d=constrainDesign(input),sites=buildStoneLayout(d);
