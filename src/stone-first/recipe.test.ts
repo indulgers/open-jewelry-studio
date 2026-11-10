@@ -39,5 +39,6 @@ describe('stone-first assembly grammar',()=>{
   const result=constrainDesign(invalid);
   expect(result.gapMm).toBe(.1);expect(result.ringDiameter).toBe(15);
   expect(result.mainDiameter).toBe(6);expect(result.parameters.repeat).toBe(8);expect(result.parameters.rotation).toBe(30);
+  expect(result.prongCount).toBe(4);
  });
 });
