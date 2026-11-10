@@ -26,6 +26,8 @@ describe('Manifold-3D gold assembly',()=>{
     expect(result.report.manufacturingPassed).toBe(false);
     expect(result.report.clearanceValidated).toBe(false);
     expect(result.report.triangles).toBeGreaterThan(100);
+    expect(result.report.connectedComponents).toBe(1); // no isolated pavé beads
+    expect(result.report.status).toBe('fused');
   }finally{result.dispose();}
  },120000);
 });
