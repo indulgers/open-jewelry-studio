@@ -43,7 +43,7 @@ function Status({checks}:{checks:Check[]}){
 export function StoneFirstStudio(){
  const [step,setStep]=useState(0),[design,setDesign]=useState<Design>(()=>recipeDesign('floral-pave'));
  const [quality,setQuality]=useState<'standard'|'high'>('standard');
- const [studio,setStudio]=useState<StudioPresetId>('catalog');
+ const [studio,setStudio]=useState<StudioPresetId>('contrast');
  const [message,setMessage]=useState('');
  const d=useMemo(()=>constrainDesign(design),[design]);
  const sites=useMemo(()=>buildStoneLayout(d),[d]),stats=useMemo(()=>summary(d,sites),[d,sites]);
