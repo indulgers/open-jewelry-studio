@@ -58,3 +58,6 @@
 .stone-check small{font-size:11px;line-height:1.5;color:#8a8175}
 @media(max-width:1050px){.stone-first-main{grid-template-columns:minmax(0,1fr)}.stone-first-preview{position:static}.stone-first-canvas{height:480px}}
 @media(max-width:620px){.stone-first-workspace{padding:15px 10px 35px}.stone-first-header{align-items:start;flex-direction:column}.stone-first-fields{padding:20px 15px;min-height:420px}.stone-first-steps button{padding:11px 5px!important;font-size:9px!important}.stone-first-canvas{height:350px}.stone-first-recipe-grid{grid-template-columns:1fr}.stone-first-preview-label{padding:16px}.stone-first-panel-bottom{padding:12px;flex-direction:column;align-items:stretch}.stone-first-panel-bottom>div{justify-content:flex-end}}
+
+.stone-first-camera-views{display:flex;justify-content:center;flex-wrap:wrap;gap:7px;padding:9px 15px 14px;border-top:1px solid #ded9d2;background:rgba(255,255,255,.28)}
+.stone-first-camera-views button{padding:7px 12px;font-size:11px}
