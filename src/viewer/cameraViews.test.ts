@@ -56,3 +56,13 @@ it('centres the new mounted stone and keeps its halo inside reference close-ups'
     }
   }
 });
+
+it('offers a real close-up for the original ring pavé details',()=>{
+  const normal=cameraView('overall',false,'reference');
+  const close=cameraView('pave',false,'reference');
+  const distance=(v:typeof normal)=>Math.hypot(...v.position.map((p,i)=>p-v.target[i]));
+  expect(distance(close)).toBeLessThan(distance(normal)*0.6);
+  expect(close.target[0]).toBeGreaterThan(0);
+  expect(close.target[1]).toBeGreaterThan(1);
+  expect(distance(cameraView('pave',true,'reference'))).toBeGreaterThan(distance(close));
+});
