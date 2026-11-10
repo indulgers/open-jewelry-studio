@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     container: mcr.microsoft.com/playwright:v1.56.1-noble
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        recipe: [floral-solitaire, floral-pave, architectural-halo]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,11 +38,11 @@ jobs:
       - name: Take actual WebGL screenshots
         run: |
           cp scripts/stone-first-capture.mjs /tmp/stone-first-playwright/capture.mjs
-          node /tmp/stone-first-playwright/capture.mjs
+          STONE_RECIPE=${{ matrix.recipe }} node /tmp/stone-first-playwright/capture.mjs
       - name: Upload visual evidence
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: stone-first-webgl-screenshots
+          name: stone-first-webgl-${{ matrix.recipe }}
           path: artifacts/stone-first/*.png
           if-no-files-found: warn
