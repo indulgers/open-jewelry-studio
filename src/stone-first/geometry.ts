@@ -224,30 +224,21 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
      parts.push({name:'burnished-prong-tip-'+j,geometry:head,kind:'seat'});
    }
  }else if(site.mount==='bead'){
+   // Continuous, ultra-low-profile rim of the *same* gold sheet, not a
+   // separate multi-level basket under each micro stone. This tiny annular
+   // interface makes all bead tips part of a single connected metal solid,
+   // including the bead nearest the petal edge.
+   const lip=new TorusGeometry(rad*1.06,Math.max(.0035,rad*.08),8,32);
+   lip.rotateX(Math.PI/2);
+   lip.translate(0,d.seatDepthMm*.1,0);
+   parts.push({name:'pave-shared-sheet-lip',geometry:lip,kind:'seat'});
    for(let j=0;j<4;j++){
      const phi=j*Math.PI/2+Math.PI/4;
-     // Embed each bead sufficiently into the shared pierced gold sheet.
-     // Its cap is visible above the metal but most of its volume is buried;
-     // placing entire spheres above the surface creates hundreds of islands.
-     const radius=rad*.91;
-     const beadRadius=Math.max(.009,rad*.24);
-     const cx=Math.cos(phi),cz=Math.sin(phi);
+     const radius=rad*.96;
+     const beadRadius=Math.max(.007,rad*.20);
      const bead=new SphereGeometry(beadRadius,10,8);
-     bead.translate(cx*radius,d.seatDepthMm*.1*.45,cz*radius);
+     bead.translate(Math.cos(phi)*radius,d.seatDepthMm*.1+.001,Math.sin(phi)*radius);
      parts.push({name:'micro-bead-'+j,geometry:bead,kind:'seat'});
-     // Physically bury a narrow anchor into the *remaining* gold outside the
-     // drilled socket. A bead near the cavity boundary otherwise becomes a
-     // tiny, isolated Manifold even if it appears attached in WebGL.
-     const outward=site.zone==='petal'&&Math.cos(phi-site.angle)>.92;
-     // The outward-facing bead already overlaps the petal rim. A vertical
-     // anchor at the petal's open side becomes a detached metal pin; do not
-     // fabricate it. The other three beads are joined into the gold sheet.
-     if(!outward){
-       const stemRadius=beadRadius*.65;
-       const stem=new CylinderGeometry(stemRadius,stemRadius*.85,.082,10,1,false);
-       stem.translate(cx*rad*1.10,-.032,cz*rad*1.10);
-       parts.push({name:'micro-bead-anchor-'+j,geometry:stem,kind:'seat'});
-     }
    }
  }
  return parts;
