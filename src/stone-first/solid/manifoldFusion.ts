@@ -1,6 +1,6 @@
-import {BufferGeometry,Float32BufferAttribute} from 'three';
-import {createFusionInput} from './fusionInput';
-import {buildStoneLayout,constrainDesign,type Design} from '../recipe';
+import {BufferGeometry,Float32BufferAttribute,Vector3} from 'three';
+import {createFusionInput,cappedCurve} from './fusionInput';
+import {constrainDesign,type Design} from '../recipe';
 import {metalSetting} from '../geometry';
 type MeshInput={numProp:number;vertProperties:Float32Array;triVerts:Uint32Array;merge:()=>unknown};
 type Solid={status:()=>string;volume:()=>number;isEmpty:()=>boolean;delete:()=>void;
@@ -17,9 +17,13 @@ async function loadKernel():Promise<Kernel>{
  shared=(async()=>{
   // The repository already bundles Manifold 3.5.4 for the FORME editor.
   // Keep using that local Apache-2.0 engine instead of a remote SDK.
-  const url='/forme/vendor/manifold/manifold.js';
+  const isTest=import.meta.env.MODE==='test';
+  const url=isTest?new URL('../../../public/forme/vendor/manifold/manifold.js',import.meta.url).href
+      :'/forme/vendor/manifold/manifold.js';
   const module=await import(/* @vite-ignore */ url);
-  const runtime=await module.default({locateFile:(name:string)=>'/forme/vendor/manifold/'+name}) as Kernel;
+  const runtime=await module.default(isTest
+     ?{locateFile:(name:string)=>new URL('../../../public/forme/vendor/manifold/'+name,import.meta.url).pathname}
+     :{locateFile:(name:string)=>'/forme/vendor/manifold/'+name}) as Kernel;
   runtime.setup();
   return runtime;
  })();
@@ -74,23 +78,39 @@ export async function fuseDesign(input:Design):Promise<BooleanResult>{
   const stock=hold(k.Manifold.union(solids));
   if(stock.isEmpty()||stock.status()!=='NoError')throw Error('Metal union failed '+stock.status());
   const cutters=source.cutters.map(p=>hold(toSolid(p.geometry,k,p.name)));
-  const tool=hold(k.Manifold.union(cutters));
-  const drilled=hold(stock.subtract(tool));
-  if(drilled.isEmpty()||drilled.status()!=='NoError')throw Error('Cavity subtraction failed: '+drilled.status());
+  let drilled=stock;
+  if(cutters.length){
+    const tool=hold(k.Manifold.union(cutters));
+    drilled=hold(stock.subtract(tool));
+    if(drilled.isEmpty()||drilled.status()!=='NoError')throw Error('Cavity subtraction failed: '+drilled.status());
+  }
   // Mounts are added AFTER cavities so the cutter cannot erase contact prongs.
   const mounting:Solid[]=[];
   for(const site of source.stones){
    const geometry=metalSetting(d,site);
    for(const part of geometry){
     try{
-     const g=part.geometry;
+     let g=part.geometry;
+     if(part.name.startsWith('formed-prong-')){
+       // Three.js TubeGeometry has open ends. Replace it with a physically
+       // capped curvilinear prong before Manifold; no silent invalid solid.
+       const index=Number(part.name.slice('formed-prong-'.length));
+       const n=site.kind==='main'?d.prongCount:4;
+       const phi=index*Math.PI*2/n+Math.PI/n,rad=site.diameter/2;
+       const v=(r:number,y:number)=>new Vector3(Math.cos(phi)*r,y,Math.sin(phi)*r);
+       g=cappedCurve([v(rad*.77,-rad*.30),v(rad*1.03,-rad*.04),
+           v(rad*1.008,rad*.070),v(rad*.94,rad*.155)],Math.max(.006,rad*.074));
+     }
      g.rotateZ(-site.tilt);g.translate(site.x,site.y,site.z);
-     const solid=hold(toSolid(g,k,'mount '+site.id+' '+part.name));
-     mounting.push(solid);
+     try{
+       const solid=hold(toSolid(g,k,'mount '+site.id+' '+part.name));
+       mounting.push(solid);
+     }finally{if(g!==part.geometry)g.dispose();}
+     continue;
     }finally{part.geometry.dispose();}
    }
   }
-  const completed=hold(k.Manifold.union([drilled,...mounting]));
+  const completed=mounting.length?hold(k.Manifold.union([drilled,...mounting])):drilled;
   if(completed.isEmpty()||completed.status()!=='NoError')throw Error('Final metal fuse '+completed.status());
   const connected=completed.decompose();
   const count=connected.length;connected.forEach(s=>s.delete());
