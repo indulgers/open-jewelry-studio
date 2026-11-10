@@ -22,7 +22,10 @@ try{
  });
  console.log('WEBGL_PRESENT='+webgl);
  if(!webgl)throw Error('WebGL unavailable in headless Chromium');
- for(const [id,label] of [['floral-solitaire','四瓣主钻戒'],['floral-pave','花瓣密镶戒'],['architectural-halo','建筑几何镶嵌']]){
+ const recipes=[['floral-solitaire','四瓣主钻戒'],['floral-pave','花瓣密镶戒'],['architectural-halo','建筑几何镶嵌']];
+ const target=process.env.STONE_RECIPE;
+ if(target&&!recipes.some(([id])=>id===target))throw Error('Unknown visual test recipe: '+target);
+ for(const [id,label] of recipes.filter(([id])=>!target||id===target)){
   // The recipes live in step 1. Reset the step before switching.
   await page.getByRole('button',{name:/戒指结构原型/}).click();
   await page.getByRole('button',{name:new RegExp(label)}).click();
