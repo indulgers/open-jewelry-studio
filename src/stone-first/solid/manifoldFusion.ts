@@ -31,7 +31,7 @@ async function loadKernel():Promise<Kernel>{
 }
 export type BooleanReport={
   status:'fused'|'fragmented'|'error';inputCount:number;cutterCount:number;triangles:number;
-  volumeSceneUnits3:number;connectedComponents:number;minSurfaceWallMm:null;
+  volumeSceneUnits3:number;connectedComponents:number;componentVolumes:number[];minSurfaceWallMm:null;
   clearanceValidated:false;manufacturingPassed:false;warnings:string[];
 };
 export type BooleanResult={geometry:BufferGeometry;report:BooleanReport;dispose:()=>void};
@@ -113,10 +113,11 @@ export async function fuseDesign(input:Design):Promise<BooleanResult>{
   const completed=mounting.length?hold(k.Manifold.union([drilled,...mounting])):drilled;
   if(completed.isEmpty()||completed.status()!=='NoError')throw Error('Final metal fuse '+completed.status());
   const connected=completed.decompose();
-  const count=connected.length;connected.forEach(s=>s.delete());
+  const count=connected.length,componentVolumes=connected.map(s=>s.volume());
+  connected.forEach(s=>s.delete());
   const geom=metalGeometry(completed.getMesh());
   const report:BooleanReport={status:count===1?'fused':'fragmented',inputCount:source.parts.length+mounting.length,
-   cutterCount:cutters.length,triangles:completed.numTri(),volumeSceneUnits3:completed.volume(),connectedComponents:count,
+   cutterCount:cutters.length,triangles:completed.numTri(),volumeSceneUnits3:completed.volume(),connectedComponents:count,componentVolumes,
    minSurfaceWallMm:null,clearanceValidated:false,manufacturingPassed:false,
    warnings:[
     count===1?'金属网格已经完成布尔并集和镶口差集':'仍有 '+count+' 个不连通金属实体；不得生产导出',
