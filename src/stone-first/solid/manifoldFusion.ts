@@ -18,11 +18,11 @@ async function loadKernel():Promise<Kernel>{
   // The repository already bundles Manifold 3.5.4 for the FORME editor.
   // Keep using that local Apache-2.0 engine instead of a remote SDK.
   const isTest=import.meta.env.MODE==='test';
-  const url=isTest?new URL('../../../public/forme/vendor/manifold/manifold.js',import.meta.url).href
+  const url=isTest?'file://'+process.cwd()+'/public/forme/vendor/manifold/manifold.js'
       :'/forme/vendor/manifold/manifold.js';
   const module=await import(/* @vite-ignore */ url);
   const runtime=await module.default(isTest
-     ?{locateFile:(name:string)=>new URL('../../../public/forme/vendor/manifold/'+name,import.meta.url).pathname}
+     ?{locateFile:(name:string)=>process.cwd()+'/public/forme/vendor/manifold/'+name}
      :{locateFile:(name:string)=>'/forme/vendor/manifold/'+name}) as Kernel;
   runtime.setup();
   return runtime;
