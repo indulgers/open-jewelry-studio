@@ -16,6 +16,7 @@ import {ProductGallery} from './components/ProductGallery';
 import {ModuleStudio} from './components/ModuleStudio';
 import {StageLoading} from './components/StageLoading';
 const JewelryStage=lazy(()=>import('./viewer/JewelryStage').then(module=>({default:module.JewelryStage})));
+const StoneFirstStudio=lazy(()=>import('./stone-first/StoneFirstStudio').then(module=>({default:module.StoneFirstStudio})));
 
 function JewelryStudio({active}:{active:boolean}){
   const [configuration,dispatch]=useReducer(configurationReducer,DEFAULT_CONFIGURATION);
@@ -109,17 +110,18 @@ function JewelryStudio({active}:{active:boolean}){
   </div>;
 }
 
-const tabs=[{id:'showroom',label:'珠宝展台'},{id:'modules',label:'模组 DIY'}] as const;
+const tabs=[{id:'showroom',label:'珠宝展台'},{id:'modules',label:'模组 DIY'},{id:'stonefirst',label:'镶嵌 DIY'}] as const;
 type StudioTab=typeof tabs[number]['id'];
-const readTab=():StudioTab=>window.location.hash.startsWith('#/modules')?'modules':'showroom';
+const readTab=():StudioTab=>window.location.hash.startsWith('#/stonefirst')?'stonefirst':window.location.hash.startsWith('#/modules')?'modules':'showroom';
 export default function App(){
   const [tab,setTab]=useState<StudioTab>(readTab);
   const [modulesVisited,setModulesVisited]=useState(()=>readTab()==='modules');
+  const [stoneVisited,setStoneVisited]=useState(()=>readTab()==='stonefirst');
   useEffect(()=>{
-    const sync=()=>{const next=readTab();setTab(next);if(next==='modules')setModulesVisited(true);};
+    const sync=()=>{const next=readTab();setTab(next);if(next==='modules')setModulesVisited(true);if(next==='stonefirst')setStoneVisited(true);};
     window.addEventListener('hashchange',sync);return()=>window.removeEventListener('hashchange',sync);
   },[]);
-  const select=(next:StudioTab)=>{setTab(next);if(next==='modules')setModulesVisited(true);window.location.hash=next==='modules'?'/modules':'/showroom';};
+  const select=(next:StudioTab)=>{setTab(next);if(next==='modules')setModulesVisited(true);if(next==='stonefirst')setStoneVisited(true);window.location.hash=next==='modules'?'/modules':next==='stonefirst'?'/stonefirst':'/showroom';};
   return <div className="app-shell" data-workspace={tab}>
     <header className="site-header"><a className="brand" href="/" aria-label="戒指实验室首页">
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m5 11 6-6h10l6 6-11 17L5 11Zm0 0h22M11 5l5 23L21 5M11 5l-1 6m11-6 1 6"/></svg>
@@ -132,5 +134,6 @@ export default function App(){
     </div>
     <section id="panel-showroom" role="tabpanel" aria-labelledby="tab-showroom" hidden={tab!=='showroom'}><JewelryStudio active={tab==='showroom'}/></section>
     <section id="panel-modules" role="tabpanel" aria-labelledby="tab-modules" hidden={tab!=='modules'}>{modulesVisited&&<ModuleStudio active={tab==='modules'}/>}</section>
+    <section id="panel-stonefirst" role="tabpanel" aria-labelledby="tab-stonefirst" hidden={tab!=='stonefirst'}>{stoneVisited&&<Suspense fallback={<p role="status">正在加载镶嵌设计工作台…</p>}><StoneFirstStudio/></Suspense>}</section>
   </div>;
 }
