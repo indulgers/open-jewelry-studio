@@ -36,7 +36,7 @@ export const RECIPES:{id:RecipeId;name:string;description:string;structure:RingS
 export function recipeDesign(id:RecipeId):Design{
  const r=RECIPES.find(v=>v.id===id)??RECIPES[0];
  return {recipe:r.id,structure:r.structure,grammar:r.grammar,setting:r.setting,mount:r.mount,metal:'white',gemCut:id==='architectural-halo'?'rectangle':'round',
- ringDiameter:18,mainDiameter:r.mainDiameter,accentDiameter:r.accentDiameter,gapMm:0.14,crownLiftMm:.55,seatDepthMm:.12,prongCount:4,parameters:{...BASE}};
+ ringDiameter:18,mainDiameter:r.mainDiameter,accentDiameter:r.accentDiameter,gapMm:0.14,crownLiftMm:.55,seatDepthMm:.08,prongCount:4,parameters:{...BASE}};
 }
 export function constrainDesign(input:Design):Design{
  const clamp=(n:number,a:number,b:number)=>Math.max(a,Math.min(b,Number.isFinite(n)?n:a));
