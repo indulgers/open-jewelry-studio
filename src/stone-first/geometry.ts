@@ -1,9 +1,9 @@
 import {
- BufferGeometry, Float32BufferAttribute, Vector3, Shape, Path, ExtrudeGeometry,
+ BufferGeometry, Float32BufferAttribute, Vector3, Shape, Path, ShapeGeometry,
  TorusGeometry, SphereGeometry, CylinderGeometry, CatmullRomCurve3, TubeGeometry
 } from 'three';
 import {bandRadius,buildStoneLayout,constrainDesign,petalSample,type Design,type Site} from './recipe';
-import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 export type GeometryPart={name:string;geometry:BufferGeometry;kind:'metal'|'seat'};
 export type Assembly={parts:GeometryPart[];dispose:()=>void};
@@ -85,21 +85,30 @@ export function petalGeometry(d:Design,leaf:number,sites:Site[]=[]):BufferGeomet
    cut.absellipse(t,lateral,rx,ry,0,Math.PI*2,true);
    shape.holes.push(cut);
  }
- const g=new ExtrudeGeometry(shape,{depth:.050*d.parameters.taper,bevelEnabled:false,curveSegments:16,steps:1});
- const p=g.getAttribute('position');
- for(let i=0;i<p.count;i++){
-   const t=Math.min(.997,Math.max(.003,p.getX(i))),transverse=p.getY(i),depth=p.getZ(i);
-   const width=Math.max(.002,bound(t));
-   const u=Math.max(-1.15,Math.min(1.15,transverse/width));
-   const sample=petalSample(d,leaf,t,u);
-   p.setXYZ(i,sample.x,sample.y-depth,sample.z);
- }
- p.needsUpdate=true;
- // ExtrudeGeometry is non-indexed. Weld after deforming so the gold face is
- // a smooth sculptural surface instead of separate glittery metal triangles.
- const polished=mergeVertices(g,1e-5);g.dispose();
- polished.computeVertexNormals();polished.computeBoundingSphere();
- return polished;
+ // Use a true pierced surface on each side, rather than deep individual
+ // cylindrical shafts: those deep shafts were dominating the metal highlights
+ // in visual reviews and made each micro stone look like a glass bar.
+ const face=new ShapeGeometry(shape,20);
+ const back=face.clone();
+ const depth=.050*d.parameters.taper;
+ const project=(g:BufferGeometry,offset:number)=>{
+   const p=g.getAttribute('position');
+   for(let i=0;i<p.count;i++){
+     const t=Math.min(.997,Math.max(.003,p.getX(i))),transverse=p.getY(i);
+     const width=Math.max(.002,bound(t));
+     const u=Math.max(-1.15,Math.min(1.15,transverse/width));
+     const sample=petalSample(d,leaf,t,u);
+     p.setXYZ(i,sample.x,sample.y-offset,sample.z);
+   }
+   p.needsUpdate=true;
+   g.computeVertexNormals();
+ };
+ project(face,0);project(back,depth);
+ const both=mergeGeometries([face,back],false);
+ face.dispose();back.dispose();
+ if(!both)throw new Error('Could not create pierced petal surface');
+ both.computeBoundingSphere();
+ return both;
 }
 export function petalOutline(d:Design,leaf:number):Vector3[]{
  const points:Vector3[]=[];
@@ -117,6 +126,7 @@ export function createAssembly(input:Design):Assembly{
  if(d.grammar==='floral'){
    for(let i=0;i<d.parameters.repeat;i++){
      parts.push({name:'perforated-petal-'+i,geometry:petalGeometry(d,i,sites),kind:'metal'});
+     parts.push({name:'petal-edge-'+i,geometry:tubeGeometry(petalOutline(d,i),.009*d.parameters.taper),kind:'metal'});
      // A 3D petal is supported by a shaped shoulder-to-petal strut, not a
      // separate floating decal. Both endpoints overlap adjacent metal parts.
      const tip=petalSample(d,i,.64,0);
