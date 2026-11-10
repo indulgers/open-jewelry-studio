@@ -179,7 +179,7 @@ export function createAssembly(input:Design):Assembly{
 /** Each mounting local origin is the GEM GIRDLE. Stone geometry is aligned to
  * that plane. Under-gallery metal lies below, tip/lip above the girdle.
  */
-export function metalSetting(_d:Design,site:Site):GeometryPart[]{
+export function metalSetting(d:Design,site:Site):GeometryPart[]{
  const rad=site.diameter/2,parts:GeometryPart[]=[];
  const torus=(name:string,r:number,t:number,y:number)=>{
    const g=new TorusGeometry(r,t,10,40);g.rotateX(Math.PI/2);g.translate(0,y,0);
@@ -195,8 +195,9 @@ export function metalSetting(_d:Design,site:Site):GeometryPart[]{
    parts.push({name:'bezel-wall',geometry:wall,kind:'seat'});
    torus('bezel-lip',rad*1.006,Math.max(.006,rad*.07),rad*.12);
  }else if(site.mount==='prong'){
-   for(let j=0;j<4;j++){
-     const phi=j*Math.PI/2+Math.PI/4;
+   const prongs=site.kind==='main'?d.prongCount:4;
+   for(let j=0;j<prongs;j++){
+     const phi=j*Math.PI*2/prongs+Math.PI/prongs;
      const v=(r:number,y:number)=>new Vector3(Math.cos(phi)*r,y,Math.sin(phi)*r);
      parts.push({name:'formed-prong-'+j,
        geometry:tubeGeometry([v(rad*.77,-rad*.30),v(rad*1.03,-rad*.04),v(rad*1.008,rad*.070),v(rad*.94,rad*.155)],Math.max(.006,rad*.074)),kind:'seat'});
