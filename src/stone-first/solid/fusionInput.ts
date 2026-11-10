@@ -1,5 +1,5 @@
 import {
- BufferGeometry,Float32BufferAttribute,Shape,ExtrudeGeometry,Vector3,
+ BufferGeometry,Float32BufferAttribute,Vector3,
  CatmullRomCurve3,TubeGeometry,CylinderGeometry,Matrix4,Quaternion,Euler
 } from 'three';
 import {bandRadius,buildStoneLayout,constrainDesign,petalSample,type Design,type Site} from '../recipe';
@@ -7,36 +7,52 @@ import {bandGeometry,ringOuterY,metalSetting} from '../geometry';
 
 export type FusionPart={name:string;geometry:BufferGeometry};
 export type FusionGeometry={parts:FusionPart[];cutters:FusionPart[];stones:Site[];dispose:()=>void};
-function polygon(input:Design,leaf:number){
- const shape=new Shape(),start=.035,end=.965,N=48;
- const bound=(t:number)=>petalSample(input,leaf,t,0).width;
- shape.moveTo(start,-bound(start));
- for(let i=1;i<=N;i++){const t=start+(end-start)*i/N;shape.lineTo(t,-bound(t));}
- for(let i=N;i>=0;i--){const t=start+(end-start)*i/N;shape.lineTo(t,bound(t));}
- shape.closePath();
- return shape;
-}
-/** Real, capped flower solid. The tip/base is recessed into the gold shank;
- * Booleans later remove the internal seams instead of showing support rods. */
+/**
+ * Construct the closed petal directly from the same *interior* parametric
+ * surface used by the stone layout. Extruding only an outline triangulates
+ * across its center and loses the flower's curved crown by up to 0.7 mm.
+ * This regular grid keeps every stone and every seat on the actual metal.
+ */
 export function solidPetalGeometry(d:Design,leaf:number){
- const depth=.065*d.parameters.taper;
- const g=new ExtrudeGeometry(polygon(d,leaf),{depth,steps:1,bevelEnabled:false,curveSegments:12});
- const p=g.getAttribute('position');
- for(let i=0;i<p.count;i++){
-  const t=Math.min(.997,Math.max(.003,p.getX(i)));
-  const transverse=p.getY(i),z=p.getZ(i);
-  const width=Math.max(.002,petalSample(d,leaf,t,0).width);
-  const u=Math.min(1.10,Math.max(-1.10,transverse/width));
-  const point=petalSample(d,leaf,t,u);
-  // Lower root into ring stock to create real overlap without any loose brace.
-  // Sink ONLY the petal's root into the shank. The earlier 1-t taper
-  // continued lowering the entire flower by >0.3 mm under the stone sites,
-  // so the pavé beads were suspended above a different metal surface.
-  const rootZone=Math.max(0,(.16-t)/.16);
-  const overlap=.130*rootZone*rootZone;
-  p.setXYZ(i,point.x,point.y-overlap-z,point.z);
+ const tSegments=48,uSegments=16,stride=uSegments+1;
+ const start=.035,end=.965,thickness=.065*d.parameters.taper;
+ const vertices:number[]=[],indices:number[]=[];
+ for(let layer=0;layer<2;layer++){
+  for(let i=0;i<=tSegments;i++){
+   const t=start+(end-start)*i/tSegments;
+   const root=Math.max(0,(.16-t)/.16),overlap=.130*root*root;
+   for(let j=0;j<=uSegments;j++){
+    const u=-1+2*j/uSegments;
+    const p=petalSample(d,leaf,t,u);
+    vertices.push(p.x,p.y-overlap-layer*thickness,p.z);
+   }
+  }
  }
- p.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();
+ const off=(tSegments+1)*stride;
+ const index=(i:number,j:number)=>i*stride+j;
+ for(let i=0;i<tSegments;i++)for(let j=0;j<uSegments;j++){
+  const a=index(i,j),b=index(i+1,j),c=index(i,j+1),e=index(i+1,j+1);
+  // The top face points toward +Y; the bottom face points toward -Y.
+  indices.push(a,c,b,b,c,e);
+  indices.push(a+off,b+off,c+off,b+off,e+off,c+off);
+ }
+ // Sidewall triangles share the exact top/bottom boundary vertices.
+ // Each top boundary edge is consumed once with reverse winding.
+ const side=(a:number,b:number)=>{
+  indices.push(b,a,a+off,b,a+off,b+off);
+ };
+ for(let j=0;j<uSegments;j++){
+  side(index(0,j),index(0,j+1));
+  side(index(tSegments,j+1),index(tSegments,j));
+ }
+ for(let i=0;i<tSegments;i++){
+  side(index(i+1,0),index(i,0));
+  side(index(i,uSegments),index(i+1,uSegments));
+ }
+ const g=new BufferGeometry();
+ g.setAttribute('position',new Float32BufferAttribute(vertices,3));
+ g.setIndex(indices);
+ g.computeVertexNormals();g.computeBoundingSphere();
  return g;
 }
 /** TubeGeometry is normally OPEN at both ends; cap it before Manifold union. */
