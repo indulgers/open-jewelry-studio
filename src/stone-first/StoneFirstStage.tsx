@@ -25,10 +25,15 @@ function OpticalAccentBatch({geometry,sites,environment,quality,preset}:{geometr
 function JewelryObject({design,quality,studio}:{design:Design;quality:Quality;studio:StudioPresetId}){
  const d=constrainDesign(design),preset=STUDIO_PRESETS[studio];
  const gltf=useGLTF('/models/atelier/gems/round.glb');
+ const mainGltf=useGLTF('/models/atelier/gems/'+d.gemCut+'.glb');
  const gem=useMemo(()=>{
    const source=firstMeshGeometry(gltf.scene);
    try{return normalizeLooseGem(source);}finally{source.dispose();}
  },[gltf.scene]);
+ const mainGem=useMemo(()=>{
+   const source=firstMeshGeometry(mainGltf.scene);
+   try{return normalizeLooseGem(source);}finally{source.dispose();}
+ },[mainGltf.scene]);
  const assembly=useMemo(()=>createAssembly(d),[JSON.stringify(d)]);
  const sites=useMemo(()=>buildStoneLayout(d),[JSON.stringify(d)]);
  const metal=useMemo(()=>createMetalMaterial(d.metal,preset),[d.metal,preset]);
@@ -66,6 +71,7 @@ function JewelryObject({design,quality,studio}:{design:Design;quality:Quality;st
  useEffect(()=>()=>metal.dispose(),[metal]);
  useEffect(()=>()=>mergedSeats?.dispose(),[mergedSeats]);
  useEffect(()=>()=>gem.dispose(),[gem]);
+ useEffect(()=>()=>mainGem.dispose(),[mainGem]);
  const optics={environmentRotation:preset.rotation,environmentIntensity:preset.gemIntensity,dispersion:preset.dispersion};
  return <JewelryLighting preset={preset}>{environment=><group>
    {assembly.parts.map((part,i)=><mesh key={part.name+'-'+i} geometry={part.geometry} material={metal} dispose={null}/>)}
@@ -75,7 +81,7 @@ function JewelryObject({design,quality,studio}:{design:Design;quality:Quality;st
     <instancedMesh ref={instances} args={[gem,undefined,accents.length]} dispose={null} frustumCulled={false}>
      <meshPhysicalMaterial color="#f6f8fc" metalness={0} roughness={0.015} transmission={0.93} thickness={0.5} ior={2.42} envMapIntensity={2.1}/>
    </instancedMesh>)}
-   {mains.map(site=><OpticalGem key={site.id} geometry={gem}
+   {mains.map(site=><OpticalGem key={site.id} geometry={mainGem}
       position={[site.x,site.y,site.z]} rotation={[0,0,-site.tilt]}
       scale={site.diameter/2} environment={environment} quality={quality} simplified={false} options={optics}/>)}
   </group>}</JewelryLighting>;
