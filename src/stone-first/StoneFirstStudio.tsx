@@ -110,9 +110,12 @@ export function StoneFirstStudio(){
         <h3>镶嵌构图</h3><div className="stone-first-options">{SETTINGS.map(([id,name])=><button key={id} aria-pressed={d.setting===id} onClick={()=>update('setting',id)}>{name}</button>)}</div>
         <h3>主石切形</h3><div className="stone-first-options">{GEM_CUTS.map(([id,name])=><button key={id} aria-pressed={d.gemCut===id} onClick={()=>update('gemCut',id)}>{name}</button>)}</div>
         <h3>镶嵌工艺</h3><div className="stone-first-options">{MOUNTS.map(([id,name])=><button key={id} aria-pressed={d.mount===id} onClick={()=>update('mount',id)}>{name}</button>)}</div>
+        <h3>主石戒冠与镶座</h3>
+        <div className="stone-first-options"><button aria-pressed={d.prongCount===4} onClick={()=>update('prongCount',4)}>四爪</button><button aria-pressed={d.prongCount===6} onClick={()=>update('prongCount',6)}>六爪</button></div>
         <h3>宝石尺寸和密度</h3>
         {([['mainDiameter','主石直径',2,6,.1],['accentDiameter','配钻直径',.55,1.4,.05],['gapMm','目标腰棱净距',.1,.3,.01]] as const).map(([key,label,min,max,increment])=>
          <label className="stone-first-range" key={key}><span>{label}</span><output>{d[key].toFixed(2)} mm</output><input type="range" min={min} max={max} step={increment} value={d[key]} onChange={e=>update(key,Number(e.target.value))}/></label>)}
+        {([['crownLiftMm','主石戒冠高度',.2,1.7,.05],['seatDepthMm','配石嵌入深度',.06,.25,.01]] as const).map(([key,label,min,max,increment])=><label className="stone-first-range" key={key}><span>{label}</span><output>{d[key].toFixed(2)} mm</output><input type="range" min={min} max={max} step={increment} value={d[key]} onChange={e=>update(key,Number(e.target.value))}/></label>)}
         <p className="stone-first-note">小钻的珠镶固定结构为可视化几何，当前没有生成真实金属切孔。所选镶法可能与某些构图不兼容，校验会提示。</p>
        </>}
        {step===4&&<>
