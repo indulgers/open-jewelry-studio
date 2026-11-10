@@ -26,6 +26,7 @@ describe('Manifold-3D gold assembly',()=>{
     expect(result.report.manufacturingPassed).toBe(false);
     expect(result.report.clearanceValidated).toBe(false);
     expect(result.report.triangles).toBeGreaterThan(100);
+    console.log('PAVE_DISCONNECTED_BOUNDS',result.report.connectedComponents,result.report.componentVolumes.slice(0,12),result.report.componentBounds.slice(0,12));
     expect(result.report.connectedComponents).toBe(1); // no isolated pavé beads
     expect(result.report.status).toBe('fused');
   }finally{result.dispose();}
