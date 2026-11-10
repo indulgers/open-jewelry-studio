@@ -3,7 +3,8 @@ import {Canvas,useThree} from '@react-three/fiber';
 import {OrbitControls,useGLTF} from '@react-three/drei';
 import {Euler,InstancedMesh,Matrix4,Quaternion,Vector3,type BufferGeometry,type Texture} from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {firstMeshGeometry,normalizeLooseGem} from '../geometry/productGeometry';
+import {firstMeshGeometry} from '../geometry/productGeometry';
+import {prepareGirdleGem} from './gemFit';
 import {JewelryLighting} from '../viewer/JewelryLighting';
 import {StudioFillLights} from '../viewer/StudioFillLights';
 import {createMetalMaterial} from '../viewer/materials';
@@ -28,11 +29,11 @@ function JewelryObject({design,quality,studio}:{design:Design;quality:Quality;st
  const mainGltf=useGLTF('/models/atelier/gems/'+d.gemCut+'.glb');
  const gem=useMemo(()=>{
    const source=firstMeshGeometry(gltf.scene);
-   try{return normalizeLooseGem(source);}finally{source.dispose();}
+   try{return prepareGirdleGem(source).geometry;}finally{source.dispose();}
  },[gltf.scene]);
  const mainGem=useMemo(()=>{
    const source=firstMeshGeometry(mainGltf.scene);
-   try{return normalizeLooseGem(source);}finally{source.dispose();}
+   try{return prepareGirdleGem(source).geometry;}finally{source.dispose();}
  },[mainGltf.scene]);
  const assembly=useMemo(()=>createAssembly(d),[JSON.stringify(d)]);
  const sites=useMemo(()=>buildStoneLayout(d),[JSON.stringify(d)]);
