@@ -19,7 +19,17 @@ try{
   // The recipes live in step 1. Reset the step before switching.
   await page.getByRole('button',{name:/戒指结构原型/}).click();
   await page.getByRole('button',{name:new RegExp(label)}).click();
-  await page.waitForTimeout(4500);
+  // A canvas can be non-empty while the metal has failed to fuse. Do not
+  // accept such screenshots as successful jewelry geometry.
+  await page.waitForFunction(()=>{
+    const status=document.querySelector('.stone-first-canvas')?.getAttribute('data-solid-status');
+    return status==='fused'||status==='fragmented'||status==='error';
+  },{timeout:90000});
+  const solidStatus=await page.locator('.stone-first-canvas').getAttribute('data-solid-status');
+  const detail=await page.locator('.stone-fusion-status').innerText();
+  console.log('SOLID_STATUS='+id+':'+solidStatus+' / '+detail);
+  if(solidStatus!=='fused')throw Error('Metal is not one closed fused body: '+detail);
+  await page.waitForTimeout(900);
   const png=await page.locator('.stone-first-canvas canvas').evaluate(canvas=>{
     const el=canvas;
     if(!(el instanceof HTMLCanvasElement))throw Error('No canvas');
