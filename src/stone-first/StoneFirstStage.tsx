@@ -54,7 +54,7 @@ function JewelryObject({design,quality,studio,onSolidStatus}:{design:Design;qual
    });
    return ()=>{cancelled=true;};
  },[modelKey]);
- const activeSolid=solid?.key===modelKey?solid.value:null;
+ const activeSolid=solid?.key===modelKey&&solid.value.report.status==='fused'?solid.value:null;
  useEffect(()=>()=>solid?.value.dispose(),[solid]);
  const sites=useMemo(()=>buildStoneLayout(d),[modelKey]);
  const metal=useMemo(()=>createMetalMaterial(d.metal,preset),[d.metal,preset]);
