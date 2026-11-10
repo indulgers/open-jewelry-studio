@@ -13,7 +13,7 @@ export type Design={
   metal:'white'|'yellow'|'rose';gemCut:GemCut;ringDiameter:number;mainDiameter:number;accentDiameter:number;
   gapMm:number;parameters:Parameters;
 };
-export type Site={id:string;kind:'main'|'accent';zone:'center'|'petal'|'shoulder'|'rim';x:number;y:number;z:number;diameter:number;tilt:number;angle:number;mount:MountType};
+export type Site={id:string;kind:'main'|'accent';zone:'center'|'petal'|'shoulder'|'rim';x:number;y:number;z:number;diameter:number;tilt:number;angle:number;mount:MountType;leaf?:number;t?:number;u?:number};
 export type Check={severity:'pass'|'advice'|'block'|'unverified';title:string;detail:string};
 export const STRUCTURES=[['slim','细戒臂'],['wide','宽戒臂'],['signet','戒面式'],['open','开口式'],['wrap','环绕式']] as const;
 export const GRAMMARS=[['flow','流线曲面'],['floral','花瓣'],['rhythm','几何重复'],['architectural','建筑结构']] as const;
@@ -60,11 +60,17 @@ export function petalSample(d:Design,petal:number,t:number,u:number){
  const y=bandRadius(d)+0.17+d.parameters.blend*0.045+0.085*(1-u*u)*Math.sin(Math.PI*t)+0.025*t;
  return {x,y,z,width,phi};
 }
-function shoulder(d:Design,x:number){
- const radius=bandRadius(d);
- const y=Math.sqrt(Math.max(0.16,radius*radius-x*x))+0.135;
+function shoulder(d:Design,x:number,z=0){
+ const radius=bandRadius(d),theta=Math.acos(Math.max(-1,Math.min(1,x/radius)));
+ const power=Math.pow(Math.max(0,Math.sin(theta)),4.5);
+ const width=(d.structure==='slim'?.20:d.structure==='wide'?.38:d.structure==='signet'?.37:d.structure==='open'?.23:.28)
+  +(d.structure==='signet'?.18:d.structure==='wide'?.07:0)*power;
+ const halfWidth=width*d.parameters.taper/2;
+ const thickness=(d.structure==='signet'?.175:.135)+(d.structure==='wide'?.035:0)+d.parameters.blend*.025*power;
+ const zRatio=Math.min(.998,Math.abs(z)/Math.max(.01,halfWidth));
+ const y=Math.sqrt(Math.max(0.16,radius*radius-x*x))+thickness*Math.sqrt(1-zRatio*zRatio);
  const tilt=Math.asin(Math.min(0.75,Math.max(-0.75,x/radius)));
- return {x,y,z:0,tilt};
+ return {x,y,z,tilt};
 }
 function within(s:Site,others:Site[],gap:number){
  return others.every(v=>Math.hypot(s.x-v.x,s.z-v.z) >= (s.diameter+v.diameter)/2+gap*MM-1e-6);
@@ -79,8 +85,8 @@ export function buildStoneLayout(unbounded:Design):Site[]{
   out.push({id:'center-main',kind:'main',zone:'center',x:0,y:r+0.30,z:0,
    diameter:main,tilt:0,angle:0,mount:d.mount==='channel'||d.mount==='bead'?'prong':d.mount});
  }
- const add=(zone:Site['zone'],x:number,y:number,z:number,diameter=small,tilt=0,angle=0,mount:MountType=d.mount)=>{
-  addSafe(out,{id:'accent-'+out.length,kind:'accent',zone,x,y,z,diameter,tilt,angle,mount},d.gapMm);
+ const add=(zone:Site['zone'],x:number,y:number,z:number,diameter=small,tilt=0,angle=0,mount:MountType=d.mount,metadata:Pick<Site,'leaf'|'t'|'u'>={})=>{
+  addSafe(out,{id:'accent-'+out.length,kind:'accent',zone,x,y,z,diameter,tilt,angle,mount,...metadata},d.gapMm);
  };
  if(d.setting==='graduated'||d.setting==='line'){
   const num=d.setting==='graduated'?4:6;
@@ -89,7 +95,7 @@ export function buildStoneLayout(unbounded:Design):Site[]{
     const x=side*(main/2+gap+small/2+0.035+i*(small+gap));
     if(Math.abs(x)>r*0.78)break;
     const s=shoulder(d,x);
-    add('shoulder',x,s.y,0,d.setting==='graduated'?Math.max(.045,small*(1-0.12*i)):small,s.tilt,0,
+    add('shoulder',x,s.y-.008,0,d.setting==='graduated'?Math.max(.045,small*(1-0.12*i)):small,s.tilt,0,
        d.setting==='line'?'channel':'prong');
    }
   }
@@ -99,7 +105,10 @@ export function buildStoneLayout(unbounded:Design):Site[]{
   const dist=main/2+small/2+gap+0.065;
   for(let i=0;i<count;i++){
    const theta=i*Math.PI*2/count+d.parameters.rotation*Math.PI/180;
-   add('rim',Math.cos(theta)*dist,r+0.21,Math.sin(theta)*dist,small,0,theta,'bezel');
+   if(d.grammar==='floral'){
+     const p=petalSample(d,i,.75,0);
+     add('petal',p.x,p.y-.009,p.z,small,0,p.phi,'bezel',{leaf:i,t:.75,u:0});
+   }else add('rim',Math.cos(theta)*dist,r+0.21,Math.sin(theta)*dist,small,0,theta,'bezel');
   }
  }
  if(d.setting==='pave'){
@@ -116,10 +125,10 @@ export function buildStoneLayout(unbounded:Design):Site[]{
     for(let col=0;col<count;col++){
       const along=(col-(count-1)/2)*pitch+((row%2===1&&count>1)?pitch*0.16:0);
       const u=sample.width>0?along/sample.width:0;
-      if(Math.abs(u)>0.9)continue;
+      if(Math.abs(u)>0.9||Math.abs(along)+small*.59>sample.width)continue;
       const p=petalSample(d,leaf,t,u);
-      // Physical 3D diamonds sit fractionally above the metal support surface.
-      add('petal',p.x,p.y+0.018,p.z,small,0,p.phi,'bead');
+      // The stone girdle is placed just under the perforated metal surface.
+      add('petal',p.x,p.y-.010,p.z,small,0,p.phi,'bead',{leaf,t,u});
     }
    }
   }else{
@@ -131,8 +140,8 @@ export function buildStoneLayout(unbounded:Design):Site[]{
     for(let i=0;i<8;i++){
      const x=side*(main/2+gap+small/2+0.035+i*pitch+((row%2)?pitch*0.32:0));
      if(Math.abs(x)>r*0.82)continue;
-     const s=shoulder(d,x);
-     add('shoulder',x,s.y-0.016*(rows-1),z,small,s.tilt,0,'bead');
+     const s=shoulder(d,x,z);
+     add('shoulder',x,s.y-.008,z,small,s.tilt,0,'bead');
     }
    }
   }
