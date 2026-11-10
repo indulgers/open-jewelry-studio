@@ -3,6 +3,7 @@ import {
  TorusGeometry, SphereGeometry, CylinderGeometry, CatmullRomCurve3, TubeGeometry
 } from 'three';
 import {bandRadius,buildStoneLayout,constrainDesign,petalSample,type Design,type Site} from './recipe';
+import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 
 export type GeometryPart={name:string;geometry:BufferGeometry;kind:'metal'|'seat'};
 export type Assembly={parts:GeometryPart[];dispose:()=>void};
@@ -94,8 +95,11 @@ export function petalGeometry(d:Design,leaf:number,sites:Site[]=[]):BufferGeomet
    p.setXYZ(i,sample.x,sample.y-depth,sample.z);
  }
  p.needsUpdate=true;
- g.computeVertexNormals();g.computeBoundingSphere();
- return g;
+ // ExtrudeGeometry is non-indexed. Weld after deforming so the gold face is
+ // a smooth sculptural surface instead of separate glittery metal triangles.
+ const polished=mergeVertices(g,1e-5);g.dispose();
+ polished.computeVertexNormals();polished.computeBoundingSphere();
+ return polished;
 }
 export function petalOutline(d:Design,leaf:number):Vector3[]{
  const points:Vector3[]=[];
