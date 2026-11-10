@@ -53,11 +53,15 @@ export function bandRadius(d:Design){return d.ringDiameter*MM/2;}
 export function petalSample(d:Design,petal:number,t:number,u:number){
  const n=d.parameters.repeat;
  const phi=2*Math.PI*petal/n+d.parameters.rotation*Math.PI/180+Math.PI/n;
- const rad=0.085+(0.56*d.parameters.emphasis*d.parameters.bend)*t;
- const width=0.295*d.parameters.emphasis*Math.pow(Math.max(0,Math.sin(Math.PI*t)),0.85);
+ // Solitaire flowers should be a low sculptural frame around the diamond,
+ // not four full-width metal bowls. Pavé needs broader metal for real stones.
+ const delicate=d.setting==='solitaire';
+ const rad=0.085+(0.56*(delicate?.86:1)*d.parameters.emphasis*d.parameters.bend)*t;
+ const width=0.295*(delicate?.68:1)*d.parameters.emphasis*Math.pow(Math.max(0,Math.sin(Math.PI*t)),0.85);
  const x=Math.cos(phi)*rad-Math.sin(phi)*width*u;
  const z=Math.sin(phi)*rad+Math.cos(phi)*width*u;
- const y=bandRadius(d)+0.17+d.parameters.blend*0.045+0.085*(1-u*u)*Math.sin(Math.PI*t)+0.025*t;
+ const y=bandRadius(d)+(delicate?.115:.17)+d.parameters.blend*0.045+
+   0.085*(delicate?.65:1)*(1-u*u)*Math.sin(Math.PI*t)+0.025*t;
  return {x,y,z,width,phi};
 }
 function shoulder(d:Design,x:number,z=0){
