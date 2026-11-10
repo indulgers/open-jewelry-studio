@@ -35,17 +35,12 @@ export function ProductRing({ringStyle,metal,environment,quality,simplified,onRe
   const optics=useMemo(()=>({environmentRotation:preset.rotation,environmentIntensity:preset.gemIntensity,dispersion:preset.dispersion,
     mount:mount?{bvh:mount.bvh,color:material.color,roughness:preset.roughness}:undefined}),[preset,mount,material]);
   const readyGems=useMemo(()=>new Set<string>(),[ring,environment,quality,simplified]);
-  const largestGem=useMemo(()=>ring.gems.reduce((largest,part)=>{
-    part.geometry.computeBoundingSphere();
-    const diameter=part.geometry.boundingSphere?.radius??0;
-    return diameter>largest.radius?{name:part.name,radius:diameter}:largest;
-  },{name:'',radius:-1}).name,[ring]);
   useEffect(()=>()=>ring.dispose(),[ring]);useEffect(()=>()=>material.dispose(),[material]);
   if(built?.source===ring&&built.error)throw built.error;
   if(!mount)return null;
   return <group dispose={null}>
     {ring.metals.map(part=><mesh key={part.name} name={part.name} geometry={part.geometry} material={material}/>)}
-    {ring.gems.map(part=><OpticalGem key={part.name} name={part.name} geometry={part.geometry} {...{environment,quality,simplified}} options={part.name===largestGem&&definition.replaceCenter?{...optics,appearance:stoneAppearance}:optics}
+    {ring.gems.map(part=><OpticalGem key={part.name} name={part.name} geometry={part.geometry} {...{environment,quality,simplified}} options={/^center/i.test(part.name)&&definition.replaceCenter?{...optics,appearance:stoneAppearance}:optics}
       onReady={()=>{readyGems.add(part.name);if(readyGems.size===ring.gems.length)onReady()}}/>)}
   </group>;
 }
