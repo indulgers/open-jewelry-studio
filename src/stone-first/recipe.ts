@@ -11,7 +11,7 @@ export type Parameters={bend:number;blend:number;rotation:number;repeat:number;e
 export type Design={
   recipe:RecipeId;structure:RingStructure;grammar:VisualGrammar;setting:GemSetting;mount:MountType;
   metal:'white'|'yellow'|'rose';gemCut:GemCut;ringDiameter:number;mainDiameter:number;accentDiameter:number;
-  gapMm:number;parameters:Parameters;
+  gapMm:number;crownLiftMm:number;seatDepthMm:number;prongCount:4|6;parameters:Parameters;
 };
 export type Site={id:string;kind:'main'|'accent';zone:'center'|'petal'|'shoulder'|'rim';x:number;y:number;z:number;diameter:number;tilt:number;angle:number;mount:MountType;leaf?:number;t?:number;u?:number};
 export type Check={severity:'pass'|'advice'|'block'|'unverified';title:string;detail:string};
@@ -36,7 +36,7 @@ export const RECIPES:{id:RecipeId;name:string;description:string;structure:RingS
 export function recipeDesign(id:RecipeId):Design{
  const r=RECIPES.find(v=>v.id===id)??RECIPES[0];
  return {recipe:r.id,structure:r.structure,grammar:r.grammar,setting:r.setting,mount:r.mount,metal:'white',gemCut:id==='architectural-halo'?'rectangle':'round',
- ringDiameter:18,mainDiameter:r.mainDiameter,accentDiameter:r.accentDiameter,gapMm:0.14,parameters:{...BASE}};
+ ringDiameter:18,mainDiameter:r.mainDiameter,accentDiameter:r.accentDiameter,gapMm:0.14,crownLiftMm:.55,seatDepthMm:.12,prongCount:4,parameters:{...BASE}};
 }
 export function constrainDesign(input:Design):Design{
  const clamp=(n:number,a:number,b:number)=>Math.max(a,Math.min(b,Number.isFinite(n)?n:a));
@@ -45,7 +45,7 @@ export function constrainDesign(input:Design):Design{
  parameters.repeat=Math.round(parameters.repeat);
  return {...input,parameters,ringDiameter:clamp(input.ringDiameter,15,23),
   mainDiameter:clamp(input.mainDiameter,2,6),accentDiameter:clamp(input.accentDiameter,0.55,1.4),
-  gapMm:clamp(input.gapMm,0.10,0.3)};
+  gapMm:clamp(input.gapMm,0.10,0.3),crownLiftMm:clamp(input.crownLiftMm,.2,1.7),seatDepthMm:clamp(input.seatDepthMm,.06,.25),prongCount:input.prongCount===6?6:4};
 }
 export const MM=0.1;
 export function bandRadius(d:Design){return d.ringDiameter*MM/2;}
@@ -82,7 +82,7 @@ export function buildStoneLayout(unbounded:Design):Site[]{
  const d=constrainDesign(unbounded),out:Site[]=[],r=bandRadius(d),main=d.mainDiameter*MM,small=d.accentDiameter*MM,gap=d.gapMm*MM;
  const mainEnabled=d.setting!=='none' && !(d.setting==='line' && d.grammar==='rhythm');
  if(mainEnabled){
-  out.push({id:'center-main',kind:'main',zone:'center',x:0,y:r+0.30,z:0,
+  out.push({id:'center-main',kind:'main',zone:'center',x:0,y:r+0.22+d.crownLiftMm*MM,z:0,
    diameter:main,tilt:0,angle:0,mount:d.mount==='channel'||d.mount==='bead'?'prong':d.mount});
  }
  const add=(zone:Site['zone'],x:number,y:number,z:number,diameter=small,tilt=0,angle=0,mount:MountType=d.mount,metadata:Pick<Site,'leaf'|'t'|'u'>={})=>{
@@ -95,7 +95,7 @@ export function buildStoneLayout(unbounded:Design):Site[]{
     const x=side*(main/2+gap+small/2+0.035+i*(small+gap));
     if(Math.abs(x)>r*0.78)break;
     const s=shoulder(d,x);
-    add('shoulder',x,s.y-.008,0,d.setting==='graduated'?Math.max(.045,small*(1-0.12*i)):small,s.tilt,0,
+    add('shoulder',x,s.y-d.seatDepthMm*MM,0,d.setting==='graduated'?Math.max(.045,small*(1-0.12*i)):small,s.tilt,0,
        d.setting==='line'?'channel':'prong');
    }
   }
@@ -107,7 +107,7 @@ export function buildStoneLayout(unbounded:Design):Site[]{
    const theta=i*Math.PI*2/count+d.parameters.rotation*Math.PI/180;
    if(d.grammar==='floral'){
      const p=petalSample(d,i,.75,0);
-     add('petal',p.x,p.y-.009,p.z,small,0,p.phi,'bezel',{leaf:i,t:.75,u:0});
+     add('petal',p.x,p.y-d.seatDepthMm*MM,p.z,small,0,p.phi,'bezel',{leaf:i,t:.75,u:0});
    }else add('rim',Math.cos(theta)*dist,r+0.21,Math.sin(theta)*dist,small,0,theta,'bezel');
   }
  }
@@ -128,7 +128,7 @@ export function buildStoneLayout(unbounded:Design):Site[]{
       if(Math.abs(u)>0.9||Math.abs(along)+small*.59>sample.width)continue;
       const p=petalSample(d,leaf,t,u);
       // The stone girdle is placed just under the perforated metal surface.
-      add('petal',p.x,p.y-.010,p.z,small,0,p.phi,'bead',{leaf,t,u});
+      add('petal',p.x,p.y-d.seatDepthMm*MM,p.z,small,0,p.phi,'bead',{leaf,t,u});
     }
    }
   }else{
@@ -141,7 +141,7 @@ export function buildStoneLayout(unbounded:Design):Site[]{
      const x=side*(main/2+gap+small/2+0.035+i*pitch+((row%2)?pitch*0.32:0));
      if(Math.abs(x)>r*0.82)continue;
      const s=shoulder(d,x,z);
-     add('shoulder',x,s.y-.008,z,small,s.tilt,0,'bead');
+     add('shoulder',x,s.y-d.seatDepthMm*MM,z,small,s.tilt,0,'bead');
     }
    }
   }
@@ -165,6 +165,7 @@ export function checkDesign(input:Design,sites=buildStoneLayout(input)):Check[]{
  else if(minGap!==null)checks.push({severity:'pass',title:'石位平面净距',detail:'计算的最小平面腰棱净距 '+minGap.toFixed(3)+' mm（还未包括镶爪与工具间隙）。'});
  if(d.grammar==='floral'&&d.parameters.repeat>6)checks.push({severity:'advice',title:'花瓣数量较多',detail:'多瓣会压缩每片花瓣的密镶面积。可使用 4 或 5 瓣模板。'});
  if(d.setting==='pave'&&d.mount==='prong')checks.push({severity:'advice',title:'密镶已切换金属珠固定',detail:'小钻采用 bead 结构，中心主石仍保留独立承托。'});
+ if(d.mainDiameter>=5.2&&d.prongCount===4)checks.push({severity:'advice',title:'大主石爪数复核',detail:'当前选用四爪，建议同时检查六爪或加固爪位方案。'});
  if(d.mainDiameter>5&&d.structure==='slim')checks.push({severity:'advice',title:'主石与细戒臂比例',detail:'建议增厚戒肩和扩大镶座连接，当前仅为概念模型。'});
  checks.push({severity:'unverified',title:'工业 CAD 验证尚未完成',detail:'尚未计算真实镶口布尔切削、局部金属壁厚、铸造余量及压爪工艺，不能直接用于制造。'});
  return checks;
