@@ -26,7 +26,7 @@ describe('micro pavé support contact geometry',()=>{
     values.push({name:part.name,hitCount:hits.length,beadY:c.y,goldY,beadX:c.x,beadZ:c.z,
       penetration:goldY===null?null:goldY-(c.y-part.geometry.boundingSphere!.radius)});
    }
-   console.log('ACTUAL_BEAD_GOLD_CONTACT',JSON.stringify({site,values}));
+
    expect(parts).toHaveLength(4);
    expect(values.every(v=>v.hitCount>0)).toBe(true);
    expect(values.every(v=>v.penetration!==null&&v.penetration>0)).toBe(true);
