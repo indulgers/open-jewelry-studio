@@ -31,8 +31,13 @@ function JewelryObject({design,quality,studio,onSolidStatus}:{design:Design;qual
  const modelKey=JSON.stringify(d);
  const [solid,setSolid]=useState<{key:string;design:Design;value:BooleanResult}|null>(null);
  const displayed=solid?.design??d;
+ // Load supported cuts together before the first preview is declared ready.
+ // Lazy-loading a new cut during an edit suspends the entire metal scene and
+ // previously produced a blank canvas under an already-green CSG status.
  const gltf=useGLTF('/models/atelier/gems/round.glb');
- const mainGltf=useGLTF('/models/atelier/gems/'+displayed.gemCut+'.glb');
+ const ovalAsset=useGLTF('/models/atelier/gems/oval.glb');
+ const rectangleAsset=useGLTF('/models/atelier/gems/rectangle.glb');
+ const mainGltf=displayed.gemCut==='oval'?ovalAsset:displayed.gemCut==='rectangle'?rectangleAsset:gltf;
  const gem=useMemo(()=>{
    const source=firstMeshGeometry(gltf.scene);
    try{return prepareGirdleGem(source).geometry;}finally{source.dispose();}
