@@ -238,10 +238,16 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
      // Physically bury a narrow anchor into the *remaining* gold outside the
      // drilled socket. A bead near the cavity boundary otherwise becomes a
      // tiny, isolated Manifold even if it appears attached in WebGL.
-     const stemRadius=beadRadius*.65;
-     const stem=new CylinderGeometry(stemRadius,stemRadius*.85,.082,10,1,false);
-     stem.translate(cx*rad*1.10,-.032,cz*rad*1.10);
-     parts.push({name:'micro-bead-anchor-'+j,geometry:stem,kind:'seat'});
+     const outward=site.zone==='petal'&&Math.cos(phi-site.angle)>.92;
+     // The outward-facing bead already overlaps the petal rim. A vertical
+     // anchor at the petal's open side becomes a detached metal pin; do not
+     // fabricate it. The other three beads are joined into the gold sheet.
+     if(!outward){
+       const stemRadius=beadRadius*.65;
+       const stem=new CylinderGeometry(stemRadius,stemRadius*.85,.082,10,1,false);
+       stem.translate(cx*rad*1.10,-.032,cz*rad*1.10);
+       parts.push({name:'micro-bead-anchor-'+j,geometry:stem,kind:'seat'});
+     }
    }
  }
  return parts;
