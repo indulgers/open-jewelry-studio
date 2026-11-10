@@ -32,6 +32,7 @@ describe('Manifold-3D gold assembly',()=>{
   const result=await fuseDesign(recipeDesign('architectural-halo'));
   try{
     expect(result.report.cutterCount).toBeGreaterThan(1);
+    console.log('ARCH_COMPONENT_BOUNDS',result.report.componentVolumes,result.report.componentBounds);
     expect(result.report.connectedComponents).toBe(1);
     expect(result.report.status).toBe('fused');
     expect(result.report.socketResidualVolume).toBeLessThan(1e-7);
