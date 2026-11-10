@@ -104,6 +104,21 @@ export function petalGeometry(d:Design,leaf:number,sites:Site[]=[]):BufferGeomet
    g.computeVertexNormals();
  };
  project(face,0);project(back,depth);
+ // The 2D shape's winding changes under the non-planar XYZ projection.
+ // Enforce opposing physical front/back normals before applying metal PBR.
+ const orient=(g:BufferGeometry,up:boolean)=>{
+   const normal=g.getAttribute('normal');
+   let mean=0;for(let i=0;i<normal.count;i++)mean+=normal.getY(i);
+   if((mean>=0)===up)return;
+   const index=g.getIndex();
+   if(!index)throw new Error('The pierced flower requires an indexed shape');
+   for(let i=0;i<index.count;i+=3){
+     const b=index.getX(i+1),c=index.getX(i+2);
+     index.setX(i+1,c);index.setX(i+2,b);
+   }
+   index.needsUpdate=true;g.computeVertexNormals();
+ };
+ orient(face,true);orient(back,false);
  const both=mergeGeometries([face,back],false);
  face.dispose();back.dispose();
  if(!both)throw new Error('Could not create pierced petal surface');
