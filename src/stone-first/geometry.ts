@@ -231,9 +231,17 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
      // placing entire spheres above the surface creates hundreds of islands.
      const radius=rad*.91;
      const beadRadius=Math.max(.009,rad*.24);
+     const cx=Math.cos(phi),cz=Math.sin(phi);
      const bead=new SphereGeometry(beadRadius,10,8);
-     bead.translate(Math.cos(phi)*radius,d.seatDepthMm*.1*.45,Math.sin(phi)*radius);
+     bead.translate(cx*radius,d.seatDepthMm*.1*.45,cz*radius);
      parts.push({name:'micro-bead-'+j,geometry:bead,kind:'seat'});
+     // Physically bury a narrow anchor into the *remaining* gold outside the
+     // drilled socket. A bead near the cavity boundary otherwise becomes a
+     // tiny, isolated Manifold even if it appears attached in WebGL.
+     const stemRadius=beadRadius*.65;
+     const stem=new CylinderGeometry(stemRadius,stemRadius*.85,.082,10,1,false);
+     stem.translate(cx*rad*1.10,-.032,cz*rad*1.10);
+     parts.push({name:'micro-bead-anchor-'+j,geometry:stem,kind:'seat'});
    }
  }
  return parts;
