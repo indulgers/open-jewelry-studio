@@ -85,6 +85,23 @@ describe('parametric jewelry geometry',()=>{
   expect(a!.x).toBeCloseTo(b!.x);expect(a!.z).toBeCloseTo(b!.z);
   expect(a!.y-b!.y).toBeCloseTo((.24-d.seatDepthMm)*.1);
  });
+ it('matches shoulder stone heights to the swept ring surface on both sides',()=>{
+  const d=recipeDesign('architectural-halo'),g=bandGeometry(d);
+  const material=new MeshBasicMaterial({side:2});
+  const mesh=new Mesh(g,material);
+  mesh.updateMatrixWorld(true);
+  try{
+   const sites=buildStoneLayout(d).filter(s=>s.zone==='shoulder');
+   expect(sites.length).toBeGreaterThan(2);
+   for(const site of sites){
+    const ray=new Raycaster(new Vector3(site.x,site.y+2,site.z),new Vector3(0,-1,0));
+    const outer=ray.intersectObject(mesh)[0]?.point.y;
+    expect(outer).toBeDefined();
+    const expected=site.y+d.seatDepthMm*.1;
+    expect(Math.abs(outer!-expected)).toBeLessThan(.022);
+   }
+  }finally{g.dispose();material.dispose();}
+ });
  it('rebuilds different mounts for prong and bezel without losing the gallery',()=>{
   const d=recipeDesign('floral-solitaire'),site=buildStoneLayout(d)[0];
   const prong=metalSetting(d,site),bezel=metalSetting(d,{...site,mount:'bezel'});
