@@ -4,7 +4,7 @@ import {constrainDesign,type Design} from '../recipe';
 import {metalSetting} from '../geometry';
 type MeshInput={numProp:number;vertProperties:Float32Array;triVerts:Uint32Array;merge:()=>unknown};
 type Solid={status:()=>string;volume:()=>number;isEmpty:()=>boolean;delete:()=>void;
-  subtract:(b:Solid)=>Solid;add:(b:Solid)=>Solid;decompose:()=>Solid[];getMesh:(arg?:number)=>MeshInput;
+  subtract:(b:Solid)=>Solid;intersect:(b:Solid)=>Solid;add:(b:Solid)=>Solid;decompose:()=>Solid[];getMesh:(arg?:number)=>MeshInput;
   numTri:()=>number;boundingBox:()=>{min:number[];max:number[]};};
 type Kernel={
  setup:()=>void;
@@ -46,7 +46,7 @@ async function loadKernel():Promise<Kernel>{
 export type BooleanReport={
   status:'fused'|'fragmented'|'error';inputCount:number;cutterCount:number;triangles:number;
   volumeSceneUnits3:number;connectedComponents:number;componentVolumes:number[];componentBounds:{min:number[];max:number[]}[];minSurfaceWallMm:null;
-  clearanceValidated:false;manufacturingPassed:false;warnings:string[];
+  socketResidualVolume:number;clearanceValidated:false;manufacturingPassed:false;warnings:string[];
 };
 export type BooleanResult={geometry:BufferGeometry;report:BooleanReport;dispose:()=>void};
 function inputMesh(g:BufferGeometry,kernel:Kernel){
@@ -104,11 +104,14 @@ export async function fuseDesign(input:Design):Promise<BooleanResult>{
   const stock=hold(k.Manifold.union(solids));
   if(stock.isEmpty()||stock.status()!=='NoError')throw Error('Metal union failed '+stock.status());
   const cutters=source.cutters.map(p=>hold(toSolid(p.geometry,k,p.name)));
-  let drilled=stock;
+  let drilled=stock,tool:Solid|null=null,socketResidualVolume=0;
   if(cutters.length){
-    const tool=hold(k.Manifold.union(cutters));
+    tool=hold(k.Manifold.union(cutters));
     drilled=hold(stock.subtract(tool));
     if(drilled.isEmpty()||drilled.status()!=='NoError')throw Error('Cavity subtraction failed: '+drilled.status());
+    const intersection=hold(drilled.intersect(tool));
+    socketResidualVolume=Math.abs(intersection.volume());
+    if(socketResidualVolume>1e-7)throw Error('镶口切削残留金属碰撞体积 '+socketResidualVolume.toFixed(8));
   }
   // Mounts are added AFTER cavities so the cutter cannot erase contact prongs.
   const mounting:Solid[]=galleryBridges.map(p=>hold(toSolid(p.geometry,k,p.name)));
@@ -144,7 +147,7 @@ export async function fuseDesign(input:Design):Promise<BooleanResult>{
   const geom=metalGeometry(completed.getMesh());
   const report:BooleanReport={status:count===1?'fused':'fragmented',inputCount:source.parts.length+mounting.length,
    cutterCount:cutters.length,triangles:completed.numTri(),volumeSceneUnits3:completed.volume(),connectedComponents:count,componentVolumes,componentBounds,
-   minSurfaceWallMm:null,clearanceValidated:false,manufacturingPassed:false,
+   minSurfaceWallMm:null,socketResidualVolume,clearanceValidated:false,manufacturingPassed:false,
    warnings:[
     count===1?'金属网格已经完成布尔并集和镶口差集':'仍有 '+count+' 个不连通金属实体；不得生产导出',
     '局部最小壁厚、爪根安全、宝石与金属精确干涉尚未验证',
