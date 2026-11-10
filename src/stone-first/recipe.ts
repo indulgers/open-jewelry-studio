@@ -115,7 +115,10 @@ export function buildStoneLayout(unbounded:Design):Site[]{
   if(d.grammar==='floral'){
    // Diamond sites follow each petal's physical envelope. Alternate rows are staggered.
    const pitch=small+gap;
-   const rows=Math.max(4,Math.floor(0.65*d.parameters.emphasis/pitch));
+   // Hexagonal pavé lattice: radial pitch is sqrt(3)/2 of transverse pitch.
+   // Space the rows BEFORE collision rejection, so we do not delete most rows.
+   const radialLength=.72*.56*d.parameters.emphasis*d.parameters.bend;
+   const rows=Math.max(3,Math.floor(radialLength/(pitch*Math.sqrt(3)/2)));
    for(let leaf=0;leaf<d.parameters.repeat;leaf++)for(let row=0;row<rows;row++){
     const t=0.19+0.72*(row+0.5)/rows;
     const sample=petalSample(d,leaf,t,0);
@@ -123,7 +126,7 @@ export function buildStoneLayout(unbounded:Design):Site[]{
     if(span<0)continue;
     const count=Math.max(1,Math.floor(span/pitch)+1);
     for(let col=0;col<count;col++){
-      const along=(col-(count-1)/2)*pitch+((row%2===1&&count>1)?pitch*0.16:0);
+      const along=(col-(count-1)/2)*pitch+((row%2===1&&count>1)?pitch*.50:0);
       const u=sample.width>0?along/sample.width:0;
       if(Math.abs(u)>0.9||Math.abs(along)+small*.59>sample.width)continue;
       const p=petalSample(d,leaf,t,u);
