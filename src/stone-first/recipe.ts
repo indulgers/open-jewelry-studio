@@ -170,7 +170,7 @@ export function checkDesign(input:Design,sites=buildStoneLayout(input)):Check[]{
  if(d.setting==='pave'&&d.mount==='prong')checks.push({severity:'advice',title:'密镶已切换金属珠固定',detail:'小钻采用 bead 结构，中心主石仍保留独立承托。'});
  if(d.mainDiameter>=5.2&&d.prongCount===4)checks.push({severity:'advice',title:'大主石爪数复核',detail:'当前选用四爪，建议同时检查六爪或加固爪位方案。'});
  if(d.mainDiameter>5&&d.structure==='slim')checks.push({severity:'advice',title:'主石与细戒臂比例',detail:'建议增厚戒肩和扩大镶座连接，当前仅为概念模型。'});
- checks.push({severity:'unverified',title:'工业 CAD 验证尚未完成',detail:'尚未计算真实镶口布尔切削、局部金属壁厚、铸造余量及压爪工艺，不能直接用于制造。'});
+ checks.push({severity:'unverified',title:'工业 CAD 验证尚未完成',detail:'已执行概念网格布尔切孔，但尚未完成精确 B-rep、全局局部壁厚、铸造余量和压爪工艺验证，不能直接用于制造。'});
  return checks;
 }
 export function summary(d:Design,sites=buildStoneLayout(d)){
