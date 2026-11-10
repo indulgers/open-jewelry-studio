@@ -8,16 +8,18 @@ const output=`artifacts/stonefirst-regression/${mode}`;
 await mkdir(output,{recursive:true});
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--enable-webgl']});
 const page=await browser.newPage({viewport:{width:1440,height:1100},deviceScaleFactor:1});
-const errors=[],report={mode,commit:process.env.SOURCE_COMMIT,cases:[],errors};
+const errors=[],consoleErrors=[],failedRequests=[],report={mode,commit:process.env.SOURCE_COMMIT,cases:[],errors,consoleErrors,failedRequests};
 page.on('pageerror',e=>errors.push(e.message));
+page.on('console',msg=>{if(msg.type()==='error')consoleErrors.push(msg.text());});
+page.on('response',response=>{if(response.status()>=400)failedRequests.push({url:response.url(),status:response.status()});});
 async function flushScene(){
  return page.evaluate(async()=>{
   const { _roots }=await import('/node_modules/.vite/deps/@react-three_fiber.js');
   const canvas=document.querySelector('.stone-first-canvas canvas');
   const root=_roots.get(canvas);
   if(!root)throw Error('Missing real R3F canvas root');
-  // Software GPU review does not need an endless animation loop. Draw the
-  // unchanged scene directly, including its real onBeforeRender gem shaders.
+  // Pause endless animation for software-GPU review, without changing geometry,
+  // material, lighting or the genuine onBeforeRender gemstone shaders.
   for(const {store} of _roots.values())store.getState().setFrameloop('never');
   const state=root.store.getState();
   state.gl.render(state.scene,state.camera);state.gl.getContext().finish();
@@ -77,5 +79,10 @@ try{
   }
  }
  if(errors.length)throw Error('Browser exceptions: '+errors.join('; '));
-}catch(error){report.failure=String(error);throw error;}
-finally{await writeFile(`${output}/report.json`,JSON.stringify(report,null,2));await browser.close();}
+}catch(error){
+ report.failure=String(error);
+ report.failureBody=await page.locator('body').innerText().catch(()=>'(unavailable)');
+ await page.screenshot({path:`${output}/failure.png`,timeout:15000}).catch(()=>{});
+ console.error(JSON.stringify(report,null,2));
+ throw error;
+}finally{await writeFile(`${output}/report.json`,JSON.stringify(report,null,2));await browser.close();}

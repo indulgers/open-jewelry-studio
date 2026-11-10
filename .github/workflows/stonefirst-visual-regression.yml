@@ -31,7 +31,7 @@ jobs:
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git worktree add --detach /tmp/stonefirst-baseline dfa91a67f930b84ab16b7809c8a9192aae7d59cf
-          ln -s "$GITHUB_WORKSPACE/node_modules" /tmp/stonefirst-baseline/node_modules
+          cp -a "$GITHUB_WORKSPACE/node_modules" /tmp/stonefirst-baseline/node_modules
           mkdir -p /tmp/stonefirst-review
           cd /tmp/stonefirst-review
           npm init -y
@@ -52,6 +52,11 @@ jobs:
       - name: Validate and capture repaired application
         run: |
           REVIEW_MODE=after STUDIO_URL=http://127.0.0.1:5179 SOURCE_COMMIT=${{ github.sha }} node /tmp/stonefirst-review/capture.mjs
+      - name: Preserve server diagnostics
+        if: always()
+        run: |
+          mkdir -p artifacts/stonefirst-regression/logs
+          cp /tmp/stonefirst-before.log /tmp/stonefirst-after.log artifacts/stonefirst-regression/logs/ || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
