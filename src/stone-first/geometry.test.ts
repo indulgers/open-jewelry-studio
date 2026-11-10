@@ -28,6 +28,17 @@ describe('parametric jewelry geometry',()=>{
    expect(range).toBeGreaterThan(.075);
   }finally{g.dispose();}
  });
+ it('makes continuous parallel rails for a channel arrangement instead of disconnected bezel rings',()=>{
+  const d=recipeDesign('architectural-halo'),assembly=createAssembly(d);
+  try{expect(assembly.parts.filter(p=>p.name.startsWith('continuous-channel-rail-'))).toHaveLength(4);
+   const site=buildStoneLayout(d).find(s=>s.mount==='channel');
+   expect(site).toBeDefined();
+   const parts=metalSetting(d,site!);
+   expect(parts.some(p=>p.name==='bezel-lip')).toBe(false);
+   expect(parts.some(p=>p.name==='under-gallery')).toBe(true);
+   parts.forEach(p=>p.geometry.dispose());
+  }finally{assembly.dispose();}
+ });
  it('rebuilds different mounts for prong and bezel without losing the gallery',()=>{
   const d=recipeDesign('floral-solitaire'),site=buildStoneLayout(d)[0];
   const prong=metalSetting(d,site),bezel=metalSetting(d,{...site,mount:'bezel'});
