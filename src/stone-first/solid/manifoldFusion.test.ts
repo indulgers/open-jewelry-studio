@@ -11,6 +11,7 @@ describe('Manifold-3D gold assembly',()=>{
     expect(result.report.cutterCount).toBe(1);
     console.log('FUSION_COMPONENTS',result.report.componentVolumes,result.report.componentBounds);
     console.log('FUSION_VOLUMES',result.report.connectedComponents,result.report.componentVolumes);
+    expect(result.report.socketResidualVolume).toBeLessThan(1e-7);
     expect(result.report.connectedComponents).toBe(1);
     expect(result.report.status).toBe('fused');
     expect(result.report.manufacturingPassed).toBe(false);
