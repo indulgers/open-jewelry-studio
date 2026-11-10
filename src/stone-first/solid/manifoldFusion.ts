@@ -133,6 +133,10 @@ export async function fuseDesign(input:Design):Promise<BooleanResult>{
      g.rotateZ(-site.tilt);g.translate(site.x,site.y,site.z);
      try{
        const solid=hold(toSolid(g,k,'mount '+site.id+' '+part.name));
+       if(site.zone==='petal'&&site.id==='accent-1'&&part.name==='micro-bead-0'){
+         const probe=hold(solid.intersect(drilled));
+         console.log('PAVE_BEAD_DEBUG',JSON.stringify({site,beadBounds:solid.boundingBox(),beadVsMetal:probe.volume(),metalBounds:drilled.boundingBox()}));
+       }
        mounting.push(solid);
      }finally{if(g!==part.geometry)g.dispose();}
      continue;
