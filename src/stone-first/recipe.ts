@@ -68,8 +68,9 @@ function shoulder(d:Design,x:number,z=0){
  const halfWidth=width*d.parameters.taper/2;
  const thickness=(d.structure==='signet'?.175:.135)+(d.structure==='wide'?.035:0)+d.parameters.blend*.025*power;
  const zRatio=Math.min(.998,Math.abs(z)/Math.max(.01,halfWidth));
- const y=Math.sqrt(Math.max(0.16,radius*radius-x*x))+thickness*Math.sqrt(1-zRatio*zRatio);
- const tilt=Math.asin(Math.min(0.75,Math.max(-0.75,x/radius)));
+ const outerRadius=radius+thickness*Math.sqrt(1-zRatio*zRatio);
+ const y=Math.sqrt(Math.max(0,outerRadius*outerRadius-x*x));
+ const tilt=Math.asin(Math.min(0.75,Math.max(-0.75,x/outerRadius)));
  return {x,y,z,tilt};
 }
 function within(s:Site,others:Site[],gap:number){
