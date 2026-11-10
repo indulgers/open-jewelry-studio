@@ -1,4 +1,4 @@
-import {BufferGeometry,Float32BufferAttribute,Vector3} from 'three';
+import {BufferAttribute,BufferGeometry,Float32BufferAttribute,Vector3} from 'three';
 import {createFusionInput,cappedCurve} from './fusionInput';
 import {constrainDesign,type Design} from '../recipe';
 import {metalSetting} from '../geometry';
@@ -65,7 +65,7 @@ function metalGeometry(mesh:MeshInput){
   for(let v=0;v<buf.length/3;v++)for(let j=0;j<3;j++)buf[v*3+j]=p[v*mesh.numProp+j];
   out.setAttribute('position',new Float32BufferAttribute(buf,3));
  }
- out.setIndex(Uint32Array.from(i));out.computeVertexNormals();out.computeBoundingSphere();return out;
+ out.setIndex(new BufferAttribute(Uint32Array.from(i),1));out.computeVertexNormals();out.computeBoundingSphere();return out;
 }
 /** No graceful fallback to overlapping Meshes. If CSG fails we surface an
  * explicit error and keep the last valid closed solid until a new edit succeeds. */
