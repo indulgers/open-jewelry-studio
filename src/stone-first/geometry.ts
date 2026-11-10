@@ -230,7 +230,11 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
    // including the bead nearest the petal edge.
    const lip=new TorusGeometry(rad*1.06,Math.max(.0035,rad*.08),8,32);
    lip.rotateX(Math.PI/2);
-   lip.translate(0,d.seatDepthMm*.1,0);
+   // Stretch the *buried* section down into the shared gold rather than
+   // balancing a flat torus on top of the curved petal. The short upper edge
+   // still meets all four bead tips near the girdle.
+   lip.scale(1,5,1);
+   lip.translate(0,-.011,0);
    parts.push({name:'pave-shared-sheet-lip',geometry:lip,kind:'seat'});
    for(let j=0;j<4;j++){
      const phi=j*Math.PI/2+Math.PI/4;
