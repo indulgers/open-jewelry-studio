@@ -2,8 +2,8 @@ import {
  BufferGeometry,Float32BufferAttribute,Shape,ExtrudeGeometry,Vector3,
  CatmullRomCurve3,TubeGeometry,CylinderGeometry,Matrix4,Quaternion,Euler
 } from 'three';
-import {bandRadius,buildStoneLayout,constrainDesign,petalSample,type Design,type Site} from './recipe';
-import {bandGeometry,ringOuterY,metalSetting} from './geometry';
+import {bandRadius,buildStoneLayout,constrainDesign,petalSample,type Design,type Site} from '../recipe';
+import {bandGeometry,ringOuterY,metalSetting} from '../geometry';
 
 export type FusionPart={name:string;geometry:BufferGeometry};
 export type FusionGeometry={parts:FusionPart[];cutters:FusionPart[];stones:Site[];dispose:()=>void};
