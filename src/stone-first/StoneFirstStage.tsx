@@ -1,18 +1,27 @@
 import {Suspense,useEffect,useMemo,useRef} from 'react';
 import {Canvas,useThree} from '@react-three/fiber';
 import {OrbitControls,useGLTF} from '@react-three/drei';
-import {Euler,InstancedMesh,Matrix4,MeshPhysicalMaterial,Quaternion,Vector3,type BufferGeometry} from 'three';
+import {Euler,InstancedMesh,Matrix4,Quaternion,Vector3,type BufferGeometry,type Texture} from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {firstMeshGeometry,normalizeLooseGem} from '../geometry/productGeometry';
 import {JewelryLighting} from '../viewer/JewelryLighting';
 import {StudioFillLights} from '../viewer/StudioFillLights';
 import {createMetalMaterial} from '../viewer/materials';
 import {OpticalGem} from '../viewer/OpticalGem';
+import {createGemOptics,syncGemDraw} from '../viewer/gemOptics';
 import {STUDIO_PRESETS,type StudioPresetId} from '../viewer/studioPresets';
 import {bandRadius,buildStoneLayout,constrainDesign,type Design,type Site} from './recipe';
 import {createAssembly,metalSetting} from './geometry';
 import type {Quality} from '../viewer/quality';
 
+function OpticalAccentBatch({geometry,sites,environment,quality,preset}:{geometry:BufferGeometry;sites:Site[];environment:Texture;quality:Quality;preset:typeof STUDIO_PRESETS[StudioPresetId]}){
+ const owned=useMemo(()=>createGemOptics(geometry,environment,quality,{environmentRotation:preset.rotation,
+    environmentIntensity:preset.gemIntensity,dispersion:preset.dispersion}),[geometry,environment,quality,preset]);
+ useEffect(()=>()=>owned.dispose(),[owned]);
+ return <group dispose={null}>{sites.map(site=><mesh key={site.id} geometry={geometry} material={owned.material}
+    position={[site.x,site.y,site.z]} rotation={[0,0,-site.tilt]} scale={site.diameter/2}
+    onBeforeRender={(renderer,_scene,camera)=>syncGemDraw(owned.material,renderer,camera)}/>)}</group>;
+}
 function JewelryObject({design,quality,studio}:{design:Design;quality:Quality;studio:StudioPresetId}){
  const d=constrainDesign(design),preset=STUDIO_PRESETS[studio];
  const gltf=useGLTF('/models/atelier/gems/round.glb');
@@ -61,9 +70,11 @@ function JewelryObject({design,quality,studio}:{design:Design;quality:Quality;st
  return <JewelryLighting preset={preset}>{environment=><group>
    {assembly.parts.map((part,i)=><mesh key={part.name+'-'+i} geometry={part.geometry} material={metal} dispose={null}/>)}
    {mergedSeats&&<mesh geometry={mergedSeats} material={metal} dispose={null}/>}
-   {accents.length>0&&<instancedMesh ref={instances} args={[gem,undefined,accents.length]} dispose={null} frustumCulled={false}>
+   {accents.length>0&&(quality==='high'&&accents.length<=72?
+    <OpticalAccentBatch geometry={gem} sites={accents} environment={environment} quality={quality} preset={preset}/>:
+    <instancedMesh ref={instances} args={[gem,undefined,accents.length]} dispose={null} frustumCulled={false}>
      <meshPhysicalMaterial color="#f6f8fc" metalness={0} roughness={0.015} transmission={0.93} thickness={0.5} ior={2.42} envMapIntensity={2.1}/>
-   </instancedMesh>}
+   </instancedMesh>)}
    {mains.map(site=><OpticalGem key={site.id} geometry={gem}
       position={[site.x,site.y,site.z]} rotation={[0,0,-site.tilt]}
       scale={site.diameter/2} environment={environment} quality={quality} simplified={false} options={optics}/>)}
