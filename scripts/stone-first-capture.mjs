@@ -36,19 +36,21 @@ try{
   const detail=await page.locator('.stone-fusion-status').innerText();
   console.log('SOLID_STATUS='+id+':'+solidStatus+' / '+detail);
   if(solidStatus!=='fused')throw Error('Metal is not one closed fused body: '+detail);
-  await page.waitForTimeout(900);
-  const png=await page.locator('.stone-first-canvas canvas').evaluate(canvas=>{
-    const el=canvas;
-    if(!(el instanceof HTMLCanvasElement))throw Error('No canvas');
-    const data=el.toDataURL('image/png');
-    if(!data.startsWith('data:image/png;base64,'))throw Error('Canvas image is empty');
-    return data;
-  },{timeout:45000});
-  const bytes=Buffer.from(png.slice('data:image/png;base64,'.length),'base64');
-  if(bytes.length<15000)throw Error('Rendered image is likely blank: '+bytes.length);
-  await writeFile('artifacts/stone-first/'+id+'.png',bytes);
-  console.log('CANVAS_BYTES='+bytes.length);
-  console.log('SCREENSHOT='+id);
+  const views=[['overall','整体'],['top','戒面俯视'],['side','镶座侧面'],['macro','镶钻特写']];
+  for(const [view,name] of views){
+   await page.getByRole('button',{name,exact:true}).click();
+   await page.waitForTimeout(350);
+   const png=await page.locator('.stone-first-canvas canvas').evaluate(canvas=>{
+     if(!(canvas instanceof HTMLCanvasElement))throw Error('No canvas');
+     const data=canvas.toDataURL('image/png');
+     if(!data.startsWith('data:image/png;base64,'))throw Error('Canvas image is empty');
+     return data;
+   },{timeout:45000});
+   const bytes=Buffer.from(png.slice('data:image/png;base64,'.length),'base64');
+   if(bytes.length<15000)throw Error('Rendered '+id+' '+view+' image is likely blank: '+bytes.length);
+   await writeFile('artifacts/stone-first/'+id+'-'+view+'.png',bytes);
+   console.log('SCREENSHOT='+id+'/'+view+' BYTES='+bytes.length);
+  }
  }
  if(errors.length)throw Error('Browser JavaScript exceptions: '+errors.join('; '));
  console.log('CAPTURE_SUCCESS');
