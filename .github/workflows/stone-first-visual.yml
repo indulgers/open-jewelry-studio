@@ -16,8 +16,12 @@ jobs:
           node-version: '22.22.2'
           cache: npm
       - run: npm ci
-      - run: npm install --no-save --package-lock=false playwright@1.56.1
-      - run: npx playwright install chromium --with-deps
+      - run: |
+          mkdir -p /tmp/stone-first-playwright
+          cd /tmp/stone-first-playwright
+          npm init -y
+          npm install --no-audit --no-fund playwright@1.56.1
+      - run: cd /tmp/stone-first-playwright && npx playwright install chromium --with-deps
       - name: Start the preview server
         run: |
           npm run dev -- --port 5179 > /tmp/stone-first-vite.log 2>&1 &
@@ -28,7 +32,9 @@ jobs:
           cat /tmp/stone-first-vite.log
           exit 1
       - name: Take actual WebGL screenshots
-        run: node scripts/stone-first-capture.mjs
+        run: |
+          cp scripts/stone-first-capture.mjs /tmp/stone-first-playwright/capture.mjs
+          node /tmp/stone-first-playwright/capture.mjs
       - name: Upload visual evidence
         uses: actions/upload-artifact@v4
         if: always()
