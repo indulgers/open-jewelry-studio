@@ -61,7 +61,7 @@ function JewelryObject({design,quality,studio}:{design:Design;quality:Quality;st
    mesh.setMatrixAt(i,m);
   }
   mesh.instanceMatrix.needsUpdate=true;
- },[JSON.stringify(accents),gem]);
+ },[JSON.stringify(accents),gem,quality]);
  useEffect(()=>()=>assembly.dispose(),[assembly]);
  useEffect(()=>()=>metal.dispose(),[metal]);
  useEffect(()=>()=>mergedSeats?.dispose(),[mergedSeats]);
