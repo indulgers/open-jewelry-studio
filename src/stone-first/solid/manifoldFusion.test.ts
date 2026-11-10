@@ -9,8 +9,6 @@ describe('Manifold-3D gold assembly',()=>{
     expect(result.report.triangles).toBeGreaterThan(100);
     expect(result.report.volumeSceneUnits3).toBeGreaterThan(0);
     expect(result.report.cutterCount).toBe(1);
-    console.log('FUSION_COMPONENTS',result.report.componentVolumes,result.report.componentBounds);
-    console.log('FUSION_VOLUMES',result.report.connectedComponents,result.report.componentVolumes);
     expect(result.report.socketResidualVolume).toBeLessThan(1e-7);
     expect(result.report.connectedComponents).toBe(1);
     expect(result.report.status).toBe('fused');
@@ -26,9 +24,18 @@ describe('Manifold-3D gold assembly',()=>{
     expect(result.report.manufacturingPassed).toBe(false);
     expect(result.report.clearanceValidated).toBe(false);
     expect(result.report.triangles).toBeGreaterThan(100);
-    console.log('PAVE_DISCONNECTED_BOUNDS',result.report.connectedComponents,result.report.componentVolumes.slice(0,12),result.report.componentBounds.slice(0,12));
     expect(result.report.connectedComponents).toBe(1); // no isolated pavé beads
     expect(result.report.status).toBe('fused');
+  }finally{result.dispose();}
+ },120000);
+ it('keeps architectural channel shoulders integrated and pockets subtracted',async()=>{
+  const result=await fuseDesign(recipeDesign('architectural-halo'));
+  try{
+    expect(result.report.cutterCount).toBeGreaterThan(1);
+    expect(result.report.connectedComponents).toBe(1);
+    expect(result.report.status).toBe('fused');
+    expect(result.report.socketResidualVolume).toBeLessThan(1e-7);
+    expect(result.report.manufacturingPassed).toBe(false);
   }finally{result.dispose();}
  },120000);
 });
