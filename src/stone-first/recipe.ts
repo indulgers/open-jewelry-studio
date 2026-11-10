@@ -4,11 +4,13 @@ export type RingStructure='slim'|'wide'|'signet'|'open'|'wrap';
 export type VisualGrammar='flow'|'floral'|'rhythm'|'architectural';
 export type GemSetting='none'|'solitaire'|'graduated'|'line'|'pave'|'nodes';
 export type MountType='prong'|'bezel'|'channel'|'bead';
+export type GemCut='round'|'oval'|'rectangle';
+export const GEM_CUTS=[['round','圆形明亮式'],['oval','椭圆形'],['rectangle','长方形阶梯式']] as const;
 export type RecipeId='floral-solitaire'|'floral-pave'|'architectural-halo'|'flowing-shoulder'|'geometry-eternity'|'leaf-nodes';
 export type Parameters={bend:number;blend:number;rotation:number;repeat:number;emphasis:number;taper:number};
 export type Design={
   recipe:RecipeId;structure:RingStructure;grammar:VisualGrammar;setting:GemSetting;mount:MountType;
-  metal:'white'|'yellow'|'rose';ringDiameter:number;mainDiameter:number;accentDiameter:number;
+  metal:'white'|'yellow'|'rose';gemCut:GemCut;ringDiameter:number;mainDiameter:number;accentDiameter:number;
   gapMm:number;parameters:Parameters;
 };
 export type Site={id:string;kind:'main'|'accent';zone:'center'|'petal'|'shoulder'|'rim';x:number;y:number;z:number;diameter:number;tilt:number;angle:number;mount:MountType};
@@ -33,7 +35,7 @@ export const RECIPES:{id:RecipeId;name:string;description:string;structure:RingS
 ];
 export function recipeDesign(id:RecipeId):Design{
  const r=RECIPES.find(v=>v.id===id)??RECIPES[0];
- return {recipe:r.id,structure:r.structure,grammar:r.grammar,setting:r.setting,mount:r.mount,metal:'white',
+ return {recipe:r.id,structure:r.structure,grammar:r.grammar,setting:r.setting,mount:r.mount,metal:'white',gemCut:id==='architectural-halo'?'rectangle':'round',
  ringDiameter:18,mainDiameter:r.mainDiameter,accentDiameter:r.accentDiameter,gapMm:0.14,parameters:{...BASE}};
 }
 export function constrainDesign(input:Design):Design{
@@ -148,6 +150,7 @@ export function measureGaps(sites:Site[]){
 export function checkDesign(input:Design,sites=buildStoneLayout(input)):Check[]{
  const d=constrainDesign(input),checks:Check[]=[],minGap=measureGaps(sites);
  checks.push({severity:'pass',title:'设计配方与镶嵌方案已关联',detail:'主石、配石和花瓣/戒肩由同一份参数化工程计算。'});
+ if(d.gemCut!=='round')checks.push({severity:'advice',title:'非圆形宝石装配待核对',detail:'切形可在视觉上更换，但镶口的实际包边、长宽与爪位置尚未针对该切工执行 CAD 适配。'});
  if(d.setting!=='none'&&sites.length<=1&&d.setting!=='solitaire')checks.push({severity:'block',title:'没有形成预期的配钻布局',detail:'当前石径与结构留白不匹配；请缩小配石或更换适配模板。'});
  if(minGap!==null&&minGap+0.002<d.gapMm)checks.push({severity:'block',title:'石位间距不合格',detail:'最小净距 '+minGap.toFixed(3)+' mm；当前设计目标 '+d.gapMm.toFixed(2)+' mm。'});
  else if(minGap!==null)checks.push({severity:'pass',title:'石位平面净距',detail:'计算的最小平面腰棱净距 '+minGap.toFixed(3)+' mm（还未包括镶爪与工具间隙）。'});
