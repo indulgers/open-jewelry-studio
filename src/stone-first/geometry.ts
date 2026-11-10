@@ -226,9 +226,13 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
  }else if(site.mount==='bead'){
    for(let j=0;j<4;j++){
      const phi=j*Math.PI/2+Math.PI/4;
-     const radius=rad*.955;
-     const bead=new SphereGeometry(Math.max(.006,rad*.16),9,7);
-     bead.translate(Math.cos(phi)*radius,d.seatDepthMm*.1+rad*.06,Math.sin(phi)*radius);
+     // Embed each bead sufficiently into the shared pierced gold sheet.
+     // Its cap is visible above the metal but most of its volume is buried;
+     // placing entire spheres above the surface creates hundreds of islands.
+     const radius=rad*.91;
+     const beadRadius=Math.max(.009,rad*.24);
+     const bead=new SphereGeometry(beadRadius,10,8);
+     bead.translate(Math.cos(phi)*radius,d.seatDepthMm*.1*.45,Math.sin(phi)*radius);
      parts.push({name:'micro-bead-'+j,geometry:bead,kind:'seat'});
    }
  }
