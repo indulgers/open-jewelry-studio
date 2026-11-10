@@ -55,7 +55,7 @@ describe('parametric jewelry geometry',()=>{
     expect(surface.getAttribute('position').count).toBeGreaterThan(100);
   }finally{surface.dispose();mesh.material.dispose();}
  });
- it('leaves a shallow pocket on the shoulder instead of an intact metal lid',()=>{
+ it('keeps the base ring sealed before Manifold cuts shoulder pockets',()=>{
   const d=recipeDesign('architectural-halo'),site=buildStoneLayout(d).find(s=>s.zone==='shoulder');
   expect(site).toBeDefined();
   const g=bandGeometry(d,buildStoneLayout(d)),ray=new Raycaster(new Vector3(site!.x,site!.y+2,site!.z),new Vector3(0,-1,0));
@@ -63,7 +63,7 @@ describe('parametric jewelry geometry',()=>{
   try{
    mesh.updateMatrixWorld();
    const hits=ray.intersectObject(mesh);
-   expect(hits.filter(hit=>hit.point.y>site!.y-.055)).toHaveLength(0);
+   expect(hits.length).toBeGreaterThan(0); // sealed stock, not a fake open pocket
    expect(ringOuterY(d,site!.x,site!.z)-site!.y).toBeGreaterThan(0);
   }finally{g.dispose();mesh.material.dispose();}
  });
