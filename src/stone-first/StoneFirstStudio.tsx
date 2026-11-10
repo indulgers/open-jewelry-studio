@@ -16,24 +16,22 @@ function download(name:string,content:BlobPart,kind:string){
  const el=document.createElement('a');el.href=url;el.download=name;el.click();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-function exportConcept(d:Design,format:'obj'|'stl'){
- const group=new Group(),assembly=createAssembly(d),sites=buildStoneLayout(d),metal=new MeshStandardMaterial({color:'#dddddd'});
- const gems=new MeshStandardMaterial({color:'#e9f3ff'});
- const meshes:Mesh[]=[];
+async function exportConcept(d:Design,format:'obj'|'stl'){
+ const {fuseDesign}=await import('./solid/manifoldFusion');
+ const result=await fuseDesign(d);
+ const metal=new MeshStandardMaterial({color:'#dddddd'});
+ const group=new Group();
  try{
-  for(const part of assembly.parts){const m=new Mesh(part.geometry,metal);m.name=part.name;group.add(m);}
-  for(const site of sites){
-   const transforms=new Matrix4().makeTranslation(site.x,site.y,site.z).multiply(new Matrix4().makeRotationZ(-site.tilt));
-   for(const part of metalSetting(d,site)){part.geometry.applyMatrix4(transforms);const m=new Mesh(part.geometry,metal);meshes.push(m);group.add(m);}
-   // Export visualization proxy only. No boolean-cut gem seat and no CAD-certified gemstone mesh.
-   const m=new Mesh(new SphereGeometry(site.diameter/2,12,8),gems);
-   m.position.set(site.x,site.y,site.z);m.name=site.id+'-gem-proxy';meshes.push(m);group.add(m);
-  }
+  if(result.report.status!=='fused'||result.report.connectedComponents!==1)
+    throw Error('金属尚未完成单一连通实体融合，不允许导出');
+  const mesh=new Mesh(result.geometry,metal);
+  mesh.name='Boolean-fused-metal-concept';group.add(mesh);
   group.updateMatrixWorld(true);
   const data=format==='obj'?new OBJExporter().parse(group):new STLExporter().parse(group);
-  download('ATELIER-concept.'+format,typeof data==='string'?data:new Uint8Array(data as ArrayBuffer),
-   format==='obj'?'text/plain':'application/octet-stream');
- }finally{meshes.forEach(m=>m.geometry.dispose());assembly.dispose();metal.dispose();gems.dispose();}
+  download('ATELIER-fused-metal-CONCEPT.'+format,
+    typeof data==='string'?data:new Uint8Array(data as ArrayBuffer),
+    format==='obj'?'text/plain':'application/octet-stream');
+ }finally{result.dispose();metal.dispose();}
 }
 function Status({checks}:{checks:Check[]}){
  return <div className="stone-checks">{checks.map((c,i)=><div key={i} className={'stone-check stone-check-'+c.severity}>
@@ -125,8 +123,8 @@ export function StoneFirstStudio(){
         <Status checks={checks}/>
         <h3>概念几何交付</h3>
         <div className="stone-first-options"><button onClick={()=>download('ATELIER-design.json',JSON.stringify(d,null,2),'application/json')}>保存可编辑工程</button>
-          <button onClick={()=>exportConcept(d,'obj')}>导出 OBJ 概念装配</button><button onClick={()=>exportConcept(d,'stl')}>导出 STL 概念装配</button></div>
-        <p className="stone-first-note">概念网格中的宝石为几何占位，不等于可铸造实体。正式生产需精确 CAD 镶口、厚度与切割公差验证。</p>
+          <button onClick={()=>exportConcept(d,'obj').catch(error=>setMessage('OBJ 导出被阻止：'+String(error)))}>导出融合金属 OBJ（概念）</button><button onClick={()=>exportConcept(d,'stl').catch(error=>setMessage('STL 导出被阻止：'+String(error)))}>导出融合金属 STL（概念）</button></div>
+        <p className="stone-first-note">导出只包含融合后的金属概念网格，宝石规格/位置由 JSON 工程保存，不等于可铸造实体。正式生产需精确 CAD 镶口、厚度与切割公差验证。</p>
        </>}
      </div>
      <div className="stone-first-panel-bottom">
