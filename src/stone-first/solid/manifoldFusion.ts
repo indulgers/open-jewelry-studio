@@ -17,13 +17,27 @@ async function loadKernel():Promise<Kernel>{
  shared=(async()=>{
   // The repository already bundles Manifold 3.5.4 for the FORME editor.
   // Keep using that local Apache-2.0 engine instead of a remote SDK.
-  const isTest=import.meta.env.MODE==='test';
-  const url=isTest?'file://'+process.cwd()+'/public/forme/vendor/manifold/manifold.js'
-      :'/forme/vendor/manifold/manifold.js';
-  const module=await import(/* @vite-ignore */ url);
-  const runtime=await module.default(isTest
-     ?{locateFile:(name:string)=>process.cwd()+'/public/forme/vendor/manifold/'+name}
-     :{locateFile:(name:string)=>'/forme/vendor/manifold/'+name}) as Kernel;
+  const inNode=typeof process!=='undefined'&&Boolean(process.versions?.node);
+  let runtime:Kernel;
+  if(inNode){
+    const [{pathToFileURL},{resolve}]=await Promise.all([import('node:url'),import('node:path')]);
+    const base=pathToFileURL(resolve(process.cwd(),'public/forme/vendor/manifold')+'/').href;
+    const module=await import(/* @vite-ignore */ (base+'manifold.js'));
+    runtime=await module.default({locateFile:(name:string)=>base+name}) as Kernel;
+  }else{
+    // Vite deliberately blocks ES imports directly from /public. Fetch the
+    // already-vendored ESM bytes as a static asset and instantiate them via a
+    // temporary module URL. WASM remains same-origin and comes from /public.
+    const base=`${import.meta.env.BASE_URL}forme/vendor/manifold/`;
+    const response=await fetch(base+'manifold.js');
+    if(!response.ok)throw new Error('Manifold runtime download failed: '+response.status);
+    const source=await response.text();
+    const blobURL=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
+    try{
+      const module=await import(/* @vite-ignore */ blobURL);
+      runtime=await module.default({locateFile:(name:string)=>base+name}) as Kernel;
+    }finally{URL.revokeObjectURL(blobURL);}
+  }
   runtime.setup();
   return runtime;
  })();
