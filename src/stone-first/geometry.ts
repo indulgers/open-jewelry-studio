@@ -218,8 +218,8 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
    for(let j=0;j<4;j++){
      const phi=j*Math.PI/2+Math.PI/4;
      const radius=rad*.955;
-     const bead=new SphereGeometry(Math.max(.004,rad*.07),9,7);
-     bead.translate(Math.cos(phi)*radius,rad*.068,Math.sin(phi)*radius);
+     const bead=new SphereGeometry(Math.max(.006,rad*.16),9,7);
+     bead.translate(Math.cos(phi)*radius,d.seatDepthMm*.1+rad*.06,Math.sin(phi)*radius);
      parts.push({name:'micro-bead-'+j,geometry:bead,kind:'seat'});
    }
  }
