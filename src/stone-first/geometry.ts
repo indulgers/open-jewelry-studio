@@ -86,6 +86,20 @@ export function createAssembly(input:Design):Assembly{
    ],.019*d.parameters.taper),kind:'metal'});
   }
  }
+ // Channel-set stones require continuous *pair* rails, not a row of separate circular bezels.
+ if(d.setting==='line'){
+   const radius=bandRadius(d),halfTrack=d.accentDiameter*.05+.018;
+   for(const side of [-1,1])for(const edge of [-1,1]){
+     const samples:Vector3[]=[];
+     const start=d.mainDiameter*.05+d.accentDiameter*.05+d.gapMm*.1+.04;
+     for(let i=0;i<=18;i++){
+       const x=side*(start+(radius*.79-start)*i/18);
+       const y=Math.sqrt(Math.max(.16,radius*radius-x*x))+.16;
+       samples.push(new Vector3(x,y,edge*halfTrack));
+     }
+     parts.push({name:'continuous-channel-rail-'+side+'-'+edge,geometry:tubeGeometry(samples,.018),kind:'metal'});
+   }
+ }
  // Connect the raised center setting into the shank. A visible gallery is not a floating decal.
  if(d.setting!=='none'){
    const r=bandRadius(d);
@@ -115,14 +129,20 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
   g.rotateX(Math.PI/2);g.translate(0,y,0);result.push({name,geometry:g,kind:'seat'});
  };
  // The seat stays below the girdle. Main stone uses 4/6 claws or a continuous bezel.
- const bezel=site.mount==='bezel'||site.mount==='channel';
- torus('seat-ring',rad*(bezel?1.06:.91),Math.max(.006,rad*.10),-rad*.13);
- torus('under-gallery',rad*.68,Math.max(.006,rad*.07),-rad*.29);
+ const bezel=site.mount==='bezel';
+ torus('seat-ring',rad*(bezel?1.06:.91),Math.max(.004,rad*.075),-rad*.13);
+ torus('under-gallery',rad*.68,Math.max(.005,rad*.065),-rad*.29);
  if(bezel)torus('bezel-lip',rad*1.02,Math.max(.008,rad*.11),rad*.08);
- else {
-  const prongs=site.mount==='bead'?Math.max(3,4):4;
-  for(let j=0;j<prongs;j++){
-   const phi=2*Math.PI*j/prongs+Math.PI/4;
+ else if(site.mount==='bead'){
+  // Compact bead tips around the girdle, not four large floating claw columns.
+  for(let j=0;j<4;j++){
+   const phi=j*Math.PI/2+Math.PI/4,px=Math.cos(phi)*rad*.95,pz=Math.sin(phi)*rad*.95;
+   const bead=new SphereGeometry(Math.max(.005,rad*.065),8,6);
+   bead.translate(px,rad*.08,pz);result.push({name:'pave-bead-'+j,geometry:bead,kind:'seat'});
+  }
+ }else if(site.mount==='prong'){
+  for(let j=0;j<4;j++){
+   const phi=2*Math.PI*j/4+Math.PI/4;
    const px=Math.cos(phi)*rad*.97,pz=Math.sin(phi)*rad*.97;
    const g=new CylinderGeometry(rad*.092,rad*.105,rad*.43,8);
    g.translate(px,rad*.02,pz);result.push({name:'prong-'+j,geometry:g,kind:'seat'});
@@ -130,6 +150,7 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
    result.push({name:'prong-tip-'+j,geometry:cap,kind:'seat'});
   }
  }
+ // Channel setting receives long side rails from createAssembly, not one bezel per stone.
  return result;
 }
 function requireSetting(){return {TorusGeometry:ThreeTorusGeometry,SphereGeometry:ThreeSphereGeometry,CylinderGeometry:ThreeCylinderGeometry};}
