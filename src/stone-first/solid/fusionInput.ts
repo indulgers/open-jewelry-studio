@@ -14,7 +14,7 @@ export type FusionGeometry={parts:FusionPart[];cutters:FusionPart[];stones:Site[
  * This regular grid keeps every stone and every seat on the actual metal.
  */
 export function solidPetalGeometry(d:Design,leaf:number){
- const tSegments=48,uSegments=16,stride=uSegments+1;
+ const tSegments=32,uSegments=12,stride=uSegments+1;
  const start=.035,end=.965,thickness=.065*d.parameters.taper;
  const vertices:number[]=[],indices:number[]=[];
  for(let layer=0;layer<2;layer++){
