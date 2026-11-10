@@ -243,7 +243,19 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
        const width=Math.max(.002,petalSample(d,site.leaf,t,0).width);
        return petalSample(d,site.leaf,t,Math.max(-1,Math.min(1,sideways/width))).y;
      }
-     if(site.zone==='shoulder')return ringOuterY(d,site.x+ox,site.z+oz);
+     if(site.zone==='shoulder'){
+       // Solve in the same local frame later rotated by -site.tilt. Merely
+       // taking world Y and rotating it AGAIN lifted outer-row beads off the ring.
+       const sine=Math.sin(site.tilt),cosine=Math.cos(site.tilt);
+       let low=-.3,high=.3;
+       for(let k=0;k<30;k++){
+         const y=(low+high)/2;
+         const xWorld=site.x+cosine*ox+sine*y;
+         const yWorld=site.y-sine*ox+cosine*y;
+         if(yWorld>ringOuterY(d,xWorld,site.z+oz))high=y;else low=y;
+       }
+       return site.y+(low+high)/2;
+     }
      return site.y;
    };
    for(let j=0;j<4;j++){

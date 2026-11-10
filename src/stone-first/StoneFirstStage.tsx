@@ -1,7 +1,8 @@
 import {Suspense,useEffect,useMemo,useRef,useState} from 'react';
 import {Canvas,useThree} from '@react-three/fiber';
 import {OrbitControls,useGLTF} from '@react-three/drei';
-import {Euler,InstancedMesh,Matrix4,Quaternion,Vector3,type BufferGeometry,type Texture} from 'three';
+import {type BufferGeometry,type Texture} from 'three';
+import {AccentInstances} from './AccentInstances';
 import {fuseDesign,type BooleanReport,type BooleanResult} from './solid/manifoldFusion';
 import {firstMeshGeometry} from '../geometry/productGeometry';
 import {prepareGirdleGem} from './gemFit';
@@ -24,11 +25,14 @@ function OpticalAccentBatch({geometry,sites,environment,quality,preset}:{geometr
     position={[site.x,site.y,site.z]} rotation={[0,0,-site.tilt]} scale={site.diameter/2}
     onBeforeRender={(renderer,_scene,camera)=>syncGemDraw(owned.material,renderer,camera)}/>)}</group>;
 }
-export type FusionStatus={state:'loading'|'fused'|'fragmented'|'error';report?:BooleanReport;error?:string};
+export type FusionStatus={state:'loading'|'fused'|'fragmented'|'error';report?:BooleanReport;error?:string;retainingPreview?:boolean};
 function JewelryObject({design,quality,studio,onSolidStatus}:{design:Design;quality:Quality;studio:StudioPresetId;onSolidStatus:(state:FusionStatus)=>void}){
  const d=constrainDesign(design),preset=STUDIO_PRESETS[studio];
+ const modelKey=JSON.stringify(d);
+ const [solid,setSolid]=useState<{key:string;design:Design;value:BooleanResult}|null>(null);
+ const displayed=solid?.design??d;
  const gltf=useGLTF('/models/atelier/gems/round.glb');
- const mainGltf=useGLTF('/models/atelier/gems/'+d.gemCut+'.glb');
+ const mainGltf=useGLTF('/models/atelier/gems/'+displayed.gemCut+'.glb');
  const gem=useMemo(()=>{
    const source=firstMeshGeometry(gltf.scene);
    try{return prepareGirdleGem(source).geometry;}finally{source.dispose();}
@@ -37,44 +41,34 @@ function JewelryObject({design,quality,studio,onSolidStatus}:{design:Design;qual
    const source=firstMeshGeometry(mainGltf.scene);
    try{return prepareGirdleGem(source).geometry;}finally{source.dispose();}
  },[mainGltf.scene]);
- const modelKey=JSON.stringify(d);
- const [solid,setSolid]=useState<{key:string;value:BooleanResult}|null>(null);
 
  useEffect(()=>{
    let cancelled=false;
-   setSolid(null);onSolidStatus({state:'loading'});
+   onSolidStatus({state:'loading',retainingPreview:Boolean(solid)});
    fuseDesign(d).then(value=>{
      if(cancelled){value.dispose();return;}
-     setSolid({key:modelKey,value});
+     setSolid({key:modelKey,design:d,value});
      onSolidStatus({state:value.report.status,report:value.report});
    }).catch(error=>{
      if(cancelled)return;
      const message=error instanceof Error?error.message:String(error);
-     onSolidStatus({state:'error',error:message});
+     onSolidStatus({state:'error',error:message,retainingPreview:Boolean(solid)});
    });
    return ()=>{cancelled=true;};
  },[modelKey]);
- const activeSolid=solid?.key===modelKey&&solid.value.report.status==='fused'?solid.value:null;
+ // Validation gates export, not visibility. A rejected candidate remains
+ // inspectable, and a rebuild/error retains the last coherent full snapshot.
+ const activeSolid=solid?.value??null;
  useEffect(()=>()=>solid?.value.dispose(),[solid]);
- const sites=useMemo(()=>buildStoneLayout(d),[modelKey]);
- const metal=useMemo(()=>createMetalMaterial(d.metal,preset),[d.metal,preset]);
- const accents=sites.filter(s=>s.kind==='accent');
- const mains=sites.filter(s=>s.kind==='main');
- const instances=useRef<InstancedMesh>(null);
- useEffect(()=>{
-  const mesh=instances.current;
-  if(!mesh)return;
-  const rotation=new Quaternion(),scale=new Vector3(),position=new Vector3(),m=new Matrix4();
-  for(let i=0;i<accents.length;i++){
-   const site=accents[i];
-   position.set(site.x,site.y,site.z);
-   rotation.setFromEuler(new Euler(0,0,-site.tilt));
-   scale.setScalar(site.diameter/2);
-   m.compose(position,rotation,scale);
-   mesh.setMatrixAt(i,m);
-  }
-  mesh.instanceMatrix.needsUpdate=true;
- },[JSON.stringify(accents),gem,quality]);
+ const sites=useMemo(()=>buildStoneLayout(displayed),[displayed]);
+ const draft=activeSolid?.report.status==='fragmented';
+ const metal=useMemo(()=>{
+   const value=createMetalMaterial(displayed.metal,preset);
+   if(draft){value.color.set('#b88942');value.roughness=Math.max(value.roughness,.22);}
+   return value;
+ },[displayed.metal,preset,draft]);
+ const accents=useMemo(()=>sites.filter(s=>s.kind==='accent'),[sites]);
+ const mains=useMemo(()=>sites.filter(s=>s.kind==='main'),[sites]);
 
  useEffect(()=>()=>metal.dispose(),[metal]);
 
@@ -85,9 +79,7 @@ function JewelryObject({design,quality,studio,onSolidStatus}:{design:Design;qual
    {activeSolid&&<mesh name="manifold-fused-metal" geometry={activeSolid.geometry} material={metal} dispose={null}/>}
    {activeSolid&&accents.length>0&&(quality==='high'&&accents.length<=120?
     <OpticalAccentBatch geometry={gem} sites={accents} environment={environment} quality={quality} preset={preset}/>:
-    <instancedMesh ref={instances} args={[gem,undefined,accents.length]} dispose={null} frustumCulled={false}>
-     <meshPhysicalMaterial color="#f6f8fc" metalness={0} roughness={0.015} transmission={0.93} thickness={0.5} ior={2.42} envMapIntensity={2.1}/>
-   </instancedMesh>)}
+    <AccentInstances geometry={gem} sites={accents}/>)}
    {activeSolid&&mains.map(site=><OpticalGem key={site.id} geometry={mainGem}
       position={[site.x,site.y,site.z]} rotation={[0,0,-site.tilt]}
       scale={site.diameter/2} environment={environment} quality={quality} simplified={false} options={optics}/>)}
@@ -136,9 +128,9 @@ export function StoneFirstStage({design,quality,studio,view='overall',onFusionCh
     <DesignCamera view={view} ringRadius={bandRadius(d)}/>
   </Canvas>
   <div className={'stone-fusion-status stone-fusion-'+fusion.state} role="status">
-    {fusion.state==='loading'?'正在进行金属布尔融合、镶口切削与拓扑检查…':
-     fusion.state==='error'?'几何未通过：'+fusion.error:
-     fusion.state==='fragmented'?'实体未连通：'+fusion.report?.connectedComponents+' 个独立部件，请修改结构':
+    {fusion.state==='loading'?(fusion.retainingPreview?'正在更新结构，保留上一版预览…':'正在生成金属结构与镶口…'):
+     fusion.state==='error'?(fusion.retainingPreview?'更新失败，当前保留上一版模型。':'生成失败：')+fusion.error:
+     fusion.state==='fragmented'?'待修复草稿：'+fusion.report?.connectedComponents+' 个金属部件。已保留预览，导出被阻止。':
      '已完成金属实体并集与镶口差集 · '+fusion.report?.triangles+' 面 · 生产工艺待验证'}
   </div>
  </div>;

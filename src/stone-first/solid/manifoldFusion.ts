@@ -2,6 +2,7 @@ import {BufferAttribute,BufferGeometry,Float32BufferAttribute,Vector3} from 'thr
 import {createFusionInput,cappedCurve} from './fusionInput';
 import {constrainDesign,type Design} from '../recipe';
 import {metalSetting} from '../geometry';
+import {isNumericalShell} from './numericalShell';
 type MeshInput={numProp:number;vertProperties:Float32Array;triVerts:Uint32Array;merge:()=>unknown};
 type Solid={status:()=>string;volume:()=>number;isEmpty:()=>boolean;delete:()=>void;
   subtract:(b:Solid)=>Solid;intersect:(b:Solid)=>Solid;add:(b:Solid)=>Solid;decompose:()=>Solid[];getMesh:(arg?:number)=>MeshInput;
@@ -46,6 +47,7 @@ async function loadKernel():Promise<Kernel>{
 export type BooleanReport={
   status:'fused'|'fragmented'|'error';inputCount:number;cutterCount:number;triangles:number;
   volumeSceneUnits3:number;connectedComponents:number;componentVolumes:number[];componentBounds:{min:number[];max:number[]}[];minSurfaceWallMm:null;
+  rawConnectedComponents:number;ignoredNumericalComponents:number;
   socketResidualVolume:number;clearanceValidated:false;manufacturingPassed:false;warnings:string[];
 };
 export type BooleanResult={geometry:BufferGeometry;report:BooleanReport;dispose:()=>void};
@@ -142,14 +144,20 @@ export async function fuseDesign(input:Design):Promise<BooleanResult>{
   }
   const completed=mounting.length?hold(k.Manifold.union([drilled,...mounting])):drilled;
   if(completed.isEmpty()||completed.status()!=='NoError')throw Error('Final metal fuse '+completed.status());
-  const connected=completed.decompose();
+  const decomposed=completed.decompose().map(hold);
+  const connected=decomposed.filter(s=>!isNumericalShell({volume:s.volume(),bounds:s.boundingBox()}));
+  const ignoredNumericalComponents=decomposed.length-connected.length;
+  if(!connected.length)throw Error('No volumetric metal remains after numerical cleanup');
+  const cleaned=ignoredNumericalComponents?hold(k.Manifold.union(connected)):completed;
+  if(cleaned.status()!=='NoError'||cleaned.isEmpty())throw Error('Invalid metal after numerical cleanup');
   const count=connected.length,componentVolumes=connected.map(s=>s.volume()),componentBounds=connected.map(s=>s.boundingBox());
-  connected.forEach(s=>s.delete());
-  const geom=metalGeometry(completed.getMesh());
+  const geom=metalGeometry(cleaned.getMesh());
   const report:BooleanReport={status:count===1?'fused':'fragmented',inputCount:source.parts.length+mounting.length,
-   cutterCount:cutters.length,triangles:completed.numTri(),volumeSceneUnits3:completed.volume(),connectedComponents:count,componentVolumes,componentBounds,
+   cutterCount:cutters.length,triangles:cleaned.numTri(),volumeSceneUnits3:cleaned.volume(),connectedComponents:count,componentVolumes,componentBounds,
+   rawConnectedComponents:decomposed.length,ignoredNumericalComponents,
    minSurfaceWallMm:null,socketResidualVolume,clearanceValidated:false,manufacturingPassed:false,
    warnings:[
+    ...(ignoredNumericalComponents?[`已清理 ${ignoredNumericalComponents} 个近零体积数值碎片；保留所有有体积的独立金属`]:[]),
     count===1?'金属网格已经完成布尔并集和镶口差集':'仍有 '+count+' 个不连通金属实体；不得生产导出',
     '局部最小壁厚、爪根安全、宝石与金属精确干涉尚未验证',
     '网格水密并不代表已通过铸造或镶石工艺验收'

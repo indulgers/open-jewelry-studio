@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {Mesh,MeshBasicMaterial,Raycaster,DoubleSide,Vector3} from 'three';
 import {buildStoneLayout,recipeDesign} from '../recipe';
-import {metalSetting} from '../geometry';
+import {metalSetting,bandGeometry} from '../geometry';
 import {solidPetalGeometry} from './fusionInput';
 
 describe('micro pavé support contact geometry',()=>{
@@ -31,5 +31,23 @@ describe('micro pavé support contact geometry',()=>{
    expect(values.every(v=>v.hitCount>0)).toBe(true);
    expect(values.every(v=>v.penetration!==null&&v.penetration>0)).toBe(true);
   }finally{parts.forEach(p=>p.geometry.dispose());surface.dispose();material.dispose();}
+ });
+ it('anchors every shoulder bead using its rotated local coordinate frame',()=>{
+  const d=recipeDesign('geometry-eternity');
+  const body=bandGeometry(d),material=new MeshBasicMaterial({side:DoubleSide}),mesh=new Mesh(body,material);
+  mesh.updateMatrixWorld(true);
+  try{
+   for(const site of buildStoneLayout(d).filter(s=>s.zone==='shoulder')){
+    const parts=metalSetting(d,site);
+    try{for(const p of parts.filter(p=>p.name.startsWith('pave-anchored-bead'))){
+      p.geometry.rotateZ(-site.tilt);p.geometry.translate(site.x,site.y,site.z);p.geometry.computeBoundingSphere();
+      const sphere=p.geometry.boundingSphere!,c=sphere.center;
+      const ray=new Raycaster(c.clone().add(new Vector3(0,2,0)),new Vector3(0,-1,0));
+      const surface=ray.intersectObject(mesh)[0]?.point.y;
+      expect(surface,site.id+' '+p.name).toBeDefined();
+      expect(surface!-(c.y-sphere.radius),site.id+' '+p.name).toBeGreaterThan(.001);
+    }}finally{parts.forEach(p=>p.geometry.dispose());}
+   }
+  }finally{body.dispose();material.dispose();}
  });
 });

@@ -32,11 +32,21 @@ describe('Manifold-3D gold assembly',()=>{
   const result=await fuseDesign(recipeDesign('architectural-halo'));
   try{
     expect(result.report.cutterCount).toBeGreaterThan(1);
-    console.log('ARCH_COMPONENT_BOUNDS',result.report.componentVolumes,result.report.componentBounds);
     expect(result.report.connectedComponents).toBe(1);
     expect(result.report.status).toBe('fused');
     expect(result.report.socketResidualVolume).toBeLessThan(1e-7);
     expect(result.report.manufacturingPassed).toBe(false);
   }finally{result.dispose();}
+ },120000);
+ it('does not reject nine-stone graduated design for zero-volume numerical shells',async()=>{
+  const d={...recipeDesign('floral-pave'),setting:'graduated' as const};
+  const result=await fuseDesign(d);
+  try{expect(result.report.connectedComponents).toBe(1);expect(result.report.status).toBe('fused');}
+  finally{result.dispose();}
+ },120000);
+ it('connects multi-row shoulder microbeads to the actual curved shank',async()=>{
+  const result=await fuseDesign(recipeDesign('geometry-eternity'));
+  try{expect(result.report.connectedComponents).toBe(1);expect(result.report.status).toBe('fused');}
+  finally{result.dispose();}
  },120000);
 });

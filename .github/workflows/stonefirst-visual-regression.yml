@@ -1,0 +1,60 @@
+name: Stone-first before-after visual regression
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/stone-first-reference-diy]
+    paths:
+      - src/stone-first/**
+      - scripts/stonefirst-visual-regression.mjs
+      - .github/workflows/stonefirst-visual-regression.yml
+permissions:
+  contents: read
+concurrency:
+  group: stonefirst-before-after-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.56.1-noble
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Prepare unchanged baseline and reviewer
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git worktree add --detach /tmp/stonefirst-baseline dfa91a67f930b84ab16b7809c8a9192aae7d59cf
+          ln -s "$GITHUB_WORKSPACE/node_modules" /tmp/stonefirst-baseline/node_modules
+          mkdir -p /tmp/stonefirst-review
+          cd /tmp/stonefirst-review
+          npm init -y
+          npm install --no-audit --no-fund playwright@1.56.1
+      - name: Start before and after applications
+        run: |
+          (cd /tmp/stonefirst-baseline && npm run dev -- --port 5180 >/tmp/stonefirst-before.log 2>&1) &
+          npm run dev -- --port 5179 >/tmp/stonefirst-after.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:5179 >/dev/null && curl -sf http://127.0.0.1:5180 >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Capture unchanged baseline
+        run: |
+          cp scripts/stonefirst-visual-regression.mjs /tmp/stonefirst-review/capture.mjs
+          REVIEW_MODE=before STUDIO_URL=http://127.0.0.1:5180 SOURCE_COMMIT=dfa91a67f930b84ab16b7809c8a9192aae7d59cf node /tmp/stonefirst-review/capture.mjs
+      - name: Validate and capture repaired application
+        run: |
+          REVIEW_MODE=after STUDIO_URL=http://127.0.0.1:5179 SOURCE_COMMIT=${{ github.sha }} node /tmp/stonefirst-review/capture.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stonefirst-matched-before-after
+          path: artifacts/stonefirst-regression
+          retention-days: 7
