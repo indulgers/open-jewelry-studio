@@ -76,7 +76,7 @@ function JewelryObject({design,quality,studio}:{design:Design;quality:Quality;st
  return <JewelryLighting preset={preset}>{environment=><group>
    {assembly.parts.map((part,i)=><mesh key={part.name+'-'+i} geometry={part.geometry} material={metal} dispose={null}/>)}
    {mergedSeats&&<mesh geometry={mergedSeats} material={metal} dispose={null}/>}
-   {accents.length>0&&(quality==='high'&&accents.length<=72?
+   {accents.length>0&&(quality==='high'&&accents.length<=120?
     <OpticalAccentBatch geometry={gem} sites={accents} environment={environment} quality={quality} preset={preset}/>:
     <instancedMesh ref={instances} args={[gem,undefined,accents.length]} dispose={null} frustumCulled={false}>
      <meshPhysicalMaterial color="#f6f8fc" metalness={0} roughness={0.015} transmission={0.93} thickness={0.5} ior={2.42} envMapIntensity={2.1}/>
@@ -94,7 +94,7 @@ function Exposure({studio}:{studio:StudioPresetId}){
 export function StoneFirstStage({design,quality,studio}:{design:Design;quality:Quality;studio:StudioPresetId}){
  const d=constrainDesign(design);
  return <div className="stone-first-canvas" aria-label="参数化珠宝三维预览">
-  <Canvas dpr={[1,quality==='high'?2:1.5]} camera={{position:[2.2,2.45,3.3],fov:36,near:0.03,far:40}}
+  <Canvas dpr={[1,quality==='high'?2:1.5]} camera={{position:[2.15,4.1,3.0],fov:35,near:0.03,far:40}}
     gl={{antialias:true,alpha:true,powerPreference:'high-performance',preserveDrawingBuffer:true}}>
     <color attach="background" args={['#f5f3f0']}/>
     <ambientLight intensity={0.2}/><StudioFillLights/><Exposure studio={studio}/>
