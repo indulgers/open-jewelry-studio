@@ -1,8 +1,8 @@
-import {Suspense,useEffect,useMemo,useRef} from 'react';
+import {Suspense,useEffect,useMemo,useRef,useState} from 'react';
 import {Canvas,useThree} from '@react-three/fiber';
 import {OrbitControls,useGLTF} from '@react-three/drei';
-import {DoubleSide,Euler,InstancedMesh,Matrix4,Quaternion,Vector3,type BufferGeometry,type Texture} from 'three';
-import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {Euler,InstancedMesh,Matrix4,Quaternion,Vector3,type BufferGeometry,type Texture} from 'three';
+import {fuseDesign,type BooleanReport,type BooleanResult} from './solid/manifoldFusion';
 import {firstMeshGeometry} from '../geometry/productGeometry';
 import {prepareGirdleGem} from './gemFit';
 import {JewelryLighting} from '../viewer/JewelryLighting';
@@ -12,7 +12,7 @@ import {OpticalGem} from '../viewer/OpticalGem';
 import {createGemOptics,syncGemDraw} from '../viewer/gemOptics';
 import {STUDIO_PRESETS,type StudioPresetId} from '../viewer/studioPresets';
 import {bandRadius,buildStoneLayout,constrainDesign,type Design,type Site} from './recipe';
-import {createAssembly,metalSetting} from './geometry';
+
 import type {Quality} from '../viewer/quality';
 import type {OrbitControls as OrbitControlsImpl} from 'three-stdlib';
 
@@ -24,7 +24,8 @@ function OpticalAccentBatch({geometry,sites,environment,quality,preset}:{geometr
     position={[site.x,site.y,site.z]} rotation={[0,0,-site.tilt]} scale={site.diameter/2}
     onBeforeRender={(renderer,_scene,camera)=>syncGemDraw(owned.material,renderer,camera)}/>)}</group>;
 }
-function JewelryObject({design,quality,studio}:{design:Design;quality:Quality;studio:StudioPresetId}){
+type FusionStatus={state:'loading'|'fused'|'fragmented'|'error';report?:BooleanReport;error?:string};
+function JewelryObject({design,quality,studio,onSolidStatus}:{design:Design;quality:Quality;studio:StudioPresetId;onSolidStatus:(state:FusionStatus)=>void}){
  const d=constrainDesign(design),preset=STUDIO_PRESETS[studio];
  const gltf=useGLTF('/models/atelier/gems/round.glb');
  const mainGltf=useGLTF('/models/atelier/gems/'+d.gemCut+'.glb');
@@ -36,24 +37,29 @@ function JewelryObject({design,quality,studio}:{design:Design;quality:Quality;st
    const source=firstMeshGeometry(mainGltf.scene);
    try{return prepareGirdleGem(source).geometry;}finally{source.dispose();}
  },[mainGltf.scene]);
- const assembly=useMemo(()=>createAssembly(d),[JSON.stringify(d)]);
- const sites=useMemo(()=>buildStoneLayout(d),[JSON.stringify(d)]);
- const metal=useMemo(()=>{const value=createMetalMaterial(d.metal,preset);value.side=DoubleSide;return value;},[d.metal,preset]);
+ const modelKey=JSON.stringify(d);
+ const [solid,setSolid]=useState<{key:string;value:BooleanResult}|null>(null);
+
+ useEffect(()=>{
+   let cancelled=false;
+   setSolid(null);onSolidStatus({state:'loading'});
+   fuseDesign(d).then(value=>{
+     if(cancelled){value.dispose();return;}
+     setSolid({key:modelKey,value});
+     onSolidStatus({state:value.report.status,report:value.report});
+   }).catch(error=>{
+     if(cancelled)return;
+     const message=error instanceof Error?error.message:String(error);
+     onSolidStatus({state:'error',error:message});
+   });
+   return ()=>{cancelled=true;};
+ },[modelKey]);
+ const activeSolid=solid?.key===modelKey?solid.value:null;
+ useEffect(()=>()=>solid?.value.dispose(),[solid]);
+ const sites=useMemo(()=>buildStoneLayout(d),[modelKey]);
+ const metal=useMemo(()=>createMetalMaterial(d.metal,preset),[d.metal,preset]);
  const accents=sites.filter(s=>s.kind==='accent');
  const mains=sites.filter(s=>s.kind==='main');
- const mergedSeats=useMemo(()=>{
-  const geometries:BufferGeometry[]=[];
-  try{
-   for(const site of sites){
-    const parts=metalSetting(d,site);
-    const rotation=new Matrix4().makeRotationZ(-site.tilt);
-    const offset=new Matrix4().makeTranslation(site.x,site.y,site.z);
-    const transform=offset.multiply(rotation);
-    for(const part of parts){part.geometry.applyMatrix4(transform);geometries.push(part.geometry);}
-   }
-   return geometries.length?mergeGeometries(geometries,false):null;
-  }finally{geometries.forEach(g=>g.dispose());}
- },[JSON.stringify(sites),d.mount]);
  const instances=useRef<InstancedMesh>(null);
  useEffect(()=>{
   const mesh=instances.current;
@@ -69,21 +75,20 @@ function JewelryObject({design,quality,studio}:{design:Design;quality:Quality;st
   }
   mesh.instanceMatrix.needsUpdate=true;
  },[JSON.stringify(accents),gem,quality]);
- useEffect(()=>()=>assembly.dispose(),[assembly]);
+
  useEffect(()=>()=>metal.dispose(),[metal]);
- useEffect(()=>()=>mergedSeats?.dispose(),[mergedSeats]);
+
  useEffect(()=>()=>gem.dispose(),[gem]);
  useEffect(()=>()=>mainGem.dispose(),[mainGem]);
  const optics={environmentRotation:preset.rotation,environmentIntensity:preset.gemIntensity,dispersion:preset.dispersion};
  return <JewelryLighting preset={preset}>{environment=><group>
-   {assembly.parts.map((part,i)=><mesh key={part.name+'-'+i} geometry={part.geometry} material={metal} dispose={null}/>)}
-   {mergedSeats&&<mesh geometry={mergedSeats} material={metal} dispose={null}/>}
-   {accents.length>0&&(quality==='high'&&accents.length<=120?
+   {activeSolid&&<mesh name="manifold-fused-metal" geometry={activeSolid.geometry} material={metal} dispose={null}/>}
+   {activeSolid&&accents.length>0&&(quality==='high'&&accents.length<=120?
     <OpticalAccentBatch geometry={gem} sites={accents} environment={environment} quality={quality} preset={preset}/>:
     <instancedMesh ref={instances} args={[gem,undefined,accents.length]} dispose={null} frustumCulled={false}>
      <meshPhysicalMaterial color="#f6f8fc" metalness={0} roughness={0.015} transmission={0.93} thickness={0.5} ior={2.42} envMapIntensity={2.1}/>
    </instancedMesh>)}
-   {mains.map(site=><OpticalGem key={site.id} geometry={mainGem}
+   {activeSolid&&mains.map(site=><OpticalGem key={site.id} geometry={mainGem}
       position={[site.x,site.y,site.z]} rotation={[0,0,-site.tilt]}
       scale={site.diameter/2} environment={environment} quality={quality} simplified={false} options={optics}/>)}
   </group>}</JewelryLighting>;
@@ -120,13 +125,20 @@ function DesignCamera({view,ringRadius}:{view:StoneView;ringRadius:number}){
 }
 export function StoneFirstStage({design,quality,studio,view='overall'}:{design:Design;quality:Quality;studio:StudioPresetId;view?:StoneView}){
  const d=constrainDesign(design);
- return <div className="stone-first-canvas" aria-label="参数化珠宝三维预览">
+ const [fusion,setFusion]=useState<FusionStatus>({state:'loading'});
+ return <div className="stone-first-canvas" aria-label="参数化珠宝三维预览" data-solid-status={fusion.state}>
   <Canvas dpr={[1,quality==='high'?2:1.5]} camera={{position:[2.15,4.1,3.0],fov:35,near:0.03,far:40}}
     gl={{antialias:true,alpha:true,powerPreference:'high-performance',preserveDrawingBuffer:true}}>
     <color attach="background" args={['#f5f3f0']}/>
     <ambientLight intensity={0.2}/><StudioFillLights/><Exposure studio={studio}/>
-    <Suspense fallback={null}><JewelryObject {...{design:d,quality,studio}}/></Suspense>
+    <Suspense fallback={null}><JewelryObject {...{design:d,quality,studio}} onSolidStatus={setFusion}/></Suspense>
     <DesignCamera view={view} ringRadius={bandRadius(d)}/>
   </Canvas>
+  <div className={'stone-fusion-status stone-fusion-'+fusion.state} role="status">
+    {fusion.state==='loading'?'正在进行金属布尔融合、镶口切削与拓扑检查…':
+     fusion.state==='error'?'几何未通过：'+fusion.error:
+     fusion.state==='fragmented'?'实体未连通：'+fusion.report?.connectedComponents+' 个独立部件，请修改结构':
+     '已完成金属实体并集与镶口差集 · '+fusion.report?.triangles+' 面 · 生产工艺待验证'}
+  </div>
  </div>;
 }
