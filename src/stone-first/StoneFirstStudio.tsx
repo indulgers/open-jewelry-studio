@@ -92,7 +92,7 @@ export function StoneFirstStudio(){
     </div>
     <div className="stone-first-lighting"><span>观察光线</span>{Object.values(STUDIO_PRESETS).map(p=><button key={p.id} aria-pressed={studio===p.id} onClick={()=>setStudio(p.id)}>{p.name}</button>)}
     <span>预览画质</span><button onClick={()=>setQuality(x=>x==='standard'?'high':'standard')}>{quality==='high'?'高质量':'标准'}</button></div>
-    <div className="stone-first-warning">当前为真实参数联动的概念装配预览；可见镶口和爪，但尚无精确切孔、金属布尔融合或工厂验证。小钻实时预览使用实例化简化光学材质。</div>
+    <div className="stone-first-warning">当前已使用 Manifold 网格布尔进行金属并集与镶口切削；尚非精确 B-rep，也未完成全局壁厚、压爪接触和工厂工艺验证。小钻标准模式使用实例化光学近似。</div>
    </section>
    <section className="stone-first-panel">
      <nav className="stone-first-steps" aria-label="五步设计流程">
@@ -128,7 +128,7 @@ export function StoneFirstStudio(){
         {([['mainDiameter','主石直径',2,6,.1],['accentDiameter','配钻直径',.55,1.4,.05],['gapMm','目标腰棱净距',.1,.3,.01]] as const).map(([key,label,min,max,increment])=>
          <label className="stone-first-range" key={key}><span>{label}</span><output>{d[key].toFixed(2)} mm</output><input type="range" min={min} max={max} step={increment} value={d[key]} onChange={e=>update(key,Number(e.target.value))}/></label>)}
         {([['crownLiftMm','主石戒冠高度',.2,1.7,.05],['seatDepthMm','配石嵌入深度',.06,.25,.01]] as const).map(([key,label,min,max,increment])=><label className="stone-first-range" key={key}><span>{label}</span><output>{d[key].toFixed(2)} mm</output><input type="range" min={min} max={max} step={increment} value={d[key]} onChange={e=>update(key,Number(e.target.value))}/></label>)}
-        <p className="stone-first-note">小钻的珠镶固定结构为可视化几何，当前没有生成真实金属切孔。所选镶法可能与某些构图不兼容，校验会提示。</p>
+        <p className="stone-first-note">已在金属网格中进行镶口切削，并将密钉镶金属珠融合到主体。实际镶爪接触力、公差与铸造可制造性尚需 CAD 和工厂验证。</p>
        </>}
        {step===4&&<>
         <h2>05 / 审美与工艺预检</h2><p>区分已计算的石位净距、构图建议与尚未执行的工业 CAD 检查，不以“无报错”冒充可生产。</p>
