@@ -1,7 +1,7 @@
 import {Suspense,useEffect,useMemo,useRef} from 'react';
 import {Canvas,useThree} from '@react-three/fiber';
 import {OrbitControls,useGLTF} from '@react-three/drei';
-import {Euler,InstancedMesh,Matrix4,Quaternion,Vector3,type BufferGeometry,type Texture} from 'three';
+import {DoubleSide,Euler,InstancedMesh,Matrix4,Quaternion,Vector3,type BufferGeometry,type Texture} from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {firstMeshGeometry} from '../geometry/productGeometry';
 import {prepareGirdleGem} from './gemFit';
@@ -38,7 +38,7 @@ function JewelryObject({design,quality,studio}:{design:Design;quality:Quality;st
  },[mainGltf.scene]);
  const assembly=useMemo(()=>createAssembly(d),[JSON.stringify(d)]);
  const sites=useMemo(()=>buildStoneLayout(d),[JSON.stringify(d)]);
- const metal=useMemo(()=>createMetalMaterial(d.metal,preset),[d.metal,preset]);
+ const metal=useMemo(()=>{const value=createMetalMaterial(d.metal,preset);value.side=DoubleSide;return value;},[d.metal,preset]);
  const accents=sites.filter(s=>s.kind==='accent');
  const mains=sites.filter(s=>s.kind==='main');
  const mergedSeats=useMemo(()=>{
