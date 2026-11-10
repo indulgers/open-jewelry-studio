@@ -250,7 +250,7 @@ export function metalSetting(d:Design,site:Site):GeometryPart[]{
      // The centre lies below the measured metal surface. The metal and bead
      // thus share a genuine CSG volume, not a zero-area tangential contact.
      const centerY=topY(ox,oz)-site.y-beadRadius*.47;
-     const bead=new SphereGeometry(beadRadius,12,9);
+     const bead=new SphereGeometry(beadRadius,9,7);
      bead.translate(ox,centerY,oz);
      parts.push({name:'pave-anchored-bead-'+j,geometry:bead,kind:'seat'});
    }
