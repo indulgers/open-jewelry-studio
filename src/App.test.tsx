@@ -55,6 +55,19 @@ describe('product export lifecycle',()=>{
   });
 });
 
+describe('stone-first finished ring studies',()=>{
+  it('offers an editable optical center stone for the classic halo without claiming other meshes are refittable',async()=>{
+    await loaded();
+    expect(screen.getByText(/两款 WebGi 成品主石尚未建立/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:/经典光环/}));
+    expect(screen.getByText(/仅替换经典光环款的中心圆石光学外观/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'蓝宝石'}));
+    expect(screen.getByRole('button',{name:'蓝宝石'})).toHaveAttribute('aria-pressed','true');
+    fireEvent.click(screen.getByRole('button',{name:/复古椭圆/}));
+    expect(screen.getByRole('button',{name:'蓝宝石'})).toBeDisabled();
+  });
+});
+
 describe('shared studio navigation',()=>{
   it('loads the module editor on demand and retains its frame across tabs',async()=>{
     await loaded();
