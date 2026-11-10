@@ -10,7 +10,7 @@ describe('parametric jewelry geometry',()=>{
    const petals=assembly.parts.filter(p=>p.name.startsWith('perforated-petal-'));
    expect(petals).toHaveLength(4);
    expect(assembly.parts.some(p=>p.name==='continuous-shank')).toBe(true);
-   expect(assembly.parts.some(p=>p.name.startsWith('center-basket-bridge'))).toBe(true);
+   expect(assembly.parts.some(p=>p.name.startsWith('integrated-gallery-shoulder'))).toBe(true);
    for(const part of assembly.parts){
     const p=part.geometry.getAttribute('position');
     expect(p.count).toBeGreaterThan(40);
