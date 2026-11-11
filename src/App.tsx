@@ -15,7 +15,10 @@ import {STONE_APPEARANCES, STONE_APPEARANCE_IDS,type StoneAppearance} from './vi
 import {ProductGallery} from './components/ProductGallery';
 import {ModuleStudio} from './components/ModuleStudio';
 import {StageLoading} from './components/StageLoading';
+import {DiyHome} from './stone-first/DiyHome';
+import {DiyCart} from './stone-first/DiyCart';
 const JewelryStage=lazy(()=>import('./viewer/JewelryStage').then(module=>({default:module.JewelryStage})));
+const Ring02Studio=lazy(()=>import('./stone-first/ring02/Ring02Studio').then(module=>({default:module.Ring02Studio})));
 const StoneFirstStudio=lazy(()=>import('./stone-first/StoneFirstStudio').then(module=>({default:module.StoneFirstStudio})));
 
 function JewelryStudio({active}:{active:boolean}){
@@ -23,7 +26,7 @@ function JewelryStudio({active}:{active:boolean}){
   const [quality,onQualityChange]=useState<Quality>('standard');
   const [modelMode,setModelMode]=useState<ModelMode>('reference');
   const [gemShape,setGemShape]=useState<GemShapeId>('round');
-  const [ringStyle,setRingStyle]=useState<FinishedRingId>('solitaire');
+  const [ringStyle,setRingStyle]=useState<FinishedRingId>(()=>finishedRing('solitaire').id);
   const [stoneAppearance,setStoneAppearance]=useState<StoneAppearance>('diamond');
   useEffect(()=>{if(ringStyle!=='halo')setStoneAppearance('diamond');},[ringStyle]);
   const [studioPreset,setStudioPreset]=useState<StudioPresetId>('catalog');
@@ -73,15 +76,15 @@ function JewelryStudio({active}:{active:boolean}){
   const resetEditing=()=>{dispatch({type:'reset'});setMessage('已恢复默认模型参数。');};
   return <div>
     <main className="studio-layout">
-      <div className="preview-column"><div className="preview-heading"><h1>{modelMode==='gem'?'每一种切工，都有自己的光。':modelMode==='reference'?'光，落在切面之间。':configuration.shankStyle==='plain'?'纯粹，恰如其分。':'交汇，自有光芒。'}</h1>
-        <p>{modelMode==='gem'?atelierGem(gemShape).name:modelMode==='reference'?finishedRing(ringStyle).note:configuration.shankStyle==='plain'?'素圈戒臂':'分叉戒臂'}<span> / </span>{modelMode==='gem'?STUDIO_PRESETS[studioPreset].name:METALS[configuration.metalFinish].name}</p></div>
+      <div className="preview-column"><div className="preview-heading"><h1>{modelMode==='gem'?atelierGem(gemShape).name:modelMode==='reference'?finishedRing(ringStyle).name:configuration.shankStyle==='plain'?'素圈戒指':'分叉戒指'}</h1>
+        <p>{modelMode==='gem'?'宝石切工':modelMode==='reference'?finishedRing(ringStyle).note:'结构预览'}<span> / </span>{modelMode==='gem'?STUDIO_PRESETS[studioPreset].name:METALS[configuration.metalFinish].name}</p></div>
         {!active?null:display==='images'?<ProductGallery images={images??SAMPLE_IMAGES}/>:<Suspense fallback={<StageLoading poster={poster}/>}>
           <JewelryStage {...{configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,gemShape,ringStyle,stageMode,studioPreset,stoneAppearance,captureRequest,onImages,onCaptureProgress,captureBusy,poster}} onCaptureReady={setCaptureReady}/>
         </Suspense>}
         {display==='3d'&&<div className="preview-footer"><span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7h14M6 4 3 7l3 3m8 0 3-3-3-3M7 13h6m-3-2v6"/></svg>{captureReady?'拖动旋转 · 滚轮或双指缩放':'三维准备中，完成后即可拖动'}</span><span>{captureReady?'实时 3D':'准备中'}</span></div>}
       </div>
       <aside className="configuration-column" aria-label="戒指配置">
-        <div className="panel-heading"><h2>设计你的戒指</h2><p>选择结构与光泽，慢慢找到你的组合。</p></div>
+        <div className="panel-heading"><h2>展台选项</h2></div>
         <fieldset disabled={captureBusy} className="studio-options"><legend className="sr-only">展示选项</legend>
           <div className="model-modes" role="group" aria-label="模型模式">
             <button aria-pressed={modelMode==='reference'} onClick={()=>setModelMode('reference')}>成品戒指</button>
@@ -90,10 +93,10 @@ function JewelryStudio({active}:{active:boolean}){
           </div>
           {modelMode==='gem'?<label className="shape-picker">宝石切形 <span>19 款</span><select value={gemShape} onChange={e=>setGemShape(e.target.value as GemShapeId)}>{ATELIER_GEMS.map(gem=><option key={gem.id} value={gem.id}>{gem.name}</option>)}</select></label>
             :modelMode==='reference'&&<fieldset className="ring-style-field"><legend>成品款式 <span>{FINISHED_RINGS.length} 款</span></legend><div className="ring-styles">{FINISHED_RINGS.map(ring=>
-              <button key={ring.id} aria-pressed={ringStyle===ring.id} onClick={()=>{setRingStyle(ring.id);setResetToken(n=>n+1);}}><strong>{ring.name}</strong><span>{ring.note}</span></button>)}</div><p className="field-help">成品模型保留原始金属、镶爪、配钻与真实切形；当前可调整金属、摄影棚光照及经典光环的主石光学外观。模型不是可任意改石径的制造 CAD。</p></fieldset>}
+              <button key={ring.id} aria-pressed={ringStyle===ring.id} onClick={()=>{setRingStyle(ring.id);setResetToken(n=>n+1);}}><strong>{ring.name}</strong><span>{ring.note}</span></button>)}</div><p className="field-help">切换款式、观察光线和金属色，查看不同角度的镶嵌细节。</p></fieldset>}
           {modelMode==='reference'&&<fieldset className="ring-style-field"><legend>主石光学预览 <span>{ringStyle==='halo'?'可修改':'原模型保留'}</span></legend>
             <div className="preset-choices" role="group" aria-label="主石光学预览">{STONE_APPEARANCE_IDS.map(id=><button key={id} aria-pressed={stoneAppearance===id} disabled={ringStyle!=='halo'&&id!=='diamond'} onClick={()=>setStoneAppearance(id)}>{STONE_APPEARANCES[id].name}</button>)}</div>
-            <p className="field-help">{ringStyle==='halo'?'仅替换经典光环款的中心圆石光学外观。原主石轮廓、金属镶座、配钻与爪位保持不变；其他颜色为视觉实验，不代表实际库存石或工艺适配。':'这两款 WebGi 成品主石尚未建立可靠的可替换装配锚点，因此保留原切形、配钻与镶座，防止假 DIY 造成穿模。'}</p>
+            <p className="field-help">{ringStyle==='halo'?'颜色仅作用于主石预览。':'这款戒指保留原主石。'}</p>
           </fieldset>}
           <fieldset><legend>观察光线</legend><div className="preset-choices">{Object.values(STUDIO_PRESETS).map(preset=><button key={preset.id} aria-pressed={studioPreset===preset.id} onClick={()=>setStudioPreset(preset.id)}>{preset.name}</button>)}</div><p className="field-help">{STUDIO_PRESETS[studioPreset].description}</p></fieldset>
           <fieldset><legend>展台背景</legend><div className="preset-choices">{STAGE_MODES.map(mode=><button key={mode.id} aria-pressed={stageMode===mode.id} onClick={()=>setStageMode(mode.id)}>{mode.name}</button>)}</div><p className="field-help">{STAGE_MODES.find(mode=>mode.id===stageMode)?.note}；商品图导出会压到白底。</p></fieldset>
@@ -106,34 +109,56 @@ function JewelryStudio({active}:{active:boolean}){
         <AssetCredits/>
       </aside>
     </main>
-    <footer className="site-footer"><span>开源渲染样板，展示比例不代表实际克拉或生产规格。</span><span>成品戒指 / 19 款切工 / 结构 DIY</span></footer>
+    <footer className="site-footer"><span>展示模型的比例仅供参考。</span></footer>
   </div>;
 }
 
-const tabs=[{id:'showroom',label:'珠宝展台'},{id:'modules',label:'模组 DIY'},{id:'stonefirst',label:'镶嵌 DIY'}] as const;
-type StudioTab=typeof tabs[number]['id'];
-const readTab=():StudioTab=>window.location.hash.startsWith('#/stonefirst')?'stonefirst':window.location.hash.startsWith('#/modules')?'modules':'showroom';
+const tabs=[{id:'showroom',label:'珠宝展台'},{id:'stonefirst',label:'镶嵌 DIY'}] as const;
+type VisibleTab=typeof tabs[number]['id'];
+type StudioTab=VisibleTab|'modules';
+function readDiyPage(){
+  switch(window.location.hash){
+    case '#/diy':return 'catalog';
+    case '#/diy/cart':return 'cart';
+    case '#/stonefirst/ring-02':return 'ring02';
+    default:return 'recipes';
+  }
+}
+const readTab=():StudioTab=>{
+  const hash=window.location.hash;
+  if(hash==='#/diy'||hash==='#/diy/cart'||hash.startsWith('#/stonefirst'))return 'stonefirst';
+  return hash.startsWith('#/modules')?'modules':'showroom';
+};
 export default function App(){
   const [tab,setTab]=useState<StudioTab>(readTab);
   const [modulesVisited,setModulesVisited]=useState(()=>readTab()==='modules');
+  const [diyPage,setDiyPage]=useState(readDiyPage);
   const [stoneVisited,setStoneVisited]=useState(()=>readTab()==='stonefirst');
   useEffect(()=>{
-    const sync=()=>{const next=readTab();setTab(next);if(next==='modules')setModulesVisited(true);if(next==='stonefirst')setStoneVisited(true);};
+    const sync=()=>{const next=readTab();setTab(next);if(next==='modules')setModulesVisited(true);if(next==='stonefirst'){setDiyPage(readDiyPage());setStoneVisited(true);}};
     window.addEventListener('hashchange',sync);return()=>window.removeEventListener('hashchange',sync);
   },[]);
-  const select=(next:StudioTab)=>{setTab(next);if(next==='modules')setModulesVisited(true);if(next==='stonefirst')setStoneVisited(true);window.location.hash=next==='modules'?'/modules':next==='stonefirst'?'/stonefirst':'/showroom';};
+  const select=(next:VisibleTab)=>{
+    setTab(next);
+    if(next==='stonefirst'){setDiyPage('catalog');setStoneVisited(true);}
+    window.location.hash=next==='stonefirst'?'/diy':'/showroom';
+  };
   return <div className="app-shell" data-workspace={tab}>
     <header className="site-header"><a className="brand" href="/" aria-label="戒指实验室首页">
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m5 11 6-6h10l6 6-11 17L5 11Zm0 0h22M11 5l5 23L21 5M11 5l-1 6m11-6 1 6"/></svg>
-      <span>戒指实验室</span></a><span className="header-note">让想法，成为形状。</span><span className="demo-tag">开源技术演示</span></header>
+      <span>戒指实验室</span></a>
     <div className="workspace-tabs" role="tablist" aria-label="工作空间">
-      {tabs.map((item,index)=><button key={item.id} id={`tab-${item.id}`} role="tab" aria-selected={tab===item.id} aria-controls={`panel-${item.id}`} tabIndex={tab===item.id?0:-1} onClick={()=>select(item.id)} onKeyDown={event=>{
+      {tabs.map((item,index)=><button key={item.id} id={`tab-${item.id}`} role="tab" aria-selected={tab===item.id} aria-controls={`panel-${item.id}`} tabIndex={tab===item.id||(tab==='modules'&&index===0)?0:-1} onClick={()=>select(item.id)} onKeyDown={event=>{
         const target=event.key==='Home'?0:event.key==='End'?tabs.length-1:event.key==='ArrowRight'?(index+1)%tabs.length:event.key==='ArrowLeft'?(index+tabs.length-1)%tabs.length:null;
         if(target===null)return;event.preventDefault();select(tabs[target].id);document.getElementById(`tab-${tabs[target].id}`)?.focus();
       }}>{item.label}</button>)}
     </div>
+    <a className="header-cart" aria-label="购物车" href="#/diy/cart" aria-current={tab==='stonefirst'&&diyPage==='cart'?'page':undefined}>
+      <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M5 8h14l1 13H4L5 8Zm4 0V6a3 3 0 0 1 6 0v2"/></svg><span>购物车</span>
+    </a>
+    </header>
     <section id="panel-showroom" role="tabpanel" aria-labelledby="tab-showroom" hidden={tab!=='showroom'}><JewelryStudio active={tab==='showroom'}/></section>
-    <section id="panel-modules" role="tabpanel" aria-labelledby="tab-modules" hidden={tab!=='modules'}>{modulesVisited&&<ModuleStudio active={tab==='modules'}/>}</section>
-    <section id="panel-stonefirst" role="tabpanel" aria-labelledby="tab-stonefirst" hidden={tab!=='stonefirst'}>{stoneVisited&&<Suspense fallback={<p role="status">正在加载镶嵌设计工作台…</p>}><StoneFirstStudio/></Suspense>}</section>
+    <section id="panel-modules" aria-label="模组 DIY" hidden={tab!=='modules'}>{modulesVisited&&<ModuleStudio active={tab==='modules'}/>}</section>
+    <section id="panel-stonefirst" role="tabpanel" aria-labelledby="tab-stonefirst" hidden={tab!=='stonefirst'}>{stoneVisited&&(diyPage==='catalog'?<DiyHome/>:diyPage==='cart'?<DiyCart/>:<Suspense fallback={<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='ring02'?<Ring02Studio/>:<StoneFirstStudio/>}</Suspense>)}</section>
   </div>;
 }

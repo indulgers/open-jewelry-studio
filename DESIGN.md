@@ -1,15 +1,15 @@
 ---
 name: Ring Laboratory
-description: Warm jewellery inspection, with the scoped FORME paper gallery workspace.
+description: White studio photography and a shared jewelry storefront interface.
 colors:
-  primary: '#303a2c'
-  secondary: '#76643c'
-  surface: '#fffdfa'
-  background: '#f4f0e8'
-  line: '#e5dfd3'
-  muted: '#60645c'
+  primary: '#233b55'
+  secondary: '#233b55'
+  surface: '#ffffff'
+  background: '#fafbfc'
+  line: '#dce2e8'
+  muted: '#596575'
   listing: '#ffffff'
-  text: '#292d29'
+  text: '#202b37'
   forme-ink: '#302c29'
   forme-muted: '#6b6259'
   forme-frame: '#f5f3ee'
@@ -86,11 +86,11 @@ components:
 
 **Creative North Star: "珠宝是主角"**
 
-安静、温暖的展陈台。三维物件承担视觉表达；展台可在纯白 Listing 与暖调展陈之间切换。纯白模式用透明画布与纯白页面底，只保留接触阴影；暖调模式是一块跟随相机的棚拍 sweep（顶部纸白、底部暖灰，中心一层很轻的灯池）。界面以白瓷面板和细边线让位给选择、比较与观察。
+展台、款式、镶嵌编辑与购物车共用白色、深蓝灰、细边线和宋体标题。镶嵌编辑使用纯白背景、中性面积灯和本地商品棚 HDR。展台保留白底与暖调两种观察背景。
 
 FORME 采用用户选定的 A · 铂纸画廊。珠宝先行。纸白画布、平直参数栏与作品签式信息承载模组编辑，暗红只提示操作和选择；这一视觉已整合到正式 `/#/modules`，尚未发布。
 
-**The FORME Scope Rule.** `forme-*` 词元用于 FORME 编辑器与两工作空间共用的顶部导航；其来源为 `public/forme/studio.css`、`public/forme/index.html` 与 `src/styles.css` 的共享导航规则。主展台内容区保持原有视觉。
+`forme-*` 词元用于模组编辑器内部。共享导航只显示珠宝展台和镶嵌 DIY，模组编辑器可通过已有链接打开。
 
 **Key Characteristics:**
 - 主展台保留纯白 Listing 与暖调展陈两种背景。
@@ -99,7 +99,7 @@ FORME 采用用户选定的 A · 铂纸画廊。珠宝先行。纸白画布、�
 
 ## Colors
 
-主展台保留深橄榄色主要动作、黄铜色选择提示、象牙白控制区域与石灰石色背景。标签必留。FORME 的 `forme-accent` 用于主要动作、选中边线与焦点，`forme-active` 承载选中底色，`forme-frame` 和 `forme-surface` 区分画布与参数区域；`forme-muted` 用于次要说明，颜色不能替代文字标签。
+主要操作使用深蓝灰底白字。选中项使用同色边线和浅蓝灰底。FORME 的 `forme-accent` 用于主要动作、选中边线与焦点，`forme-active` 承载选中底色，`forme-frame` 和 `forme-surface` 区分画布与参数区域；`forme-muted` 用于次要说明，颜色不能替代文字标签。
 
 侧车中的色阶仅供文档预览，不扩充运行时色板。
 
@@ -128,11 +128,11 @@ FORME 的品牌字使用 Cormorant Garamond，中文标题使用设备宋体，�
 | 宽度不超过 700px | 上画布、下方 292px 参数区；参数内容局部滚动，常用按钮和页签高至少 44px |
 | 手机布局且编辑器高度不超过 660px | 参数区缩至 246px，保留上方模型空间 |
 
-两个工作空间共用一条顶部导航，品牌与页签同排，高 64px，手机为 56px；字体、底色、留白和选中态不随工作空间改变。预留滚动条空间，避免切换页面时横移。FORME 操作栏分别为 68px 和 56px。模型保持可见。戒指居中构图复用 `camera.js`，画布宽度小于 520px 时距离为 35，其余为 32，避免提案再叠加初始缩放。
+顶部导航共用一套字体、底色和选中态，高 64px，手机为 56px。品牌居左，两个入口居中，购物车居右。预留滚动条空间，避免切换页面时横移。FORME 操作栏分别为 68px 和 56px。模型保持可见。戒指居中构图复用 `camera.js`，画布宽度小于 520px 时距离为 35，其余为 32，避免提案再叠加初始缩放。
 
 ## Elevation & Depth
 
-界面主要依靠表面色与细边线分区；页面外壳是暖象牙底上的白瓷面板。三维展台的深度来自 sweep 的明暗、接触阴影与金属反射，不给面板或产品添加发光装饰。
+界面主要依靠表面色与细边线分区；页面外壳为浅灰白，面板为白色。三维展台的深度来自 sweep 的明暗、接触阴影与金属反射，不给面板或产品添加发光装饰。
 
 **The FORME Quiet Surface Rule.** FORME 常驻面板靠表面色与细边线分区；阴影仅用于浮动导出菜单和对话框，金属色样的渐变只表达材质，不作为页面装饰。
 
@@ -159,7 +159,7 @@ FORME 使用已实现的控件。保持原行为。
 
 - Do 以可检查的真实几何、光照与清晰度改善珠宝展示。
 - Do 保留来源与许可证入口。
-- Do 保持两工作空间顶部导航一致，将内容区的 `forme-*` 词元限定在模组编辑器。
+- Do 让展台、模板页、镶嵌编辑和购物车共用导航、主按钮与选中态。
 - Do 保留 FORME 的可见标签、焦点、可撤销重置与局部滚动参数区。
 - Don't 用过度泛光掩盖切工、镶座或法线问题。
 - Don't 将视觉比例标为实际克拉、戒围或生产规格。

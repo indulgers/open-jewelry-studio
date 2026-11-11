@@ -1,0 +1,142 @@
+.ring02-workspace {
+  --editor-panel: 436px;
+  min-height: calc(100dvh - var(--shell-height));
+  max-width: var(--shop-width);
+  margin: 0 auto;
+  padding: 20px var(--shop-gutter) 28px;
+  background: var(--page);
+  color: var(--ink);
+  font: inherit;
+}
+.ring02-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 15px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ring02-breadcrumb a {color: var(--ink)}
+.ring02-breadcrumb [aria-current] {white-space: nowrap}
+.ring02-main {
+  grid-template-columns: minmax(0,1fr) var(--editor-panel);
+  gap: clamp(22px,4vw,58px);
+}
+.ring02-main .stone-first-preview {
+  top: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--shop-radius);
+  background: #fff;
+}
+.ring02-main .stone-first-canvas {height: clamp(325px,min(42vw,calc(100dvh - 215px)),620px)}
+.ring02-preview-bar {display: flex;align-items: center;justify-content: space-between;gap: 8px;padding: 8px 12px}
+.ring02-preview-bar>div {display: flex;align-items: baseline;flex-wrap: wrap;gap: 6px 10px}
+.ring02-preview-bar strong {font-size: 13px;font-weight: 500}
+.ring02-preview-bar span {font-size: 12px;color: var(--muted)}
+.ring02-main .stone-first-camera-views {
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 6px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+}
+.ring02-workspace button {
+  min-height: 39px;
+  border: 1px solid var(--line);
+  border-radius: var(--shop-radius);
+  color: var(--ink);
+  background: var(--panel);
+  padding: 7px 11px;
+  font-size: 13px;
+}
+.ring02-workspace button:hover:enabled {background: var(--tint);border-color: var(--line-strong)}
+.ring02-workspace button[aria-pressed=true] {background: var(--tint)!important;border-color: var(--accent)!important;color: var(--accent)}
+.ring02-preview-bar button, .ring02-main .stone-first-camera-views button {font-size: 12px}
+.ring02-main .stone-first-panel {border: 0;border-radius: 0;overflow: visible;background: transparent;min-width: 0}
+.ring02-product {margin-bottom: 13px}
+.ring02-product h1 {margin: 0;font: 500 clamp(28px,3.4vw,43px)/1.2 var(--shop-title)}
+.ring02-product p {margin: 7px 0 0;color: var(--muted);font-size: 14px}
+.ring02-zones {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 18px;
+}
+.ring02-zones button {min-height: 46px;border: 0;border-bottom: 2px solid transparent;border-radius: 0;font-size: 15px}
+.ring02-zones button[aria-pressed=true] {border-bottom-color: var(--accent)!important;background: transparent!important;font-weight: 600}
+.ring02-fields {min-height: 0;padding: 0 0 5px}
+@media(prefers-reduced-motion:no-preference) {
+  .ring02-fields {animation: ring02-part-in .18s ease-out}
+  @keyframes ring02-part-in {from {opacity: .6;transform: translateY(3px)}}
+}
+.ring02-fields fieldset {min-width: 0;border: 0;padding: 0;margin: 0 0 17px}
+.ring02-fields legend {margin-bottom: 7px;font-size: 13px;font-weight: 600}
+.ring02-fields h2 {font-size: 15px;font-weight: 600;margin: 0 0 6px}
+.ring02-fields>p {font-size: 13px;color: var(--muted);margin: 0 0 13px;line-height: 1.55}
+.ring02-fields .stone-first-options {display: grid;grid-auto-flow: column;grid-auto-columns: minmax(0,1fr);gap: 7px}
+.ring02-fields .stone-first-options button {min-width: 0}
+.ring02-fields .ring02-gems {grid-auto-flow: row;grid-template-columns: repeat(2,minmax(0,1fr))}
+.ring02-gems button, .ring02-fields #ring02-field-metal button {display: flex;align-items: center;justify-content: center;gap: 6px}
+.ring02-swatch {width: 11px;height: 11px;border: 1px solid #21283235;border-radius: 50%;flex: none}
+.swatch-diamond {background: #f2f5f7}
+.swatch-sapphire {background: #234885}
+.swatch-ruby {background: #972543}
+.swatch-emerald {background: #1c6c50}
+.ring02-heads {display: grid;grid-template-columns: repeat(3,minmax(0,1fr));gap: 7px}
+.ring02-heads button {display: flex;flex-direction: column;align-items: center;justify-content: center;gap: 4px;min-width: 0;padding: 7px 4px}
+.ring02-heads svg {width: 32px;height: 32px}
+.ring02-heads strong {font-size: 13px;font-weight: 500}
+.ring02-heads small {font-size: 11px;color: var(--muted);white-space: nowrap}
+.ring02-head-zones {margin-bottom: 10px}
+.ring02-fields .stone-first-note {background: transparent;padding: 0;color: var(--muted)!important;font-size: 12px!important;margin-top: 5px!important}
+.ring02-summary {border-top: 1px solid var(--line);padding: 12px 0;font-size: 13px}
+.ring02-summary summary {cursor: pointer;font-weight: 500}
+.ring02-summary ul {list-style: none;padding: 0;margin: 10px 0 0}
+.ring02-summary li+li {margin-top: 5px}
+.ring02-summary button {display: flex;flex-wrap: wrap;justify-content: space-between;gap: 6px 14px;width: 100%;text-align: left}
+.ring02-actions {display: flex;flex-wrap: wrap;gap: 7px;padding: 0 0 10px}
+.ring02-actions button {min-height: 32px;font-size: 12px}
+.ring02-status {font-size: 12px;color: var(--muted);line-height: 1.55;margin: 0 0 9px}
+.ring02-status:empty {display: none}
+.ring02-loading {padding: 16px 0;color: var(--muted)}
+.ring02-purchase {
+  width: var(--editor-panel);
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 10px 0 0 auto;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--shop-radius);
+  background: var(--panel);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ring02-purchase p {margin: 0;font-size: 13px}
+.ring02-purchase strong {font-size: 22px;font-variant-numeric: tabular-nums}
+.ring02-purchase small {color: var(--muted);font-size: 12px}
+.ring02-purchase .ring02-cart-notice {flex-basis: 100%;color: #2a624c}
+.ring02-dialog {width: min(460px,calc(100% - 26px));max-height: calc(100dvh - 32px);overflow: auto;border: 1px solid var(--line);border-radius: var(--shop-radius);padding: 22px;color: var(--ink);background: var(--panel)}
+.ring02-dialog::backdrop {background: #151e2a82}
+.ring02-dialog h2 {font: 500 25px/1.3 var(--shop-title);margin: 0 0 14px}
+.ring02-dialog p,.ring02-dialog dl {font-size: 14px;line-height: 1.55}
+.ring02-dialog dl {display: grid;gap: 7px}
+.ring02-dialog dl div {display: grid;grid-template-columns: 5.5rem 1fr;gap: 8px}
+.ring02-dialog dt {color: var(--muted)}
+.ring02-dialog dd {margin: 0;overflow-wrap: anywhere}
+.ring02-dialog-actions {display: flex;flex-wrap: wrap;justify-content: flex-end;gap: 8px;margin-top: 15px}
+@media(max-width: 1100px) {
+  .ring02-workspace {--editor-panel: 365px}
+}
+@media(max-width: 800px) {
+  .ring02-main {grid-template-columns: minmax(0,1fr);gap: 19px}
+  .ring02-main .stone-first-preview {position: static}
+  .ring02-main .stone-first-canvas {height: clamp(250px,65vw,390px)}
+  .ring02-purchase {width: auto;margin: 10px calc(-1 * var(--shop-gutter)) 0;border-inline: 0;border-radius: 0;padding: 9px var(--shop-gutter) max(9px,env(safe-area-inset-bottom))}
+  .ring02-workspace button {min-height: 43px}
+  .ring02-product {margin-bottom: 9px}
+  .ring02-breadcrumb {margin-bottom: 11px}
+}

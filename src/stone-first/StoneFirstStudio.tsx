@@ -75,6 +75,7 @@ export function StoneFirstStudio(){
   <div className="stone-first-header"><div><p className="stone-first-kicker">ATELIER / STONE FIRST</p><h1>镶嵌优先的珠宝 DIY</h1>
   <p>从完整镶嵌配方出发，让戒臂与装饰模组围绕宝石共同生成。</p></div>
   <div className="stone-first-top-actions">
+    <a className="stone-first-import" href="#/stonefirst/ring-02">打开戒指 02 模板</a>
     <button onClick={()=>{selectRecipe('floral-pave');setStep(0);}}>恢复默认</button>
     <button onClick={()=>download('ATELIER-design.json',JSON.stringify(d,null,2),'application/json')}>保存工程 JSON</button>
     <label className="stone-first-import">导入工程<input type="file" accept=".json,application/json" onChange={importJson}/></label>

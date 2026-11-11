@@ -122,7 +122,7 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
         }}>
         <ambientLight intensity={0.2}/>
         {stageMode==='gallery'&&<StudioBackdrop/>}
-        <StudioFillLights/>
+        <StudioFillLights neutral={studioPreset==='catalog'}/>
         <Suspense fallback={null}>
           <JewelryScene {...{configuration,quality,simplified,modelMode,captureBusy,preset,gemShape,ringStyle,stageMode,stoneAppearance}} onReady={preparedCallback}/>
         </Suspense>
