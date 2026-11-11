@@ -26,7 +26,7 @@ export function DiyHome(){
         <div className="diy-template-details">
           <h2>{template.name}</h2>
           <p>{template.description}</p>
-          <p className="diy-reference-price">参考估价 <strong>{formatYuan(template.referencePrice)}</strong></p>
+          <p className="diy-reference-price">演示参考价 <strong>{formatYuan(template.referencePrice)}</strong></p>
           <a className="shop-button" href={template.editor}>开始 DIY <span aria-hidden="true">→</span></a>
         </div>
       </article>)}

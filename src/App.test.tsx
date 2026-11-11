@@ -83,6 +83,16 @@ describe('shared studio navigation',()=>{
     expect(await screen.findByRole('heading',{name:'测试围钻戒指编辑器'})).toBeInTheDocument();
     expect(window.location.hash).toBe('#/stonefirst/ring-02');
   });
+  it('unmounts the ring editor when browser navigation leaves DIY',async()=>{
+    window.history.replaceState(null,'','/#/stonefirst/ring-02');
+    render(<App/>);
+    await screen.findByRole('heading',{name:'测试围钻戒指编辑器'});
+    act(()=>{
+      window.history.replaceState(null,'','/#/showroom');
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(screen.queryByText('测试围钻戒指编辑器')).not.toBeInTheDocument();
+  });
   it('loads the module editor on demand and retains its frame across tabs',async()=>{
     await loaded();
     expect(screen.queryByTitle('FORME 模组 DIY 设计工作台')).not.toBeInTheDocument();

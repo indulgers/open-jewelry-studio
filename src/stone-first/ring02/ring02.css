@@ -98,7 +98,6 @@
 .ring02-actions button {min-height: 32px;font-size: 12px}
 .ring02-status {font-size: 12px;color: var(--muted);line-height: 1.55;margin: 0 0 9px}
 .ring02-status:empty {display: none}
-.ring02-loading {padding: 16px 0;color: var(--muted)}
 .ring02-purchase {
   width: var(--editor-panel);
   position: sticky;

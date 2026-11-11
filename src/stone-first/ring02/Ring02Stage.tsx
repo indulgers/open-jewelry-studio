@@ -2,11 +2,12 @@ import {Suspense,useEffect,useMemo,useRef,useState,type ComponentRef} from 'reac
 import {Canvas,useThree} from '@react-three/fiber';
 import {OrbitControls} from '@react-three/drei';
 import {DoubleSide,OrthographicCamera,type Texture} from 'three';
-import {JewelryLighting} from '../../viewer/JewelryLighting';
+import {JewelryLighting,clearJewelryLightingCache} from '../../viewer/JewelryLighting';
 import {StudioFillLights} from '../../viewer/StudioFillLights';
 import {createMetalMaterial} from '../../viewer/materials';
 import {createGemOptics,syncGemDraw} from '../../viewer/gemOptics';
 import {STUDIO_PRESETS} from '../../viewer/studioPresets';
+import {ViewerBoundary} from '../../viewer/ViewerBoundary';
 import {Ring02Loading} from './Ring02Loading';
 import {buildMetal,type FittedStone,type RingDesign,type prepareTemplate} from './model';
 
@@ -54,7 +55,6 @@ function RingScene({template,design,stones,onReady}:SceneProps&{onReady?:()=>voi
   const metalMaterial=useMemo(()=>{
     const material=createMetalMaterial(design.metal,preset);
     material.side=DoubleSide;
-    material.roughness=preset.roughness;
     return material;
   },[design.metal]);
   useEffect(()=>()=>metalMaterial.dispose(),[metalMaterial]);
@@ -74,15 +74,23 @@ function RingScene({template,design,stones,onReady}:SceneProps&{onReady?:()=>voi
 
 export function Ring02Stage({view,reset,...scene}:SceneProps&{view:RingView;reset:number}){
   const [ready,setReady]=useState(false);
-  return <div className="stone-first-canvas" aria-label="戒指 02 三维预览">
-    <Canvas orthographic camera={{position:[2.2,2.5,3.6],near:.03,far:30}} dpr={[1,1.5]} frameloop="demand"
-      gl={{antialias:true,preserveDrawingBuffer:true}}>
-      <color attach="background" args={['#ffffff']}/>
-      <ambientLight intensity={.2}/>
-      <StudioFillLights neutral/>
-      <Suspense fallback={null}><RingScene {...scene} onReady={ready?undefined:()=>setReady(true)}/></Suspense>
-      <RingCamera view={view} reset={reset}/>
-    </Canvas>
-    {!ready&&<Ring02Loading/>}
+  const [failed,setFailed]=useState(false);
+  function retry(){
+    clearJewelryLightingCache();
+    setReady(false);
+    setFailed(false);
+  }
+  return <div className="stone-first-canvas ring02-canvas" aria-label="戒指 02 三维预览">
+    <ViewerBoundary onRetry={retry} onError={()=>setFailed(true)}>
+      <Canvas orthographic camera={{position:[2.2,2.5,3.6],near:.03,far:30}} dpr={[1,1.5]} frameloop="demand"
+        gl={{antialias:true,preserveDrawingBuffer:true}}>
+        <color attach="background" args={['#ffffff']}/>
+        <ambientLight intensity={.2}/>
+        <StudioFillLights neutral/>
+        <Suspense fallback={null}><RingScene {...scene} onReady={ready?undefined:()=>setReady(true)}/></Suspense>
+        <RingCamera view={view} reset={reset}/>
+      </Canvas>
+    </ViewerBoundary>
+    {!ready&&!failed&&<Ring02Loading/>}
   </div>;
 }

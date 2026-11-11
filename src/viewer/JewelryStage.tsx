@@ -103,7 +103,7 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
     <ViewerBoundary onRetry={retry} onError={()=>setFailed(true)}>
       <Canvas key={attempt} dpr={[1,settings.maxDpr]} camera={{position:[2.9,2.6,4.7],fov:32,near:0.1,far:50}}
         frameloop={autoRotate&&ready?'always':'demand'} gl={{antialias:true,alpha:true,powerPreference:'high-performance',preserveDrawingBuffer:true}}
-        fallback={<div className="viewer-message" role="alert" aria-hidden={rendererCreated||undefined}><p>当前浏览器无法使用三维预览，以下为固定样板图。</p><ProductGallery images={SAMPLE_IMAGES} sample/></div>}
+        fallback={<div className="viewer-message" role="alert" aria-hidden={rendererCreated||undefined}><p>当前浏览器无法使用三维预览，{poster?'以下为固定样板图。':'请尝试使用支持 WebGL 的浏览器。'}</p>{poster&&<ProductGallery images={SAMPLE_IMAGES} sample/>}</div>}
         onCreated={({gl})=>{
           setRendererCreated(true);
           gl.toneMapping=NeutralToneMapping;gl.toneMappingExposure=1;gl.outputColorSpace=SRGBColorSpace;gl.setClearAlpha(0);

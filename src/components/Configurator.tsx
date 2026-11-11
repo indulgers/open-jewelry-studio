@@ -3,11 +3,10 @@ import type {Configuration,ConfigurationAction,MetalFinish} from '../configurati
 import {METALS} from '../configuration/configuration';
 import type {Quality} from '../viewer/quality';
 type Props={configuration:Configuration;dispatch:Dispatch<ConfigurationAction>;quality:Quality;onQualityChange:(value:Quality)=>void;
-  autoRotate:boolean;onAutoRotateChange:(value:boolean)=>void;onResetEditing:()=>void;onResetView:()=>void;reference?:boolean;hideStructure?:boolean;stoneOnly?:boolean};
-export function Configurator({configuration,dispatch,quality,onQualityChange,autoRotate,onAutoRotateChange,onResetEditing,onResetView,reference=false,hideStructure=false,stoneOnly=false}:Props){
+  autoRotate:boolean;onAutoRotateChange:(value:boolean)=>void;onResetEditing:()=>void;onResetView:()=>void;hideStructure?:boolean;stoneOnly?:boolean};
+export function Configurator({configuration,dispatch,quality,onQualityChange,autoRotate,onAutoRotateChange,onResetEditing,onResetView,hideStructure=false,stoneOnly=false}:Props){
   return <div className="configurator">
-    {reference&&!hideStructure&&<p className="reference-note">当前为固定六爪参考模型，可切换金属。切换至「参数化 DIY」可调整戒臂与主石；原有配置不会丢失。</p>}
-    {!hideStructure&&<fieldset disabled={reference}><legend>{reference?'已保留的 DIY 戒臂':'戒臂结构'}</legend><div className="choice-grid shank-choices">
+    {!hideStructure&&<fieldset><legend>戒臂结构</legend><div className="choice-grid shank-choices">
       {(['plain','split'] as const).map(style=><label className="choice shank-choice" key={style}>
         <input type="radio" name="shank" value={style} checked={configuration.shankStyle===style}
           onChange={()=>dispatch({type:'set-shank',value:style})}/>
@@ -26,7 +25,7 @@ export function Configurator({configuration,dispatch,quality,onQualityChange,aut
         <span>{METALS[finish].name}</span>
       </label>)}</div>
     </fieldset>}
-    {!hideStructure&&<fieldset disabled={reference}><legend>{reference?'已保留的 DIY 主石尺寸':'主石展示尺寸'}</legend><div className="choice-grid sizes">
+    {!hideStructure&&<fieldset><legend>主石展示尺寸</legend><div className="choice-grid sizes">
       {(['small','medium','large'] as const).map((size,i)=><label className="choice size-choice" key={size}>
         <input type="radio" name="size" checked={configuration.stoneSize===size} onChange={()=>dispatch({type:'set-size',value:size})}/>
         <span>{['小','中','大'][i]}</span>

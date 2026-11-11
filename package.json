@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
-    "build:vercel": "VITE_PUBLIC_SHOWROOM=1 npm run build && node scripts/prepare-vercel.mjs",
+    "build:public": "VITE_PUBLIC_SHOWROOM=1 npm run build && node scripts/prepare-public-build.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run && node scripts/check-forme-bore.mjs && node scripts/check-forme-envelope.mjs",
     "inspect:gem": "node scripts/inspect-gem.mjs",

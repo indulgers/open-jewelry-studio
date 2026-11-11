@@ -233,7 +233,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
       <div className="ring02-actions">
         <button disabled={!past.length||compare} onClick={undo}>撤销</button>
         <button disabled={!future.length||compare} onClick={redo}>重做</button>
-        <button className="ring02-reset" disabled={compare} onClick={resetPart}>{part==='head'?'重置戒头':'重置戒圈'}</button>
+        <button disabled={compare} onClick={resetPart}>{part==='head'?'重置戒头':'重置戒圈'}</button>
         <button disabled={compare} onClick={()=>setPending({
           title:'恢复整枚',description:'戒头、主配石、铺钻长度和金属外观将恢复为原款。可以撤销这次修改。',design:BASE_DESIGN,
         })}>恢复原款</button>
@@ -266,7 +266,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     {orderError&&<p role="alert">浏览器未能保存演示购物车，请重试。</p>}
     <div className="ring02-dialog-actions">
       <button autoFocus onClick={()=>setReview(null)}>返回修改</button>
-      <button className="shop-button" onClick={confirmOrder}>确认并加入购物车</button>
+      <button className="shop-button" onClick={confirmOrder}>确认并加入演示购物车</button>
     </div>
   </ReviewDialog>}
   </>;

@@ -2,8 +2,16 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "installCommand": "npm ci",
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build:public",
   "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/models/atelier/ring-02/ring-v1.glb",
+      "headers": [
+        {"key": "Cache-Control", "value": "public, max-age=31536000, immutable"}
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/forme/:path*",

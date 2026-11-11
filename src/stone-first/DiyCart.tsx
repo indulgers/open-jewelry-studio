@@ -17,7 +17,7 @@ export function DiyCart(){
   return <main className="diy-home">
     <header className="diy-home-intro">
       <a href="#/diy">全部款式</a>
-      <h1>购物车</h1>
+      <h1>演示购物车</h1>
       <p>方案保留在本机，价格和交期为示例。</p>
     </header>
     {error?<p role="alert">无法读取当前浏览器的购物车。</p>:orders?.length===0?<p>购物车为空。</p>:null}

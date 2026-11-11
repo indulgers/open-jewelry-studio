@@ -6,23 +6,21 @@ import {configurationReducer,DEFAULT_CONFIGURATION} from '../configuration/confi
 import {Configurator} from './Configurator';
 import type {Quality} from '../viewer/quality';
 
-function Harness({reference=false}:{reference?:boolean}={}){
+function Harness({hideStructure=false}:{hideStructure?:boolean}={}){
   const [configuration,dispatch]=useReducer(configurationReducer,DEFAULT_CONFIGURATION);
   const [quality,onQualityChange]=useState<Quality>('standard');
   const [autoRotate,onAutoRotateChange]=useState(false);
   return <><Configurator {...{configuration,dispatch,quality,onQualityChange,autoRotate,onAutoRotateChange}}
-    reference={reference} onResetEditing={()=>dispatch({type:'reset'})} onResetView={()=>{}}/>
+    hideStructure={hideStructure} onResetEditing={()=>dispatch({type:'reset'})} onResetView={()=>{}}/>
     <output aria-label="当前参数">{JSON.stringify(configuration)}</output></>;
 }
 describe('configuration panel',()=>{
-  it('keeps fixed reference geometry honest while metal and saved DIY choices remain usable',async()=>{
-    const user=userEvent.setup();render(<Harness reference/>);
-    expect(screen.getByRole('radio',{name:'分叉戒臂'})).toBeDisabled();
-    expect(screen.getByRole('radio',{name:'大'})).toBeDisabled();
-    await user.click(screen.getByRole('radio',{name:'大'}));
+  it('hides structure controls for fixed models and keeps metal editable',async()=>{
+    const user=userEvent.setup();render(<Harness hideStructure/>);
+    expect(screen.queryByRole('radio',{name:'分叉戒臂'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio',{name:'大'})).not.toBeInTheDocument();
     await user.click(screen.getByRole('radio',{name:'白金色'}));
     expect(JSON.parse(screen.getByLabelText('当前参数').textContent!)).toMatchObject({stoneSize:'medium',metalFinish:'white'});
-    expect(screen.getByText(/切换至.*参数化 DIY/)).toBeInTheDocument();
   });
   it('resets edited fields to defaults without a save entry',async()=>{
     const user=userEvent.setup();render(<Harness/>);

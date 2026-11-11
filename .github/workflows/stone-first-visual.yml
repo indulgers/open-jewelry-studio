@@ -1,8 +1,6 @@
 name: Stone-first browser review
 on:
   workflow_dispatch:
-  push:
-    branches: [feat/stone-first-reference-diy]
 permissions:
   contents: read
 jobs:

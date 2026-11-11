@@ -13,7 +13,7 @@
 .model-modes{display:flex;gap:6px;padding:4px;border:1px solid var(--line);border-radius:5px;margin-bottom:20px}
 .model-modes button{flex:1;padding:10px 5px;font-size:12px;border-radius:3px}
 .model-modes button[aria-pressed=true]{background:var(--ink);color:var(--panel)}
-.reference-note{font-size:11px;line-height:1.8;color:var(--muted);margin:0 0 20px}
+
 fieldset:disabled{opacity:.5}fieldset:disabled label{cursor:not-allowed}
 .inspection-views{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);display:flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:8px;background:var(--panel);white-space:nowrap;z-index:2}
 .inspection-views button{padding:8px 12px;border:0;border-radius:4px;background:transparent;color:var(--muted);font:inherit;font-size:12px;cursor:pointer}

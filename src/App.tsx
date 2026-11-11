@@ -17,12 +17,11 @@ import {ModuleStudio} from './components/ModuleStudio';
 import {StageLoading} from './components/StageLoading';
 import {DiyHome} from './stone-first/DiyHome';
 import {DiyCart} from './stone-first/DiyCart';
-import {RING02_MODEL,RING02_OVAL,RING02_POSTER} from './stone-first/ring02/assets';
+import {RING02_MODEL,RING02_OVAL} from './stone-first/ring02/assets';
 import {STUDIO_ENVIRONMENT} from './viewer/studioEnvironment';
 import {Ring02Loading} from './stone-first/ring02/Ring02Loading';
 const JewelryStage=lazy(()=>import('./viewer/JewelryStage').then(module=>({default:module.JewelryStage})));
 const Ring02Studio=lazy(()=>{
-  preload(RING02_POSTER,{as:'image',fetchPriority:'high'});
   for(const href of [RING02_MODEL,RING02_OVAL,STUDIO_ENVIRONMENT.url]){
     preload(href,{as:'fetch',crossOrigin:'anonymous'});
   }
@@ -110,7 +109,7 @@ function JewelryStudio({active}:{active:boolean}){
           <fieldset><legend>观察光线</legend><div className="preset-choices">{Object.values(STUDIO_PRESETS).map(preset=><button key={preset.id} aria-pressed={studioPreset===preset.id} onClick={()=>setStudioPreset(preset.id)}>{preset.name}</button>)}</div><p className="field-help">{STUDIO_PRESETS[studioPreset].description}</p></fieldset>
           <fieldset><legend>展台背景</legend><div className="preset-choices">{STAGE_MODES.map(mode=><button key={mode.id} aria-pressed={stageMode===mode.id} onClick={()=>setStageMode(mode.id)}>{mode.name}</button>)}</div><p className="field-help">{STAGE_MODES.find(mode=>mode.id===stageMode)?.note}；商品图导出会压到白底。</p></fieldset>
           <div className="media-modes" role="group" aria-label="预览方式"><button aria-pressed={display==='3d'} onClick={()=>setDisplay('3d')}>实时 3D</button><button disabled={!catalogSample&&!images&&!captureReady} aria-pressed={display!=='3d'} onClick={openImages}>商品图片</button></div>
-          <Configurator {...{configuration,dispatch,quality,onQualityChange,autoRotate,onAutoRotateChange}} reference={modelMode!=='procedural'} hideStructure={modelMode!=='procedural'} stoneOnly={modelMode==='gem'} onResetEditing={resetEditing} onResetView={()=>setResetToken(n=>n+1)}/>
+          <Configurator {...{configuration,dispatch,quality,onQualityChange,autoRotate,onAutoRotateChange}} hideStructure={modelMode!=='procedural'} stoneOnly={modelMode==='gem'} onResetEditing={resetEditing} onResetView={()=>setResetToken(n=>n+1)}/>
         </fieldset>
         <section className="capture-panel" aria-label="商品图输出"><button className="capture-button" disabled={captureBusy||!captureReady||display!=='3d'} onClick={capture}>{captureBusy?'正在生成…':'生成四个角度的商品图'}</button><p className="field-help">停止旋转后生成当前配置的渲染预览，分辨率随画布与画质设置变化。</p><p className="capture-status" role="status">{captureMessage}</p>{images&&<ProductGallery images={images} downloads/>}</section>
         <div className="feedback" role="status" aria-live="polite">{message}</div>
@@ -124,33 +123,35 @@ function JewelryStudio({active}:{active:boolean}){
 
 const tabs=[{id:'showroom',label:'珠宝展台'},{id:'stonefirst',label:'镶嵌 DIY'}] as const;
 type VisibleTab=typeof tabs[number]['id'];
-type StudioTab=VisibleTab|'modules';
-function readDiyPage(){
-  switch(window.location.hash){
-    case '#/diy':return 'catalog';
-    case '#/diy/cart':return 'cart';
-    case '#/stonefirst/ring-02':return 'ring02';
-    default:return 'recipes';
-  }
-}
-const readTab=():StudioTab=>{
+type StudioRoute={tab:'showroom'|'modules'}|{tab:'stonefirst';page:'catalog'|'cart'|'ring02'|'recipes'};
+function readRoute():StudioRoute{
   const hash=window.location.hash;
-  if(hash==='#/diy'||hash==='#/diy/cart'||hash.startsWith('#/stonefirst'))return 'stonefirst';
-  return hash.startsWith('#/modules')?'modules':'showroom';
-};
+  switch(hash){
+    case '#/diy':return {tab:'stonefirst',page:'catalog'};
+    case '#/diy/cart':return {tab:'stonefirst',page:'cart'};
+    case '#/stonefirst/ring-02':return {tab:'stonefirst',page:'ring02'};
+  }
+  if(hash.startsWith('#/stonefirst'))return {tab:'stonefirst',page:'recipes'};
+  if(hash.startsWith('#/modules'))return {tab:'modules'};
+  return {tab:'showroom'};
+}
 export default function App(){
-  const [tab,setTab]=useState<StudioTab>(readTab);
-  const [modulesVisited,setModulesVisited]=useState(()=>readTab()==='modules');
-  const [diyPage,setDiyPage]=useState(readDiyPage);
-  const [stoneVisited,setStoneVisited]=useState(()=>readTab()==='stonefirst');
+  const [route,setRoute]=useState(readRoute);
+  const [modulesVisited,setModulesVisited]=useState(()=>route.tab==='modules');
+  const {tab}=route;
+  const diyPage=route.tab==='stonefirst'?route.page:null;
   useEffect(()=>{
-    const sync=()=>{const next=readTab();setTab(next);if(next==='modules')setModulesVisited(true);if(next==='stonefirst'){setDiyPage(readDiyPage());setStoneVisited(true);}};
-    window.addEventListener('hashchange',sync);return()=>window.removeEventListener('hashchange',sync);
+    const sync=()=>{
+      const next=readRoute();
+      setRoute(next);
+      if(next.tab==='modules')setModulesVisited(true);
+    };
+    window.addEventListener('hashchange',sync);
+    return()=>window.removeEventListener('hashchange',sync);
   },[]);
   const select=(next:VisibleTab)=>{
-    setTab(next);
-    if(next==='stonefirst'){setDiyPage('catalog');setStoneVisited(true);}
     window.location.hash=next==='stonefirst'?'/diy':'/showroom';
+    setRoute(readRoute());
   };
   return <div className="app-shell" data-workspace={tab}>
     <header className="site-header"><a className="brand" href="/" aria-label="戒指实验室首页">
@@ -168,6 +169,6 @@ export default function App(){
     </header>
     <section id="panel-showroom" role="tabpanel" aria-labelledby="tab-showroom" hidden={tab!=='showroom'}><JewelryStudio active={tab==='showroom'}/></section>
     <section id="panel-modules" aria-label="模组 DIY" hidden={tab!=='modules'}>{modulesVisited&&<ModuleStudio active={tab==='modules'}/>}</section>
-    <section id="panel-stonefirst" role="tabpanel" aria-labelledby="tab-stonefirst" hidden={tab!=='stonefirst'}>{stoneVisited&&(diyPage==='catalog'?<DiyHome/>:diyPage==='cart'?<DiyCart/>:<Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='ring02'?<Ring02Studio/>:<StoneFirstStudio/>}</Suspense>)}</section>
+    <section id="panel-stonefirst" role="tabpanel" aria-labelledby="tab-stonefirst" hidden={tab!=='stonefirst'}>{tab==='stonefirst'&&(diyPage==='catalog'?<DiyHome/>:diyPage==='cart'?<DiyCart/>:<Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='ring02'?<Ring02Studio/>:<StoneFirstStudio/>}</Suspense>)}</section>
   </div>;
 }
