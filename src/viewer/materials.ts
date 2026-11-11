@@ -1,11 +1,6 @@
 import {MeshPhysicalMaterial} from 'three';
-import type {MetalFinish} from '../configuration/configuration';
+import {METALS,type MetalFinish} from '../configuration/configuration';
 import type {StudioPreset} from './studioPresets';
-export const METALS={
-  yellow:{name:'黄金色',color:'#efcf94',swatch:'#c3a05e'},
-  white:{name:'白金色',color:'#ededeb',swatch:'#c9cece'},
-  rose:{name:'玫瑰金色',color:'#e4bda7',swatch:'#c79078'},
-};
 export function createMetalMaterial(finish:MetalFinish,preset?:StudioPreset,localOcclusion=false){
   const material=new MeshPhysicalMaterial({color:METALS[finish].color,metalness:1,roughness:preset?.roughness??0.105,
     clearcoat:0,envMapIntensity:1});

@@ -1,17 +1,20 @@
 import {useEffect,useMemo,useState} from 'react';
 import {Mesh} from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {METALS} from '../../viewer/materials';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+import {METALS} from '../../configuration/configuration';
 import {STONE_APPEARANCES,STONE_APPEARANCE_IDS} from '../../viewer/stoneAppearance';
 import {Ring02Stage,VIEWS,type RingView} from './Ring02Stage';
 import {
-  BASE_DESIGN,OVAL_URL,REACHES,SIZES,SOURCE_URL,TEMPLATE_REVISION,findNewIntersection,
+  BASE_DESIGN,REACHES,SIZES,TEMPLATE_REVISION,findNewIntersection,
   fitStones,prepareTemplate,type RingDesign,type StoneSpec,type Zone,
 } from './model';
 import {HEADS,type Head} from './head';
 import {newDraft,readDraft,writeDraft,type Draft} from './draft';
 import {addDemoOrder,estimateRing02,formatYuan,hasDemoOrder,priceNote,RING02_PRICE,type DemoOrder} from './demoOrder';
 import {ReviewDialog} from './ReviewDialog';
+import {RING02_MODEL,RING02_OVAL} from './assets';
+import {Ring02Loading} from './Ring02Loading';
 import '../stone-first.css';
 import './ring02.css';
 
@@ -279,6 +282,12 @@ function HeadIcon({head}:{head:Head}){
   </svg>;
 }
 
+function disposeTemplate(template:ReturnType<typeof prepareTemplate>){
+  template.metal.forEach(part=>part.geometry.dispose());
+  template.stones.forEach(stone=>stone.geometry.dispose());
+  template.oval.dispose();
+}
+
 export function Ring02Studio(){
   const [template,setTemplate]=useState<ReturnType<typeof prepareTemplate>>();
   const [error,setError]=useState(false);
@@ -291,15 +300,22 @@ export function Ring02Studio(){
       if(!response.ok)throw new Error('找不到戒指模板资源');
       return response;
     };
-    const source=fetchAsset(SOURCE_URL).then(response=>response.text());
-    const oval=fetchAsset(OVAL_URL).then(response=>response.arrayBuffer());
-    Promise.all([source,oval]).then(async([text,bytes])=>{
+    const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+    const source=fetchAsset(RING02_MODEL).then(response=>response.arrayBuffer());
+    const oval=fetchAsset(RING02_OVAL).then(response=>response.arrayBuffer());
+    Promise.all([source,oval]).then(async([modelBytes,ovalBytes])=>{
       if(controller.signal.aborted)return;
-      const {scene}=await new GLTFLoader().parseAsync(bytes,'');
+      const {scene}=await loader.parseAsync(ovalBytes,'');
       try{
         if(controller.signal.aborted)return;
-        owned=prepareTemplate(text,scene);
-        setTemplate(owned);
+        const model=await loader.parseAsync(modelBytes,'');
+        owned=prepareTemplate(model.scene,scene);
+        if(controller.signal.aborted){
+          disposeTemplate(owned);
+          owned=undefined;
+        }else{
+          setTemplate(owned);
+        }
       }finally{
         scene.traverse(object=>{
           if(!(object instanceof Mesh))return;
@@ -311,18 +327,13 @@ export function Ring02Studio(){
     }).catch(()=>{if(!controller.signal.aborted)setError(true);});
     return ()=>{
       controller.abort();
-      owned?.metal.forEach(part=>part.geometry.dispose());
-      owned?.stones.forEach(stone=>stone.geometry.dispose());
-      owned?.oval.dispose();
+      if(owned)disposeTemplate(owned);
     };
   },[attempt]);
   return <main className="stone-first-workspace ring02-workspace">
     <nav className="ring02-breadcrumb" aria-label="所在页面">
       <a href="#/diy">全部款式</a><span aria-hidden="true">/</span><span aria-current="page">围钻戒指</span>
     </nav>
-    {template?<Editor template={template}/>:<div className="ring02-loading">
-      <p role="status">{error?'戒指模板加载失败。':'正在准备戒指模板…'}</p>
-      {error&&<button onClick={()=>{setError(false);setAttempt(count=>count+1);}}>重试加载</button>}
-    </div>}
+    {template?<Editor template={template}/>:<Ring02Loading retry={error?()=>{setError(false);setAttempt(count=>count+1);}:undefined}/>}
   </main>;
 }

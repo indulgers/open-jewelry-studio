@@ -1,6 +1,6 @@
 import type {Dispatch,CSSProperties} from 'react';
 import type {Configuration,ConfigurationAction,MetalFinish} from '../configuration/configuration';
-import {METALS} from '../viewer/materials';
+import {METALS} from '../configuration/configuration';
 import type {Quality} from '../viewer/quality';
 type Props={configuration:Configuration;dispatch:Dispatch<ConfigurationAction>;quality:Quality;onQualityChange:(value:Quality)=>void;
   autoRotate:boolean;onAutoRotateChange:(value:boolean)=>void;onResetEditing:()=>void;onResetView:()=>void;reference?:boolean;hideStructure?:boolean;stoneOnly?:boolean};

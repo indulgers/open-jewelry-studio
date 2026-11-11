@@ -1,6 +1,5 @@
 import {Box3, Matrix4, Mesh, Quaternion, Vector3, MathUtils, type BufferGeometry, type Object3D} from 'three';
 import {toCreasedNormals} from 'three/addons/utils/BufferGeometryUtils.js';
-import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
 import {MeshBVH} from 'three-mesh-bvh';
 import {firstMeshGeometry} from '../../geometry/productGeometry';
 import {STONE_APPEARANCES, type StoneAppearance} from '../../viewer/stoneAppearance';
@@ -8,8 +7,6 @@ import {prepareGirdleGem} from '../gemFit';
 import stoneIndex from './stones.json';
 import {buildSolitaireHead,HEADS,type Head} from './head';
 
-export const SOURCE_URL='/models/atelier/ring-02/source.obj';
-export const OVAL_URL='/models/atelier/gems/oval.glb';
 export const ZONES=['center','halo','shoulder'] as const;
 export const SIZES=[0.94,1,1.06] as const;
 export const REACHES=[0.97,1,1.05] as const;
@@ -63,18 +60,22 @@ function stoneSource(geometry:BufferGeometry,data:typeof stoneIndex[number]):Sto
     center:pivot.applyMatrix4(frame),rotation:new Quaternion().setFromRotationMatrix(frame),width:2*radius};
 }
 
-export function prepareTemplate(source:string,ovalScene:Object3D):Template{
+export function prepareTemplate(ring:Object3D,ovalScene:Object3D):Template{
   const index=new Map(stoneIndex.map(data=>[data.name,data]));
-  const ring=new OBJLoader().parse(source);
   const metal:Part[]=[],stones:StoneSource[]=[];
   ring.traverse(object=>{
     if(!(object instanceof Mesh))return;
     const data=index.get(object.name);
-    if(data)stones.push(stoneSource(object.geometry,data));
-    else if(!object.name.startsWith('unresolved_')){
-      metal.push({name:object.name,geometry:toCreasedNormals(object.geometry,Math.PI/4)});
+    if(data){
+      stones.push(stoneSource(object.geometry,data));
+      object.geometry.dispose();
+    }else if(!object.name.startsWith('unresolved_')){
+      const geometry=toCreasedNormals(object.geometry,Math.PI/4);
+      metal.push({name:object.name,geometry});
+      if(geometry!==object.geometry)object.geometry.dispose();
+    }else{
+      object.geometry.dispose();
     }
-    if(data||object.name.startsWith('unresolved_'))object.geometry.dispose();
     const materials=Array.isArray(object.material)?object.material:[object.material];
     materials.forEach(material=>material.dispose());
   });

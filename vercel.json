@@ -3,5 +3,13 @@
   "framework": "vite",
   "installCommand": "npm ci",
   "buildCommand": "npm run build:vercel",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/models/atelier/ring-02/ring-v1.glb",
+      "headers": [
+        {"key": "Cache-Control", "value": "public, max-age=31536000, immutable"}
+      ]
+    }
+  ]
 }

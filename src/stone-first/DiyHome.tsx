@@ -1,10 +1,11 @@
 import {RING02_PRICE,formatYuan} from './ring02/demoOrder';
+import {RING02_POSTER} from './ring02/assets';
 import './diy-home.css';
 
 const templates=[
   {
     name:'围钻戒指',
-    image:'/media/diy/ring-02.png',
+    image:RING02_POSTER,
     editor:'#/stonefirst/ring-02',
     referencePrice:RING02_PRICE.base,
     description:'圆形主石与四段围钻相衬，两侧戒臂镶有配钻。可自选戒头、主石和配钻。',
@@ -20,7 +21,7 @@ export function DiyHome(){
     <div className="diy-template-grid">
       {templates.map(template=><article key={template.editor} className="diy-template">
         <a href={template.editor} className="diy-template-image" aria-label={'查看'+template.name}>
-          <img src={template.image} alt="" width={833} height={500}/>
+          <img src={template.image} alt="" width={822} height={598}/>
         </a>
         <div className="diy-template-details">
           <h2>{template.name}</h2>

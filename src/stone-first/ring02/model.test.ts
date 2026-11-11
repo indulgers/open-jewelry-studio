@@ -1,20 +1,45 @@
 import {readFileSync} from 'node:fs';
-import {Box3,Matrix4,Vector3} from 'three';
+import {Box3,Matrix4,Texture,Vector3} from 'three';
 import {MeshBVH} from 'three-mesh-bvh';
+import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+import {RING02_MODEL,RING02_OVAL} from './assets';
+import {createGemOptics} from '../../viewer/gemOptics';
 import {describe,expect,it} from 'vitest';
 import {BASE_DESIGN,REACHES,SIZES,ZONES,parseDesign,prepareTemplate,fitStones,buildMetal,findNewIntersection} from './model';
 
 const position=(m:Matrix4)=>new Vector3().setFromMatrixPosition(m);
 
 async function fixture() {
-  const source=readFileSync('public/models/atelier/ring-02/source.obj','utf8');
-  const file=readFileSync('public/models/atelier/gems/oval.glb');
-  const glb=await new GLTFLoader().parseAsync(new Uint8Array(file).buffer,'');
-  return prepareTemplate(source,glb.scene);
+  const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+  const scene=async(url:string)=>(await loader.parseAsync(new Uint8Array(readFileSync('public'+url)).buffer,'')).scene;
+  const [model,oval]=await Promise.all([scene(RING02_MODEL),scene(RING02_OVAL)]);
+  return prepareTemplate(model,oval);
 }
 
 describe('ring 02 template',()=>{
+  it('keeps the shipped model under the download budget and preserves each source stone position',async()=>{
+    expect(readFileSync('public'+RING02_MODEL).byteLength).toBeLessThan(1_250_000);
+    const source=new OBJLoader().parse(readFileSync('assets/source/ring-02/source.obj','utf8'));
+    const oval=(await new GLTFLoader().parseAsync(new Uint8Array(readFileSync('public'+RING02_OVAL)).buffer,'')).scene;
+    const original=fitStones(prepareTemplate(source,oval),BASE_DESIGN);
+    const packed=fitStones(await fixture(),BASE_DESIGN);
+    expect(packed.map(stone=>stone.name)).toEqual(original.map(stone=>stone.name));
+    packed.forEach((stone,index)=>{
+      expect(position(stone.matrix).distanceTo(position(original[index].matrix))).toBeLessThan(.001);
+    });
+  });
+
+  it('creates refraction geometry from the actual compressed center stone',async()=>{
+    const center=fitStones(await fixture(),BASE_DESIGN)[0];
+    const environment=new Texture();
+    try{
+      const optics=createGemOptics(center.geometry,environment,'standard');
+      optics.dispose();
+    }finally{environment.dispose();}
+  });
+
   it('recreates all 29 source stones and leaves the source dimensions unchanged by default',async()=>{
     const template=await fixture();
     const stones=fitStones(template,BASE_DESIGN);

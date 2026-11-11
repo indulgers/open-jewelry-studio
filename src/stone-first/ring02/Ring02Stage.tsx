@@ -1,4 +1,4 @@
-import {Suspense,useEffect,useMemo,useRef,type ComponentRef} from 'react';
+import {Suspense,useEffect,useMemo,useRef,useState,type ComponentRef} from 'react';
 import {Canvas,useThree} from '@react-three/fiber';
 import {OrbitControls} from '@react-three/drei';
 import {DoubleSide,OrthographicCamera,type Texture} from 'three';
@@ -7,6 +7,7 @@ import {StudioFillLights} from '../../viewer/StudioFillLights';
 import {createMetalMaterial} from '../../viewer/materials';
 import {createGemOptics,syncGemDraw} from '../../viewer/gemOptics';
 import {STUDIO_PRESETS} from '../../viewer/studioPresets';
+import {Ring02Loading} from './Ring02Loading';
 import {buildMetal,type FittedStone,type RingDesign,type prepareTemplate} from './model';
 
 export const VIEWS=[['overall','整体'],['top','戒面俯视'],['side','镶座侧面'],['macro','镶嵌特写']] as const;
@@ -47,7 +48,7 @@ function GemBatch({stones,environment}:{stones:FittedStone[];environment:Texture
 }
 
 type SceneProps={template:ReturnType<typeof prepareTemplate>;design:RingDesign;stones:FittedStone[]};
-function RingScene({template,design,stones}:SceneProps){
+function RingScene({template,design,stones,onReady}:SceneProps&{onReady?:()=>void}){
   const metal=useMemo(()=>buildMetal(template,design,stones),[template,design,stones]);
   useEffect(()=>()=>metal.forEach(part=>{if(part.owned)part.geometry.dispose();}),[metal]);
   const metalMaterial=useMemo(()=>{
@@ -66,20 +67,22 @@ function RingScene({template,design,stones}:SceneProps){
   }
 
   return <JewelryLighting preset={preset}>{environment=><group scale={.1} dispose={null}>
-    {metal.map(part=><mesh key={part.name} name={part.name} geometry={part.geometry} material={metalMaterial}/>)}
+    {metal.map((part,index)=><mesh key={part.name} name={part.name} geometry={part.geometry} material={metalMaterial} onAfterRender={index===0?onReady:undefined}/>)}
     {[...batches].map(([key,batch])=><GemBatch key={key} stones={batch} environment={environment}/>)}
   </group>}</JewelryLighting>;
 }
 
 export function Ring02Stage({view,reset,...scene}:SceneProps&{view:RingView;reset:number}){
+  const [ready,setReady]=useState(false);
   return <div className="stone-first-canvas" aria-label="戒指 02 三维预览">
     <Canvas orthographic camera={{position:[2.2,2.5,3.6],near:.03,far:30}} dpr={[1,1.5]} frameloop="demand"
       gl={{antialias:true,preserveDrawingBuffer:true}}>
       <color attach="background" args={['#ffffff']}/>
       <ambientLight intensity={.2}/>
       <StudioFillLights neutral/>
-      <Suspense fallback={null}><RingScene {...scene}/></Suspense>
+      <Suspense fallback={null}><RingScene {...scene} onReady={ready?undefined:()=>setReady(true)}/></Suspense>
       <RingCamera view={view} reset={reset}/>
     </Canvas>
+    {!ready&&<Ring02Loading/>}
   </div>;
 }

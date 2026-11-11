@@ -1,9 +1,9 @@
 import {lazy,Suspense,useCallback,useEffect,useReducer,useState} from 'react';
-import {DEFAULT_CONFIGURATION,configurationReducer} from './configuration/configuration';
+import {preload} from 'react-dom';
+import {DEFAULT_CONFIGURATION,METALS,configurationReducer} from './configuration/configuration';
 import {STORAGE_KEY} from './configuration/storage';
 import {Configurator} from './components/Configurator';
 import {AssetCredits} from './components/AssetCredits';
-import {METALS} from './viewer/materials';
 import type {Quality} from './viewer/quality';
 import type {ModelMode} from './assets/referenceManifest';
 import {ATELIER_GEMS,atelierGem,type GemShapeId} from './assets/atelierManifest';
@@ -17,8 +17,17 @@ import {ModuleStudio} from './components/ModuleStudio';
 import {StageLoading} from './components/StageLoading';
 import {DiyHome} from './stone-first/DiyHome';
 import {DiyCart} from './stone-first/DiyCart';
+import {RING02_MODEL,RING02_OVAL,RING02_POSTER} from './stone-first/ring02/assets';
+import {STUDIO_ENVIRONMENT} from './viewer/studioEnvironment';
+import {Ring02Loading} from './stone-first/ring02/Ring02Loading';
 const JewelryStage=lazy(()=>import('./viewer/JewelryStage').then(module=>({default:module.JewelryStage})));
-const Ring02Studio=lazy(()=>import('./stone-first/ring02/Ring02Studio').then(module=>({default:module.Ring02Studio})));
+const Ring02Studio=lazy(()=>{
+  preload(RING02_POSTER,{as:'image',fetchPriority:'high'});
+  for(const href of [RING02_MODEL,RING02_OVAL,STUDIO_ENVIRONMENT.url]){
+    preload(href,{as:'fetch',crossOrigin:'anonymous'});
+  }
+  return import('./stone-first/ring02/Ring02Studio').then(module=>({default:module.Ring02Studio}));
+});
 const StoneFirstStudio=lazy(()=>import('./stone-first/StoneFirstStudio').then(module=>({default:module.StoneFirstStudio})));
 
 function JewelryStudio({active}:{active:boolean}){
@@ -159,6 +168,6 @@ export default function App(){
     </header>
     <section id="panel-showroom" role="tabpanel" aria-labelledby="tab-showroom" hidden={tab!=='showroom'}><JewelryStudio active={tab==='showroom'}/></section>
     <section id="panel-modules" aria-label="模组 DIY" hidden={tab!=='modules'}>{modulesVisited&&<ModuleStudio active={tab==='modules'}/>}</section>
-    <section id="panel-stonefirst" role="tabpanel" aria-labelledby="tab-stonefirst" hidden={tab!=='stonefirst'}>{stoneVisited&&(diyPage==='catalog'?<DiyHome/>:diyPage==='cart'?<DiyCart/>:<Suspense fallback={<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='ring02'?<Ring02Studio/>:<StoneFirstStudio/>}</Suspense>)}</section>
+    <section id="panel-stonefirst" role="tabpanel" aria-labelledby="tab-stonefirst" hidden={tab!=='stonefirst'}>{stoneVisited&&(diyPage==='catalog'?<DiyHome/>:diyPage==='cart'?<DiyCart/>:<Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='ring02'?<Ring02Studio/>:<StoneFirstStudio/>}</Suspense>)}</section>
   </div>;
 }

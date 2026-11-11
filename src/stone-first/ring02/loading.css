@@ -1,0 +1,29 @@
+.ring02-stage-loading {
+  position: relative;
+  max-width: 880px;
+  min-height: min(325px, 72vw);
+  display: grid;
+  place-items: center;
+  margin-inline: auto;
+  background: #fff;
+}
+.ring02-stage-loading img {width: 100%;height: auto;max-height: 65vh;object-fit: contain}
+.ring02-stage-loading [role=status] {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.ring02-stage-loading button {color: var(--accent);text-decoration: underline}
+.stone-first-canvas > .ring02-stage-loading {
+  position: absolute;
+  inset: 0;
+  grid-template-rows: minmax(0,1fr) auto;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+}
+.stone-first-canvas > .ring02-stage-loading img {height: 100%;max-height: 100%}
