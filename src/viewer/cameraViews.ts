@@ -1,5 +1,5 @@
 import type {ModelMode} from '../assets/referenceManifest';
-export type InspectionView='overall'|'front'|'stone'|'side';
+export type InspectionView='overall'|'front'|'stone'|'side'|'pave';
 export function cameraView(view:InspectionView,compact=false,modelMode:ModelMode='procedural'):{position:[number,number,number];target:[number,number,number]}{
   if(modelMode==='gem'){
     if(view==='front')return {position:[0,compact?8:6.6,0.001],target:[0,0,0]};
@@ -7,6 +7,7 @@ export function cameraView(view:InspectionView,compact=false,modelMode:ModelMode
     return {position:view==='stone'?(compact?[2,3.7,4.7]:[1.5,3.1,4]):[2.4,3.2,5.4],target:[0,0,0]};
   }
   if(modelMode==='reference'){
+    if(view==='pave')return {position:compact?[1.65,2.65,2.35]:[1.35,2.45,2.05],target:[0.45,1.13,0]};
     if(view==='front')return {position:[0,compact?6.7:5.25,0.12],target:[0,0.72,0]};
     if(view==='stone')return {position:compact?[1.55,3.0,2.85]:[1.5,2.82,2.7],target:[0,1.18,0]};
     if(view==='side')return {position:[0,1.24,compact?3.6:3.15],target:[0,0.98,0]};

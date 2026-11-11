@@ -1,6 +1,7 @@
 import {BoxGeometry,Color,DataTexture,Matrix4,PerspectiveCamera,Vector2,WebGLRenderTarget,type WebGLRenderer} from 'three';
 import {describe,expect,it} from 'vitest';
-import {attenuationCoefficients,createGemOptics,syncGemDraw} from './gemOptics';
+import {attenuationCoefficients,createGemOptics,syncGemDraw,updateGemOptics} from './gemOptics';
+import {STONE_APPEARANCES} from './stoneAppearance';
 
 describe('open gemstone optics',()=>{
   it('derives path-length absorption without tinting a white diamond',()=>{
@@ -9,6 +10,19 @@ describe('open gemstone optics',()=>{
     expect(Math.exp(-coefficients.x*2)).toBeCloseTo(0.5);
     expect(Math.exp(-coefficients.y*4)).toBeCloseTo(0.0625);
     expect(()=>attenuationCoefficients(new Color('white'),0)).toThrow();
+  });
+  it('changes the center gem optical path without recreating the mesh',()=>{
+    const geometry=new BoxGeometry(),environment=new DataTexture(),owned=createGemOptics(geometry,environment,'standard');
+    const originalBvh=owned.material.uniforms.bvh.value;
+    updateGemOptics(owned.material,{appearance:'sapphire',dispersion:0.006});
+    expect(owned.material.uniforms.ior.value).toBe(STONE_APPEARANCES.sapphire.ior);
+    expect(owned.material.uniforms.attenuation.value.length()).toBeGreaterThan(0);
+    expect(owned.material.uniforms.aberrationStrength.value).toBeCloseTo(0.006*STONE_APPEARANCES.sapphire.dispersionScale);
+    expect(owned.material.uniforms.bvh.value).toBe(originalBvh);
+    updateGemOptics(owned.material,{appearance:'diamond'});
+    expect(owned.material.uniforms.ior.value).toBe(2.42);
+    expect(owned.material.uniforms.attenuation.value.length()).toBeCloseTo(0);
+    owned.dispose();geometry.dispose();environment.dispose();
   });
   it('uses actual mirrored/jittered draw camera and framebuffer pixel dimensions',()=>{
     const geometry=new BoxGeometry(),environment=new DataTexture(),owned=createGemOptics(geometry,environment,'standard');

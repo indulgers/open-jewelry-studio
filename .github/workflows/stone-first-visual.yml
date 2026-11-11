@@ -1,0 +1,46 @@
+name: Stone-first browser review
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.56.1-noble
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        recipe: [floral-solitaire, floral-pave, architectural-halo]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: npm
+      - run: npm ci
+      - run: |
+          mkdir -p /tmp/stone-first-playwright
+          cd /tmp/stone-first-playwright
+          npm init -y
+          npm install --no-audit --no-fund playwright@1.56.1
+      - name: Start the preview server
+        run: |
+          npm run dev -- --port 5179 > /tmp/stone-first-vite.log 2>&1 &
+          for i in $(seq 1 50); do
+            if curl -sf http://127.0.0.1:5179/#/stonefirst >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/stone-first-vite.log
+          exit 1
+      - name: Take actual WebGL screenshots
+        run: |
+          cp scripts/stone-first-capture.mjs /tmp/stone-first-playwright/capture.mjs
+          STONE_RECIPE=${{ matrix.recipe }} node /tmp/stone-first-playwright/capture.mjs
+      - name: Upload visual evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stone-first-webgl-${{ matrix.recipe }}
+          path: artifacts/stone-first/*.png
+          if-no-files-found: warn

@@ -10,10 +10,11 @@ import {prepareMount} from './prepareMount';
 import {restoreMountData} from './mountPreparationData';
 import {OpticalGem} from './OpticalGem';
 import type {Quality} from './quality';
+import type {StoneAppearance} from './stoneAppearance';
 import type {StudioPreset} from './studioPresets';
 
-export function ProductRing({ringStyle,metal,environment,quality,simplified,onReady,preset}:{
-  ringStyle:FinishedRingId;metal:MetalFinish;environment:Texture;quality:Quality;simplified:boolean;onReady:()=>void;preset:StudioPreset;
+export function ProductRing({ringStyle,metal,environment,quality,simplified,onReady,preset,stoneAppearance='diamond'}:{
+  ringStyle:FinishedRingId;metal:MetalFinish;environment:Texture;quality:Quality;simplified:boolean;onReady:()=>void;preset:StudioPreset;stoneAppearance?:StoneAppearance;
 }){
   const definition=finishedRing(ringStyle);
   const [gltf,round]=useGLTF(definition.replaceCenter?[definition.url,atelierGem('round').url]:[definition.url],definition.draco||false);
@@ -39,7 +40,7 @@ export function ProductRing({ringStyle,metal,environment,quality,simplified,onRe
   if(!mount)return null;
   return <group dispose={null}>
     {ring.metals.map(part=><mesh key={part.name} name={part.name} geometry={part.geometry} material={material}/>)}
-    {ring.gems.map(part=><OpticalGem key={part.name} name={part.name} geometry={part.geometry} {...{environment,quality,simplified,options:optics}}
+    {ring.gems.map(part=><OpticalGem key={part.name} name={part.name} geometry={part.geometry} {...{environment,quality,simplified}} options={/^center/i.test(part.name)&&definition.replaceCenter?{...optics,appearance:stoneAppearance}:optics}
       onReady={()=>{readyGems.add(part.name);if(readyGems.size===ring.gems.length)onReady()}}/>)}
   </group>;
 }

@@ -20,6 +20,7 @@ import {LooseGem} from './LooseGem';
 import {REFERENCE_ASSETS,type ModelMode} from '../assets/referenceManifest';
 import {JewelryPostprocessing} from './JewelryPostprocessing';
 import {STUDIO_PRESETS,type StudioPreset, type StudioPresetId} from './studioPresets';
+import type {StoneAppearance} from './stoneAppearance';
 import {ATELIER_GEMS,atelierGem,type GemShapeId} from '../assets/atelierManifest';
 import {FINISHED_RINGS,type FinishedRingId} from '../assets/finishedRings';
 import {PRODUCT_VIEWS,VIEW_LABELS,SAMPLE_IMAGES,type ProductImage} from '../assets/productMedia';
@@ -28,15 +29,15 @@ import {ProductGallery} from '../components/ProductGallery';
 import {SceneReady} from './SceneReady';
 import {StageLoading} from '../components/StageLoading';
 
-function JewelryScene({configuration,quality,simplified,onReady,modelMode,captureBusy,preset,gemShape,ringStyle,stageMode}:{
-  configuration:Configuration;quality:Quality;simplified:boolean;onReady:()=>void;modelMode:ModelMode;captureBusy:boolean;preset:StudioPreset;gemShape:GemShapeId;ringStyle:FinishedRingId;stageMode:StageMode;
+function JewelryScene({configuration,quality,simplified,onReady,modelMode,captureBusy,preset,gemShape,ringStyle,stageMode,stoneAppearance}:{
+  configuration:Configuration;quality:Quality;simplified:boolean;onReady:()=>void;modelMode:ModelMode;captureBusy:boolean;preset:StudioPreset;gemShape:GemShapeId;ringStyle:FinishedRingId;stageMode:StageMode;stoneAppearance:StoneAppearance;
 }){
   const settings=qualitySettings(quality,simplified);
   const gl=useThree(s=>s.gl),invalidate=useThree(s=>s.invalidate);
   useLayoutEffect(()=>{gl.toneMappingExposure=preset.exposure;invalidate();},[gl,invalidate,preset]);
   return <>
     <JewelryLighting preset={preset}>{environment=>modelMode==='reference'
-      ?<ProductRing ringStyle={ringStyle} metal={configuration.metalFinish} {...{environment,quality,simplified,onReady,preset}}/>
+      ?<ProductRing ringStyle={ringStyle} metal={configuration.metalFinish} {...{environment,quality,simplified,onReady,preset,stoneAppearance}}/>
       :modelMode==='gem'?<LooseGem shape={gemShape} {...{environment,quality,simplified,onReady,preset}}/>
       :<RingAssembly {...{configuration,preset}}>
       <GemAsset size={configuration.stoneSize} {...{quality,simplified,environment,onReady,preset}}/>
@@ -69,9 +70,9 @@ function CameraControl({autoRotate,resetToken,inspection,onPerformanceWarning,mo
     onStart={()=>setInteracting(true)} onEnd={()=>setInteracting(false)} target={cameraView(inspection,compact,modelMode).target}/>;
 }
 
-export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,studioPreset,gemShape,ringStyle,stageMode,captureRequest,onImages,onCaptureProgress,captureBusy,onCaptureReady,poster}:{
+export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,studioPreset,gemShape,ringStyle,stageMode,stoneAppearance='diamond',captureRequest,onImages,onCaptureProgress,captureBusy,onCaptureReady,poster}:{
   configuration:Configuration;quality:Quality;autoRotate:boolean;resetToken:number;onPerformanceWarning:()=>void;modelMode:ModelMode;ringStyle:FinishedRingId;stageMode:StageMode;
-  studioPreset:StudioPresetId;gemShape:GemShapeId;captureRequest:number;onImages:(images:ProductImage[])=>void;onCaptureProgress:(message:string)=>void;captureBusy:boolean;onCaptureReady:(ready:boolean)=>void;poster?:string;
+  studioPreset:StudioPresetId;gemShape:GemShapeId;stoneAppearance?:StoneAppearance;captureRequest:number;onImages:(images:ProductImage[])=>void;onCaptureProgress:(message:string)=>void;captureBusy:boolean;onCaptureReady:(ready:boolean)=>void;poster?:string;
 }){
   const [readyMode,setReadyMode]=useState<string|null>(null),[simplified,setSimplified]=useState(false),[contextLost,setContextLost]=useState(false);
   const [failed,setFailed]=useState(false);
@@ -80,7 +81,7 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
   const readyKey=`${modelMode}/${gemShape}/${ringStyle}/${quality}/${simplified}`,ready=readyMode===readyKey&&!contextLost&&!failed,preset=STUDIO_PRESETS[studioPreset];
   const prepared=preparedMode===readyKey&&!contextLost&&!failed;
   useEffect(()=>{onCaptureReady(ready);return()=>onCaptureReady(false);},[ready,onCaptureReady]);
-  const contentKey=`${readyKey}/${studioPreset}/${JSON.stringify(configuration)}`;
+  const contentKey=`${readyKey}/${studioPreset}/${stoneAppearance}/${JSON.stringify(configuration)}`;
   const [attempt,setAttempt]=useState(0);
   const [inspection,setInspection]=useState<InspectionView>('overall');
   useEffect(()=>setInspection('overall'),[resetToken]);
@@ -102,7 +103,7 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
     <ViewerBoundary onRetry={retry} onError={()=>setFailed(true)}>
       <Canvas key={attempt} dpr={[1,settings.maxDpr]} camera={{position:[2.9,2.6,4.7],fov:32,near:0.1,far:50}}
         frameloop={autoRotate&&ready?'always':'demand'} gl={{antialias:true,alpha:true,powerPreference:'high-performance',preserveDrawingBuffer:true}}
-        fallback={<div className="viewer-message" role="alert" aria-hidden={rendererCreated||undefined}><p>当前浏览器无法使用三维预览，以下为固定样板图。</p><ProductGallery images={SAMPLE_IMAGES} sample/></div>}
+        fallback={<div className="viewer-message" role="alert" aria-hidden={rendererCreated||undefined}><p>当前浏览器无法使用三维预览，{poster?'以下为固定样板图。':'请尝试使用支持 WebGL 的浏览器。'}</p>{poster&&<ProductGallery images={SAMPLE_IMAGES} sample/>}</div>}
         onCreated={({gl})=>{
           setRendererCreated(true);
           gl.toneMapping=NeutralToneMapping;gl.toneMappingExposure=1;gl.outputColorSpace=SRGBColorSpace;gl.setClearAlpha(0);
@@ -121,9 +122,9 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
         }}>
         <ambientLight intensity={0.2}/>
         {stageMode==='gallery'&&<StudioBackdrop/>}
-        <StudioFillLights/>
+        <StudioFillLights neutral={studioPreset==='catalog'}/>
         <Suspense fallback={null}>
-          <JewelryScene {...{configuration,quality,simplified,modelMode,captureBusy,preset,gemShape,ringStyle,stageMode}} onReady={preparedCallback}/>
+          <JewelryScene {...{configuration,quality,simplified,modelMode,captureBusy,preset,gemShape,ringStyle,stageMode,stoneAppearance}} onReady={preparedCallback}/>
         </Suspense>
         <SceneReady prepared={prepared} onReady={readyCallback}/>
         <CameraControl {...{autoRotate,resetToken,inspection,onPerformanceWarning,modelMode,ready}}/>
@@ -134,6 +135,7 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
     <div className="inspection-views" role="group" aria-label="观察视角">
       {PRODUCT_VIEWS.map(view=><button key={view} disabled={captureBusy||!ready} aria-pressed={inspection===view}
         onClick={()=>setInspection(view)}>{VIEW_LABELS[view]}</button>)}
+      {modelMode==='reference'&&<button disabled={captureBusy||!ready} aria-pressed={inspection==='pave'} onClick={()=>setInspection('pave')}>密镶特写</button>}
     </div>
     {contextLost&&<div className="viewer-message" role="alert"><strong>三维渲染已中断</strong><p>等待浏览器恢复，或重新载入页面。当前选择仍保留。</p><button onClick={()=>window.location.reload()}>重新载入页面</button></div>}
     <button disabled={captureBusy} className="compatibility-control" onClick={()=>setSimplified(v=>!v)} aria-pressed={simplified}>
