@@ -5,6 +5,10 @@ import {HDRLoader} from 'three/addons/loaders/HDRLoader.js';
 import {STUDIO_ENVIRONMENT} from './studioEnvironment';
 import {STUDIO_PRESETS,type StudioPreset} from './studioPresets';
 
+export function preloadJewelryLighting(){
+  useLoader.preload(HDRLoader,STUDIO_ENVIRONMENT.url);
+}
+
 export function clearJewelryLightingCache(){
   useLoader.clear(HDRLoader,STUDIO_ENVIRONMENT.url);
 }

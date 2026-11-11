@@ -2,6 +2,7 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {Mesh} from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+import {preloadJewelryLighting} from '../../viewer/JewelryLighting';
 import {STONE_APPEARANCES,STONE_APPEARANCE_IDS} from '../../viewer/stoneAppearance';
 import {Ring02Stage,VIEWS,type RingView} from './Ring02Stage';
 import {
@@ -16,6 +17,13 @@ import {RING02_TEMPLATE} from './assets';
 import {Ring02Loading} from './Ring02Loading';
 import '../stone-first.css';
 import './ring02.css';
+
+// The GLB decoder can transfer decoded buffers from its built-in Worker.
+if(typeof Worker!=='undefined'&&MeshoptDecoder.supported){
+  try{MeshoptDecoder.useWorkers(1);}
+  catch{/* Keep the decoder's synchronous path when Worker construction is unavailable. */}
+}
+preloadJewelryLighting();
 
 const LABELS:Record<Zone,string>={center:'主石',halo:'外围围钻',shoulder:'戒臂配钻'};
 const DESCRIPTIONS:Record<Zone,string>={

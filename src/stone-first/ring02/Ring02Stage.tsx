@@ -81,7 +81,7 @@ function RingThumbnail({captureRef,ready}:{captureRef:RefObject<(()=>string|unde
 function GemBatch({stones,environment}:{stones:FittedStone[];environment:Texture}){
   const {geometry,appearance}=stones[0];
   const optics=useMemo(()=>createGemOptics(geometry,environment,'standard',{
-    appearance,environmentRotation:preset.rotation,environmentIntensity:preset.gemIntensity,dispersion:preset.dispersion,
+    appearance,environmentOnly:true,environmentRotation:preset.rotation,environmentIntensity:preset.gemIntensity,dispersion:preset.dispersion,
   }),[geometry,environment,appearance]);
   useEffect(()=>()=>optics.dispose(),[optics]);
   return stones.map(stone=><mesh key={stone.name} name={stone.name} geometry={geometry} material={optics.material}

@@ -66,6 +66,7 @@ vec3 outsideRadiance(vec3 origin,vec3 direction,vec3 smoothRay){
   float facingObserver=dot(direction,towardCamera);
   float obstruction=smoothstep(0.9563,0.9848,facingObserver);
   vec3 studio=environment(direction,smoothRay)*mix(1.0,0.12,obstruction);
+  #ifndef ENVIRONMENT_ONLY
   if(hasMount&&mountDetail>0.0){
     uvec4 face=uvec4(0u);vec3 normal=vec3(0.0,1.0,0.0),bary=vec3(0.0);float side=1.0,distance=0.0;
     if(bvhIntersectFirstHit(mountBvh,origin+direction*0.00015,direction,face,normal,bary,side,distance)){
@@ -80,6 +81,7 @@ vec3 outsideRadiance(vec3 origin,vec3 direction,vec3 smoothRay){
       return mix(studio,radiance*f,mountDetail);
     }
   }
+  #endif
   return studio;
 }
 vec3 traceRadiance(vec3 incoming,vec3 normal,float eta,vec3 smoothRay){
@@ -127,13 +129,26 @@ void main(){
   float pixelDiameter=stoneDiameter*scale*detailResolution.y*0.5*gl_FragCoord.w/projectionMatrixInverse[1][1];
   // A small accent samples the studio; resolve the nearby prongs as their reflection becomes visible.
   mountDetail=smoothstep(24.0,48.0,pixelDiameter);
-  vec3 transmitted=traceRadiance(incident,normal,ior,smoothRay);
-  // Resolve separate wavelengths as the stone grows on screen; tiny pavé keeps one full-color path.
+  // Use one shader call site for all wavelengths so the driver compiles the
+  // BVH traversal once. The wavelengths, bounce budget and pavé threshold match.
   float spread=aberrationStrength*smoothstep(24.0,52.0,pixelDiameter);
+  #ifdef ENVIRONMENT_ONLY
+  vec3 transmitted=vec3(0.0);
+  int rayCount=spread>0.0?3:1;
+  for(int ray=0;ray<rayCount;ray++){
+    float eta=ray==0?ior:ray==1?ior*(1.0-spread):ior*(1.0+spread);
+    vec3 radiance=traceRadiance(incident,normal,eta,smoothRay);
+    if(ray==0)transmitted=radiance;
+    else if(ray==1)transmitted.r=radiance.r;
+    else transmitted.b=radiance.b;
+  }
+  #else
+  vec3 transmitted=traceRadiance(incident,normal,ior,smoothRay);
   if(spread>0.0){
     transmitted.r=traceRadiance(incident,normal,ior*(1.0-spread),smoothRay).r;
     transmitted.b=traceRadiance(incident,normal,ior*(1.0+spread),smoothRay).b;
   }
+  #endif
   float fresnel=fresnelDielectric(dot(-incident,normal),1.0,ior);
   vec3 reflected=outsideRadiance(vWorldPosition,reflect(incident,normal),smoothRay);
   gl_FragColor=vec4(mix(transmitted,reflected,fresnel),1.0);
@@ -164,7 +179,7 @@ export function updateGemOptics(material:ShaderMaterial,options:GemOpticsOptions
   u.mountColor.value.copy(options.mount?.color??new Color('white'));
   u.mountRoughness.value=options.mount?.roughness??0.15;
 }
-export function createGemOptics(geometry:BufferGeometry,environment:Texture,quality:Quality,options:GemOpticsOptions={}){
+export function createGemOptics(geometry:BufferGeometry,environment:Texture,quality:Quality,options:GemOpticsOptions&{environmentOnly?:boolean}={}){
   const settings=qualitySettings(quality),material=new BaseRefractionMaterial();
   const bvh=new MeshBVHUniformStruct();
   // Split-normal facet meshes are geometrically closed but topologically open: every
@@ -181,7 +196,7 @@ export function createGemOptics(geometry:BufferGeometry,environment:Texture,qual
   catch(error){bvh.dispose();material.dispose();throw error;}
   finally{tracingGeometry.dispose();}
   material.fragmentShader=fragmentShader;
-  material.defines={};
+  material.defines=options.environmentOnly?{ENVIRONMENT_ONLY:1}:{};
   material.uniforms.envMap.value=environment;
   material.uniforms.bvh.value=bvh;
   material.uniforms.bounces.value=settings.bounces;
