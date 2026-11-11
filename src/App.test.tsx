@@ -16,7 +16,7 @@ vi.mock('./viewer/JewelryStage',()=>({JewelryStage:({onCaptureReady,onCapturePro
 vi.mock('./stone-first/ring02/Ring02Studio',()=>({Ring02Studio:()=> <main><h1>测试围钻戒指编辑器</h1></main>}));
 
 beforeEach(()=>{
-  window.history.replaceState(null,'','/');
+  window.history.replaceState(null,'','/#/showroom');
   vi.stubGlobal('matchMedia',()=>({matches:false,addEventListener:()=>{},removeEventListener:()=>{}}));
 });
 afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();});
@@ -71,9 +71,16 @@ describe('stone-first finished ring studies',()=>{
 });
 
 describe('shared studio navigation',()=>{
+  it('opens DIY at the root and offers the showroom as a secondary link',()=>{
+    window.history.replaceState(null,'','/');
+    render(<App/>);
+    expect(screen.getByRole('heading',{name:'定制你的戒指'})).toBeInTheDocument();
+    expect(screen.getByRole('link',{name:/探索珠宝展台/})).toHaveAttribute('href','#/showroom');
+    expect(screen.queryByRole('tab',{name:'珠宝展台'})).toBeNull();
+  });
   it('enters the DIY template list and opens the listed ring editor',async()=>{
     await loaded();
-    fireEvent.click(screen.getByRole('tab',{name:'镶嵌 DIY'}));
+    act(()=>{window.history.replaceState(null,'','/#/diy');window.dispatchEvent(new HashChangeEvent('hashchange'));});
     expect(window.location.hash).toBe('#/diy');
     expect(screen.getByRole('heading',{name:'定制你的戒指'})).toBeInTheDocument();
     const start=screen.getByRole('link',{name:'开始 DIY'});
@@ -102,7 +109,7 @@ describe('shared studio navigation',()=>{
     expect(frame).toHaveAttribute('src','/forme/index.html?embedded=1');
     expect(window.location.hash).toBe('#/modules');
     expect(screen.queryByText('测试模型就绪')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('tab',{name:'珠宝展台'}));
+    act(()=>{window.location.hash='/showroom';window.dispatchEvent(new HashChangeEvent('hashchange'));});
     await screen.findByRole('button',{name:'测试模型就绪'});
     act(()=>{window.history.replaceState(null,'','/#/modules');window.dispatchEvent(new HashChangeEvent('hashchange'));});
     expect(screen.getByTitle('FORME 模组 DIY 设计工作台')).toBe(frame);
@@ -113,8 +120,6 @@ describe('shared studio navigation',()=>{
     expect(screen.queryByRole('tab',{name:'模组 DIY'})).toBeNull();
     expect(screen.getByTitle('FORME 模组 DIY 设计工作台')).toHaveAttribute('src','/forme/index.html?embedded=1#design=example');
     act(()=>{window.history.replaceState(null,'','/#/showroom');window.dispatchEvent(new HashChangeEvent('hashchange'));});
-    expect(screen.getByRole('tab',{name:'珠宝展台'})).toHaveAttribute('aria-selected','true');
-    fireEvent.keyDown(screen.getByRole('tab',{name:'珠宝展台'}),{key:'ArrowRight'});
-    expect(screen.getByRole('tab',{name:'镶嵌 DIY'})).toHaveFocus();
+    expect(screen.getByRole('link',{name:'镶嵌 DIY'})).toBeInTheDocument();
   });
 });

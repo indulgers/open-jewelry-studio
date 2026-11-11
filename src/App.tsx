@@ -121,8 +121,6 @@ function JewelryStudio({active}:{active:boolean}){
   </div>;
 }
 
-const tabs=[{id:'showroom',label:'珠宝展台'},{id:'stonefirst',label:'镶嵌 DIY'}] as const;
-type VisibleTab=typeof tabs[number]['id'];
 type StudioRoute={tab:'showroom'|'modules'}|{tab:'stonefirst';page:'catalog'|'cart'|'ring02'|'recipes'};
 function readRoute():StudioRoute{
   const hash=window.location.hash;
@@ -133,7 +131,8 @@ function readRoute():StudioRoute{
   }
   if(hash.startsWith('#/stonefirst'))return {tab:'stonefirst',page:'recipes'};
   if(hash.startsWith('#/modules'))return {tab:'modules'};
-  return {tab:'showroom'};
+  if(hash.startsWith('#/showroom'))return {tab:'showroom'};
+  return {tab:'stonefirst',page:'catalog'};
 }
 export default function App(){
   const [route,setRoute]=useState(readRoute);
@@ -149,26 +148,17 @@ export default function App(){
     window.addEventListener('hashchange',sync);
     return()=>window.removeEventListener('hashchange',sync);
   },[]);
-  const select=(next:VisibleTab)=>{
-    window.location.hash=next==='stonefirst'?'/diy':'/showroom';
-    setRoute(readRoute());
-  };
   return <div className="app-shell" data-workspace={tab}>
     <header className="site-header"><a className="brand" href="/" aria-label="戒指实验室首页">
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m5 11 6-6h10l6 6-11 17L5 11Zm0 0h22M11 5l5 23L21 5M11 5l-1 6m11-6 1 6"/></svg>
       <span>戒指实验室</span></a>
-    <div className="workspace-tabs" role="tablist" aria-label="工作空间">
-      {tabs.map((item,index)=><button key={item.id} id={`tab-${item.id}`} role="tab" aria-selected={tab===item.id} aria-controls={`panel-${item.id}`} tabIndex={tab===item.id||(tab==='modules'&&index===0)?0:-1} onClick={()=>select(item.id)} onKeyDown={event=>{
-        const target=event.key==='Home'?0:event.key==='End'?tabs.length-1:event.key==='ArrowRight'?(index+1)%tabs.length:event.key==='ArrowLeft'?(index+tabs.length-1)%tabs.length:null;
-        if(target===null)return;event.preventDefault();select(tabs[target].id);document.getElementById(`tab-${tabs[target].id}`)?.focus();
-      }}>{item.label}</button>)}
-    </div>
+    <a className="workspace-home" href="#/diy" aria-current={tab==='stonefirst'?'page':undefined}>镶嵌 DIY</a>
     <a className="header-cart" aria-label="购物车" href="#/diy/cart" aria-current={tab==='stonefirst'&&diyPage==='cart'?'page':undefined}>
       <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M5 8h14l1 13H4L5 8Zm4 0V6a3 3 0 0 1 6 0v2"/></svg><span>购物车</span>
     </a>
     </header>
-    <section id="panel-showroom" role="tabpanel" aria-labelledby="tab-showroom" hidden={tab!=='showroom'}><JewelryStudio active={tab==='showroom'}/></section>
+    <section id="panel-showroom" aria-label="珠宝展台" hidden={tab!=='showroom'}><JewelryStudio active={tab==='showroom'}/></section>
     <section id="panel-modules" aria-label="模组 DIY" hidden={tab!=='modules'}>{modulesVisited&&<ModuleStudio active={tab==='modules'}/>}</section>
-    <section id="panel-stonefirst" role="tabpanel" aria-labelledby="tab-stonefirst" hidden={tab!=='stonefirst'}>{tab==='stonefirst'&&(diyPage==='catalog'?<DiyHome/>:diyPage==='cart'?<DiyCart/>:<Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='ring02'?<Ring02Studio/>:<StoneFirstStudio/>}</Suspense>)}</section>
+    <section id="panel-stonefirst" aria-label="镶嵌 DIY" hidden={tab!=='stonefirst'}>{tab==='stonefirst'&&(diyPage==='catalog'?<DiyHome/>:diyPage==='cart'?<DiyCart/>:<Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='ring02'?<Ring02Studio/>:<StoneFirstStudio/>}</Suspense>)}</section>
   </div>;
 }

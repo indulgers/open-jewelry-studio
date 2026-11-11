@@ -31,5 +31,6 @@ export function DiyHome(){
         </div>
       </article>)}
     </div>
+    <p className="diy-showroom-link"><a href="#/showroom">探索珠宝展台 →</a></p>
   </main>;
 }
