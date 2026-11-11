@@ -1,0 +1,36 @@
+---
+version: 1
+slug: "src-stone-first-diyhome-tsx"
+primary_target: "src/stone-first/DiyHome.tsx"
+related_targets: ["src/components/ShopHeader.tsx","src/stone-first/DiyCart.tsx","src/stone-first/ring02/Ring02Studio.tsx","src/stone-first/reference/SourceRingStudio.tsx","src/stone-first/RingStylePicker.tsx","src/stone-first/catalog.ts"]
+---
+
+# 相言官网原型迁移
+
+来源：用户提供的《珠宝品牌官网原型.html》。以该原型为视觉依据，保留巴黎极简、法式浪漫、意式雕塑、建筑黑白四套主题；用户明确要求将下方主题展示区改为顶部 select、面向中国用户、统一首页/编辑器/购物车，并接入新 OBJ。原型中的品牌商业承诺、评价、金价对比不是已确认产品事实，不带入。
+
+## Direction contract
+
+THESIS: 从佩戴图认识款式，进入真实模型的定制，或将原款加入购物车。首页 Persuade，编辑器与购物车 Operate。
+
+OWN-WORLD: 按原型的四套 CSS 配色、圆角和标题气质实现整站主题。默认巴黎极简使用奶白、暖黑和古金色界面强调色，戒指始终银色。既有「相言」字标保留。中文标题使用宋体，控件使用中文系统无衬线。
+
+STORY: 围钻款近景佩戴图引导，随后展示四款新增款式的近景佩戴图卡，再呈现五款原款三维模型图、定制细节说明与品牌介绍。四张佩戴图卡分别进入自己的编辑器，所有原款选购入口按对应款式加入演示购物车；没有支付功能或未落实的保证。
+
+FIRST VIEWPORT: 1360px 容器，左右 1.05:0.95 分栏，左侧中文标题/说明/定制和原款按钮，右侧用户款式参考生成的模特佩戴图与原款购买条。移动端上下排列，风格 select 始终在顶部可见。
+
+FORM: 用户指定的 HTML 原型为已批准方向，不进行候选风格抽签。主题选择跨首页、购物车与全部编辑器持久化，编辑器内另有款式 select；不对产品图片或 3D 使用主题滤镜。四张佩戴图卡桌面四列、手机两列，五款原款图桌面三列、手机两列，共用已定稿的主题、标题和按钮。
+
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+
+## 已完成的模型与图片接入
+
+读取问题已解决。用户将四个 OBJ 复制到 Downloads 后已成功读取，花环、花冠、繁花、冠冕四款分别保留自身原始几何，与围钻款共同形成五款目录；原始文件、文件哈希、分区及宝石数量记录在 `assets/source/<ring-id>/source.json`。
+
+编辑范围有别。围钻款保留既有镶座、主石与排钻参数，四款新增模型通过 `SourceRingStudio` 调整实际存在的宝石分区外观，并支持 ASCII 刻字文本、撤销、独立草稿、恢复和对比原款，以及按款式保存真实预览截图、配置和演示报价到购物车；新增款式不改变切形、大小、镶座或排钻几何，刻字仅为文本设置和位置示意。
+
+保留源文件实况。`ring-rosette` 原文件只有三颗宝石，即一颗主石和两颗配钻，未将金属花瓣自动补成满钻；四款源文件的单位均未校准，显示归一化不代表实物尺寸已确认。
+
+图片已对应款式。五张近景佩戴图位于 `public/media/campaign/`，按用户反馈缩小戒面并修正戒圈绕指方向，生成来源与最终编辑提示词见 `docs/campaign-provenance.md`；首页继续标注 AI 佩戴示意，准确结构以原款三维模型为准。
+
+仍为本地演示。购物车支持方案详情、移除与参考合计，不收款、不创建真实订单；价格、交期、圈号与制作工艺待正式确认，本轮没有据此宣称已部署、真机验证或制造认证。

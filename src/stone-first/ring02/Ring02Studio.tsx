@@ -1,7 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {Mesh} from 'three';
-import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+import {jewelryModelLoader} from '../../viewer/modelLoader';
 import {preloadJewelryLighting} from '../../viewer/JewelryLighting';
 import {STONE_APPEARANCES,STONE_APPEARANCE_IDS} from '../../viewer/stoneAppearance';
 import {Ring02Stage,VIEWS,type RingView} from './Ring02Stage';
@@ -13,16 +12,12 @@ import {HEADS,type Head} from './head';
 import {newDraft,readDraft,writeDraft,type Draft} from './draft';
 import {addDemoOrder,estimateRing02,formatYuan,hasDemoOrder,priceNote,RING02_PRICE,type DemoOrder} from './demoOrder';
 import {ReviewDialog} from './ReviewDialog';
+import {RingStylePicker} from '../RingStylePicker';
 import {RING02_TEMPLATE} from './assets';
 import {Ring02Loading} from './Ring02Loading';
 import '../stone-first.css';
 import './ring02.css';
 
-// The GLB decoder can transfer decoded buffers from its built-in Worker.
-if(typeof Worker!=='undefined'&&MeshoptDecoder.supported){
-  try{MeshoptDecoder.useWorkers(1);}
-  catch{/* Keep the decoder's synchronous path when Worker construction is unavailable. */}
-}
 preloadJewelryLighting();
 
 const LABELS:Record<Zone,string>={center:'主石',halo:'外围围钻',shoulder:'戒臂配钻'};
@@ -212,7 +207,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     try{
       const created=addDemoOrder({...review,thumbnail,confirmedAt:new Date().toISOString()});
       setReview(null);
-      setCartNotice(created?'已加入演示购物车。':'此方案已在演示购物车。');
+      setCartNotice(created?'已加入购物车。':'此方案已在购物车。');
     }catch{setOrderError(true);}
   }
 
@@ -327,7 +322,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
       <p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p>
       <small>示例交期 {quote.leadTime} · 待工艺确认</small>
     </div>
-    {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看演示购物车</a>:
+    {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:
       !RING02_TEMPLATE.listed?<span>该款式已停售</span>:
       part==='head'?<button className="shop-button" onClick={()=>jumpTo('shoulder')}>下一步 · 配置戒圈</button>:
       <button className="shop-button" disabled={compare} onClick={openReview}>查看方案</button>}
@@ -381,7 +376,7 @@ export function Ring02Studio(){
       if(!response.ok)throw new Error('找不到戒指模板资源');
       return response;
     };
-    const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+    const loader=jewelryModelLoader();
     const source=fetchAsset(RING02_TEMPLATE.model).then(response=>response.arrayBuffer());
     const oval=fetchAsset(RING02_TEMPLATE.oval).then(response=>response.arrayBuffer());
     Promise.all([source,oval]).then(async([modelBytes,ovalBytes])=>{
@@ -415,6 +410,7 @@ export function Ring02Studio(){
     <nav className="ring02-breadcrumb" aria-label="所在页面">
       <a href="#/diy">全部款式</a><span aria-hidden="true">/</span><span aria-current="page">{RING02_TEMPLATE.name}</span>
     </nav>
+    <RingStylePicker id="ring-02"/>
     {template?<Editor template={template}/>:<Ring02Loading retry={error?()=>{setError(false);setAttempt(count=>count+1);}:undefined}/>}
   </main>;
 }

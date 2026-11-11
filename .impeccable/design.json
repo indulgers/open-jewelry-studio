@@ -1,86 +1,877 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-04T08:43:09+00:00",
-  "title": "Design System: 戒指实验室",
+  "generatedAt": "2026-11-11T10:20:37.078844+00:00",
+  "title": "Design System: 相言",
   "extensions": {
     "colorMeta": {
-      "primary": {
+      "shop-page": {
+        "role": "neutral",
+        "displayName": "巴黎极简 · 页面底",
+        "tonalRamp": [
+          "oklch(15.0% 0.0070 88.6)",
+          "oklch(26.4% 0.0070 88.6)",
+          "oklch(37.9% 0.0070 88.6)",
+          "oklch(49.3% 0.0070 88.6)",
+          "oklch(60.7% 0.0070 88.6)",
+          "oklch(72.1% 0.0070 88.6)",
+          "oklch(83.6% 0.0070 88.6)",
+          "oklch(95.0% 0.0070 88.6)"
+        ]
+      },
+      "shop-panel": {
+        "role": "neutral",
+        "displayName": "巴黎极简 · 面板",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "shop-tint": {
+        "role": "neutral",
+        "displayName": "巴黎极简 · 选中底",
+        "tonalRamp": [
+          "oklch(15.0% 0.0197 87.5)",
+          "oklch(26.4% 0.0197 87.5)",
+          "oklch(37.9% 0.0197 87.5)",
+          "oklch(49.3% 0.0197 87.5)",
+          "oklch(60.7% 0.0197 87.5)",
+          "oklch(72.1% 0.0197 87.5)",
+          "oklch(83.6% 0.0197 87.5)",
+          "oklch(95.0% 0.0197 87.5)"
+        ]
+      },
+      "shop-ink": {
+        "role": "neutral",
+        "displayName": "巴黎极简 · 主文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0143 87.5)",
+          "oklch(26.4% 0.0143 87.5)",
+          "oklch(37.9% 0.0143 87.5)",
+          "oklch(49.3% 0.0143 87.5)",
+          "oklch(60.7% 0.0143 87.5)",
+          "oklch(72.1% 0.0143 87.5)",
+          "oklch(83.6% 0.0143 87.5)",
+          "oklch(95.0% 0.0143 87.5)"
+        ]
+      },
+      "shop-muted": {
+        "role": "neutral",
+        "displayName": "巴黎极简 · 次要文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0253 85.9)",
+          "oklch(26.4% 0.0253 85.9)",
+          "oklch(37.9% 0.0253 85.9)",
+          "oklch(49.3% 0.0253 85.9)",
+          "oklch(60.7% 0.0253 85.9)",
+          "oklch(72.1% 0.0253 85.9)",
+          "oklch(83.6% 0.0253 85.9)",
+          "oklch(95.0% 0.0253 85.9)"
+        ]
+      },
+      "shop-accent": {
         "role": "primary",
-        "displayName": "主展台 · 深橄榄",
-        "tonalRamp": ["oklch(15.0% 0.0275 136.8)", "oklch(26.4% 0.0275 136.8)", "oklch(37.9% 0.0275 136.8)", "oklch(49.3% 0.0275 136.8)", "oklch(60.7% 0.0275 136.8)", "oklch(72.1% 0.0275 136.8)", "oklch(83.6% 0.0275 136.8)", "oklch(95.0% 0.0275 136.8)"]
+        "displayName": "巴黎极简 · 强调色",
+        "tonalRamp": [
+          "oklch(15.0% 0.1003 85.9)",
+          "oklch(26.4% 0.1003 85.9)",
+          "oklch(37.9% 0.1003 85.9)",
+          "oklch(49.3% 0.1003 85.9)",
+          "oklch(60.7% 0.1003 85.9)",
+          "oklch(72.1% 0.1003 85.9)",
+          "oklch(83.6% 0.1003 85.9)",
+          "oklch(95.0% 0.1003 85.9)"
+        ]
       },
-      "secondary": {
-        "role": "secondary",
-        "displayName": "主展台 · 黄铜",
-        "tonalRamp": ["oklch(15.0% 0.0613 86.1)", "oklch(26.4% 0.0613 86.1)", "oklch(37.9% 0.0613 86.1)", "oklch(49.3% 0.0613 86.1)", "oklch(60.7% 0.0613 86.1)", "oklch(72.1% 0.0613 86.1)", "oklch(83.6% 0.0613 86.1)", "oklch(95.0% 0.0613 86.1)"]
+      "shop-accent-hover": {
+        "role": "primary",
+        "displayName": "巴黎极简 · 强调深色",
+        "tonalRamp": [
+          "oklch(15.0% 0.0848 84.0)",
+          "oklch(26.4% 0.0848 84.0)",
+          "oklch(37.9% 0.0848 84.0)",
+          "oklch(49.3% 0.0848 84.0)",
+          "oklch(60.7% 0.0848 84.0)",
+          "oklch(72.1% 0.0848 84.0)",
+          "oklch(83.6% 0.0848 84.0)",
+          "oklch(95.0% 0.0848 84.0)"
+        ]
       },
-      "surface": {
+      "shop-line": {
         "role": "neutral",
-        "displayName": "主展台 · 象牙白",
-        "tonalRamp": ["oklch(15.0% 0.0045 78.3)", "oklch(26.4% 0.0045 78.3)", "oklch(37.9% 0.0045 78.3)", "oklch(49.3% 0.0045 78.3)", "oklch(60.7% 0.0045 78.3)", "oklch(72.1% 0.0045 78.3)", "oklch(83.6% 0.0045 78.3)", "oklch(95.0% 0.0045 78.3)"]
+        "displayName": "巴黎极简 · 细边线",
+        "tonalRamp": [
+          "oklch(15.0% 0.0282 88.8)",
+          "oklch(26.4% 0.0282 88.8)",
+          "oklch(37.9% 0.0282 88.8)",
+          "oklch(49.3% 0.0282 88.8)",
+          "oklch(60.7% 0.0282 88.8)",
+          "oklch(72.1% 0.0282 88.8)",
+          "oklch(83.6% 0.0282 88.8)",
+          "oklch(95.0% 0.0282 88.8)"
+        ]
       },
-      "background": {
+      "shop-line-strong": {
         "role": "neutral",
-        "displayName": "主展台 · 石灰石",
-        "tonalRamp": ["oklch(15.0% 0.0115 84.6)", "oklch(26.4% 0.0115 84.6)", "oklch(37.9% 0.0115 84.6)", "oklch(49.3% 0.0115 84.6)", "oklch(60.7% 0.0115 84.6)", "oklch(72.1% 0.0115 84.6)", "oklch(83.6% 0.0115 84.6)", "oklch(95.0% 0.0115 84.6)"]
+        "displayName": "巴黎极简 · 强边线",
+        "tonalRamp": [
+          "oklch(15.0% 0.0331 86.5)",
+          "oklch(26.4% 0.0331 86.5)",
+          "oklch(37.9% 0.0331 86.5)",
+          "oklch(49.3% 0.0331 86.5)",
+          "oklch(60.7% 0.0331 86.5)",
+          "oklch(72.1% 0.0331 86.5)",
+          "oklch(83.6% 0.0331 86.5)",
+          "oklch(95.0% 0.0331 86.5)"
+        ]
       },
-      "line": {
+      "shop-shop-dark": {
         "role": "neutral",
-        "displayName": "主展台 · 细边线",
-        "tonalRamp": ["oklch(15.0% 0.0174 84.6)", "oklch(26.4% 0.0174 84.6)", "oklch(37.9% 0.0174 84.6)", "oklch(49.3% 0.0174 84.6)", "oklch(60.7% 0.0174 84.6)", "oklch(72.1% 0.0174 84.6)", "oklch(83.6% 0.0174 84.6)", "oklch(95.0% 0.0174 84.6)"]
+        "displayName": "巴黎极简 · 深色区",
+        "tonalRamp": [
+          "oklch(15.0% 0.0135 77.7)",
+          "oklch(26.4% 0.0135 77.7)",
+          "oklch(37.9% 0.0135 77.7)",
+          "oklch(49.3% 0.0135 77.7)",
+          "oklch(60.7% 0.0135 77.7)",
+          "oklch(72.1% 0.0135 77.7)",
+          "oklch(83.6% 0.0135 77.7)",
+          "oklch(95.0% 0.0135 77.7)"
+        ]
       },
-      "muted": {
+      "shop-shop-dark-2": {
         "role": "neutral",
-        "displayName": "主展台 · 次要文字",
-        "tonalRamp": ["oklch(15.0% 0.0134 128.8)", "oklch(26.4% 0.0134 128.8)", "oklch(37.9% 0.0134 128.8)", "oklch(49.3% 0.0134 128.8)", "oklch(60.7% 0.0134 128.8)", "oklch(72.1% 0.0134 128.8)", "oklch(83.6% 0.0134 128.8)", "oklch(95.0% 0.0134 128.8)"]
+        "displayName": "巴黎极简 · 深色悬停",
+        "tonalRamp": [
+          "oklch(15.0% 0.0219 82.3)",
+          "oklch(26.4% 0.0219 82.3)",
+          "oklch(37.9% 0.0219 82.3)",
+          "oklch(49.3% 0.0219 82.3)",
+          "oklch(60.7% 0.0219 82.3)",
+          "oklch(72.1% 0.0219 82.3)",
+          "oklch(83.6% 0.0219 82.3)",
+          "oklch(95.0% 0.0219 82.3)"
+        ]
       },
-      "listing": {
+      "shop-on-dark": {
         "role": "neutral",
-        "displayName": "主展台 · 纯白 Listing",
-        "tonalRamp": ["oklch(15.0% 0.0000 0.0)", "oklch(26.4% 0.0000 0.0)", "oklch(37.9% 0.0000 0.0)", "oklch(49.3% 0.0000 0.0)", "oklch(60.7% 0.0000 0.0)", "oklch(72.1% 0.0000 0.0)", "oklch(83.6% 0.0000 0.0)", "oklch(95.0% 0.0000 0.0)"]
+        "displayName": "巴黎极简 · 深底文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0209 88.7)",
+          "oklch(26.4% 0.0209 88.7)",
+          "oklch(37.9% 0.0209 88.7)",
+          "oklch(49.3% 0.0209 88.7)",
+          "oklch(60.7% 0.0209 88.7)",
+          "oklch(72.1% 0.0209 88.7)",
+          "oklch(83.6% 0.0209 88.7)",
+          "oklch(95.0% 0.0209 88.7)"
+        ]
       },
-      "text": {
+      "shop-on-dark-muted": {
         "role": "neutral",
-        "displayName": "主展台 · 正文",
-        "tonalRamp": ["oklch(15.0% 0.0091 145.3)", "oklch(26.4% 0.0091 145.3)", "oklch(37.9% 0.0091 145.3)", "oklch(49.3% 0.0091 145.3)", "oklch(60.7% 0.0091 145.3)", "oklch(72.1% 0.0091 145.3)", "oklch(83.6% 0.0091 145.3)", "oklch(95.0% 0.0091 145.3)"]
+        "displayName": "巴黎极简 · 深底次要文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0359 88.8)",
+          "oklch(26.4% 0.0359 88.8)",
+          "oklch(37.9% 0.0359 88.8)",
+          "oklch(49.3% 0.0359 88.8)",
+          "oklch(60.7% 0.0359 88.8)",
+          "oklch(72.1% 0.0359 88.8)",
+          "oklch(83.6% 0.0359 88.8)",
+          "oklch(95.0% 0.0359 88.8)"
+        ]
+      },
+      "french-page": {
+        "role": "neutral",
+        "displayName": "法式浪漫 · 页面底",
+        "tonalRamp": [
+          "oklch(15.0% 0.0095 41.9)",
+          "oklch(26.4% 0.0095 41.9)",
+          "oklch(37.9% 0.0095 41.9)",
+          "oklch(49.3% 0.0095 41.9)",
+          "oklch(60.7% 0.0095 41.9)",
+          "oklch(72.1% 0.0095 41.9)",
+          "oklch(83.6% 0.0095 41.9)",
+          "oklch(95.0% 0.0095 41.9)"
+        ]
+      },
+      "french-panel": {
+        "role": "neutral",
+        "displayName": "法式浪漫 · 面板",
+        "tonalRamp": [
+          "oklch(15.0% 0.0025 48.7)",
+          "oklch(26.4% 0.0025 48.7)",
+          "oklch(37.9% 0.0025 48.7)",
+          "oklch(49.3% 0.0025 48.7)",
+          "oklch(60.7% 0.0025 48.7)",
+          "oklch(72.1% 0.0025 48.7)",
+          "oklch(83.6% 0.0025 48.7)",
+          "oklch(95.0% 0.0025 48.7)"
+        ]
+      },
+      "french-tint": {
+        "role": "neutral",
+        "displayName": "法式浪漫 · 选中底",
+        "tonalRamp": [
+          "oklch(15.0% 0.0240 40.3)",
+          "oklch(26.4% 0.0240 40.3)",
+          "oklch(37.9% 0.0240 40.3)",
+          "oklch(49.3% 0.0240 40.3)",
+          "oklch(60.7% 0.0240 40.3)",
+          "oklch(72.1% 0.0240 40.3)",
+          "oklch(83.6% 0.0240 40.3)",
+          "oklch(95.0% 0.0240 40.3)"
+        ]
+      },
+      "french-ink": {
+        "role": "neutral",
+        "displayName": "法式浪漫 · 主文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0341 31.3)",
+          "oklch(26.4% 0.0341 31.3)",
+          "oklch(37.9% 0.0341 31.3)",
+          "oklch(49.3% 0.0341 31.3)",
+          "oklch(60.7% 0.0341 31.3)",
+          "oklch(72.1% 0.0341 31.3)",
+          "oklch(83.6% 0.0341 31.3)",
+          "oklch(95.0% 0.0341 31.3)"
+        ]
+      },
+      "french-muted": {
+        "role": "neutral",
+        "displayName": "法式浪漫 · 次要文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0435 33.1)",
+          "oklch(26.4% 0.0435 33.1)",
+          "oklch(37.9% 0.0435 33.1)",
+          "oklch(49.3% 0.0435 33.1)",
+          "oklch(60.7% 0.0435 33.1)",
+          "oklch(72.1% 0.0435 33.1)",
+          "oklch(83.6% 0.0435 33.1)",
+          "oklch(95.0% 0.0435 33.1)"
+        ]
+      },
+      "french-accent": {
+        "role": "primary",
+        "displayName": "法式浪漫 · 强调色",
+        "tonalRamp": [
+          "oklch(15.0% 0.0897 12.0)",
+          "oklch(26.4% 0.0897 12.0)",
+          "oklch(37.9% 0.0897 12.0)",
+          "oklch(49.3% 0.0897 12.0)",
+          "oklch(60.7% 0.0897 12.0)",
+          "oklch(72.1% 0.0897 12.0)",
+          "oklch(83.6% 0.0897 12.0)",
+          "oklch(95.0% 0.0897 12.0)"
+        ]
+      },
+      "french-accent-hover": {
+        "role": "primary",
+        "displayName": "法式浪漫 · 强调深色",
+        "tonalRamp": [
+          "oklch(15.0% 0.0827 10.2)",
+          "oklch(26.4% 0.0827 10.2)",
+          "oklch(37.9% 0.0827 10.2)",
+          "oklch(49.3% 0.0827 10.2)",
+          "oklch(60.7% 0.0827 10.2)",
+          "oklch(72.1% 0.0827 10.2)",
+          "oklch(83.6% 0.0827 10.2)",
+          "oklch(95.0% 0.0827 10.2)"
+        ]
+      },
+      "french-line": {
+        "role": "neutral",
+        "displayName": "法式浪漫 · 细边线",
+        "tonalRamp": [
+          "oklch(15.0% 0.0328 39.3)",
+          "oklch(26.4% 0.0328 39.3)",
+          "oklch(37.9% 0.0328 39.3)",
+          "oklch(49.3% 0.0328 39.3)",
+          "oklch(60.7% 0.0328 39.3)",
+          "oklch(72.1% 0.0328 39.3)",
+          "oklch(83.6% 0.0328 39.3)",
+          "oklch(95.0% 0.0328 39.3)"
+        ]
+      },
+      "french-line-strong": {
+        "role": "neutral",
+        "displayName": "法式浪漫 · 强边线",
+        "tonalRamp": [
+          "oklch(15.0% 0.0548 33.4)",
+          "oklch(26.4% 0.0548 33.4)",
+          "oklch(37.9% 0.0548 33.4)",
+          "oklch(49.3% 0.0548 33.4)",
+          "oklch(60.7% 0.0548 33.4)",
+          "oklch(72.1% 0.0548 33.4)",
+          "oklch(83.6% 0.0548 33.4)",
+          "oklch(95.0% 0.0548 33.4)"
+        ]
+      },
+      "french-shop-dark": {
+        "role": "neutral",
+        "displayName": "法式浪漫 · 深色区",
+        "tonalRamp": [
+          "oklch(15.0% 0.0319 35.4)",
+          "oklch(26.4% 0.0319 35.4)",
+          "oklch(37.9% 0.0319 35.4)",
+          "oklch(49.3% 0.0319 35.4)",
+          "oklch(60.7% 0.0319 35.4)",
+          "oklch(72.1% 0.0319 35.4)",
+          "oklch(83.6% 0.0319 35.4)",
+          "oklch(95.0% 0.0319 35.4)"
+        ]
+      },
+      "french-shop-dark-2": {
+        "role": "neutral",
+        "displayName": "法式浪漫 · 深色悬停",
+        "tonalRamp": [
+          "oklch(15.0% 0.0430 35.3)",
+          "oklch(26.4% 0.0430 35.3)",
+          "oklch(37.9% 0.0430 35.3)",
+          "oklch(49.3% 0.0430 35.3)",
+          "oklch(60.7% 0.0430 35.3)",
+          "oklch(72.1% 0.0430 35.3)",
+          "oklch(83.6% 0.0430 35.3)",
+          "oklch(95.0% 0.0430 35.3)"
+        ]
+      },
+      "french-on-dark-muted": {
+        "role": "neutral",
+        "displayName": "法式浪漫 · 深底次要文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0334 39.3)",
+          "oklch(26.4% 0.0334 39.3)",
+          "oklch(37.9% 0.0334 39.3)",
+          "oklch(49.3% 0.0334 39.3)",
+          "oklch(60.7% 0.0334 39.3)",
+          "oklch(72.1% 0.0334 39.3)",
+          "oklch(83.6% 0.0334 39.3)",
+          "oklch(95.0% 0.0334 39.3)"
+        ]
+      },
+      "italian-page": {
+        "role": "neutral",
+        "displayName": "意式雕塑 · 页面底",
+        "tonalRamp": [
+          "oklch(15.0% 0.0181 78.2)",
+          "oklch(26.4% 0.0181 78.2)",
+          "oklch(37.9% 0.0181 78.2)",
+          "oklch(49.3% 0.0181 78.2)",
+          "oklch(60.7% 0.0181 78.2)",
+          "oklch(72.1% 0.0181 78.2)",
+          "oklch(83.6% 0.0181 78.2)",
+          "oklch(95.0% 0.0181 78.2)"
+        ]
+      },
+      "italian-panel": {
+        "role": "neutral",
+        "displayName": "意式雕塑 · 面板",
+        "tonalRamp": [
+          "oklch(15.0% 0.0085 84.6)",
+          "oklch(26.4% 0.0085 84.6)",
+          "oklch(37.9% 0.0085 84.6)",
+          "oklch(49.3% 0.0085 84.6)",
+          "oklch(60.7% 0.0085 84.6)",
+          "oklch(72.1% 0.0085 84.6)",
+          "oklch(83.6% 0.0085 84.6)",
+          "oklch(95.0% 0.0085 84.6)"
+        ]
+      },
+      "italian-tint": {
+        "role": "neutral",
+        "displayName": "意式雕塑 · 选中底",
+        "tonalRamp": [
+          "oklch(15.0% 0.0393 78.6)",
+          "oklch(26.4% 0.0393 78.6)",
+          "oklch(37.9% 0.0393 78.6)",
+          "oklch(49.3% 0.0393 78.6)",
+          "oklch(60.7% 0.0393 78.6)",
+          "oklch(72.1% 0.0393 78.6)",
+          "oklch(83.6% 0.0393 78.6)",
+          "oklch(95.0% 0.0393 78.6)"
+        ]
+      },
+      "italian-ink": {
+        "role": "neutral",
+        "displayName": "意式雕塑 · 主文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0154 76.0)",
+          "oklch(26.4% 0.0154 76.0)",
+          "oklch(37.9% 0.0154 76.0)",
+          "oklch(49.3% 0.0154 76.0)",
+          "oklch(60.7% 0.0154 76.0)",
+          "oklch(72.1% 0.0154 76.0)",
+          "oklch(83.6% 0.0154 76.0)",
+          "oklch(95.0% 0.0154 76.0)"
+        ]
+      },
+      "italian-muted": {
+        "role": "neutral",
+        "displayName": "意式雕塑 · 次要文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0305 68.8)",
+          "oklch(26.4% 0.0305 68.8)",
+          "oklch(37.9% 0.0305 68.8)",
+          "oklch(49.3% 0.0305 68.8)",
+          "oklch(60.7% 0.0305 68.8)",
+          "oklch(72.1% 0.0305 68.8)",
+          "oklch(83.6% 0.0305 68.8)",
+          "oklch(95.0% 0.0305 68.8)"
+        ]
+      },
+      "italian-accent": {
+        "role": "primary",
+        "displayName": "意式雕塑 · 强调色",
+        "tonalRamp": [
+          "oklch(15.0% 0.1323 41.8)",
+          "oklch(26.4% 0.1323 41.8)",
+          "oklch(37.9% 0.1323 41.8)",
+          "oklch(49.3% 0.1323 41.8)",
+          "oklch(60.7% 0.1323 41.8)",
+          "oklch(72.1% 0.1323 41.8)",
+          "oklch(83.6% 0.1323 41.8)",
+          "oklch(95.0% 0.1323 41.8)"
+        ]
+      },
+      "italian-accent-hover": {
+        "role": "primary",
+        "displayName": "意式雕塑 · 强调深色",
+        "tonalRamp": [
+          "oklch(15.0% 0.1096 41.7)",
+          "oklch(26.4% 0.1096 41.7)",
+          "oklch(37.9% 0.1096 41.7)",
+          "oklch(49.3% 0.1096 41.7)",
+          "oklch(60.7% 0.1096 41.7)",
+          "oklch(72.1% 0.1096 41.7)",
+          "oklch(83.6% 0.1096 41.7)",
+          "oklch(95.0% 0.1096 41.7)"
+        ]
+      },
+      "italian-line": {
+        "role": "neutral",
+        "displayName": "意式雕塑 · 细边线",
+        "tonalRamp": [
+          "oklch(15.0% 0.0501 79.1)",
+          "oklch(26.4% 0.0501 79.1)",
+          "oklch(37.9% 0.0501 79.1)",
+          "oklch(49.3% 0.0501 79.1)",
+          "oklch(60.7% 0.0501 79.1)",
+          "oklch(72.1% 0.0501 79.1)",
+          "oklch(83.6% 0.0501 79.1)",
+          "oklch(95.0% 0.0501 79.1)"
+        ]
+      },
+      "italian-line-strong": {
+        "role": "neutral",
+        "displayName": "意式雕塑 · 强边线",
+        "tonalRamp": [
+          "oklch(15.0% 0.0549 69.5)",
+          "oklch(26.4% 0.0549 69.5)",
+          "oklch(37.9% 0.0549 69.5)",
+          "oklch(49.3% 0.0549 69.5)",
+          "oklch(60.7% 0.0549 69.5)",
+          "oklch(72.1% 0.0549 69.5)",
+          "oklch(83.6% 0.0549 69.5)",
+          "oklch(95.0% 0.0549 69.5)"
+        ]
+      },
+      "italian-shop-dark": {
+        "role": "neutral",
+        "displayName": "意式雕塑 · 深色区",
+        "tonalRamp": [
+          "oklch(15.0% 0.0194 70.3)",
+          "oklch(26.4% 0.0194 70.3)",
+          "oklch(37.9% 0.0194 70.3)",
+          "oklch(49.3% 0.0194 70.3)",
+          "oklch(60.7% 0.0194 70.3)",
+          "oklch(72.1% 0.0194 70.3)",
+          "oklch(83.6% 0.0194 70.3)",
+          "oklch(95.0% 0.0194 70.3)"
+        ]
+      },
+      "italian-shop-dark-2": {
+        "role": "neutral",
+        "displayName": "意式雕塑 · 深色悬停",
+        "tonalRamp": [
+          "oklch(15.0% 0.0315 67.5)",
+          "oklch(26.4% 0.0315 67.5)",
+          "oklch(37.9% 0.0315 67.5)",
+          "oklch(49.3% 0.0315 67.5)",
+          "oklch(60.7% 0.0315 67.5)",
+          "oklch(72.1% 0.0315 67.5)",
+          "oklch(83.6% 0.0315 67.5)",
+          "oklch(95.0% 0.0315 67.5)"
+        ]
+      },
+      "italian-on-dark-muted": {
+        "role": "neutral",
+        "displayName": "意式雕塑 · 深底次要文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0475 78.8)",
+          "oklch(26.4% 0.0475 78.8)",
+          "oklch(37.9% 0.0475 78.8)",
+          "oklch(49.3% 0.0475 78.8)",
+          "oklch(60.7% 0.0475 78.8)",
+          "oklch(72.1% 0.0475 78.8)",
+          "oklch(83.6% 0.0475 78.8)",
+          "oklch(95.0% 0.0475 78.8)"
+        ]
+      },
+      "arch-page": {
+        "role": "neutral",
+        "displayName": "建筑黑白 · 页面底",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "arch-panel": {
+        "role": "neutral",
+        "displayName": "建筑黑白 · 面板",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "arch-tint": {
+        "role": "neutral",
+        "displayName": "建筑黑白 · 选中底",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "arch-ink": {
+        "role": "neutral",
+        "displayName": "建筑黑白 · 主文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "arch-muted": {
+        "role": "neutral",
+        "displayName": "建筑黑白 · 次要文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "arch-accent": {
+        "role": "primary",
+        "displayName": "建筑黑白 · 强调色",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "arch-accent-hover": {
+        "role": "primary",
+        "displayName": "建筑黑白 · 强调深色",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "arch-line": {
+        "role": "neutral",
+        "displayName": "建筑黑白 · 细边线",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "arch-line-strong": {
+        "role": "neutral",
+        "displayName": "建筑黑白 · 强边线",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "arch-shop-dark": {
+        "role": "neutral",
+        "displayName": "建筑黑白 · 深色区",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "arch-shop-dark-2": {
+        "role": "neutral",
+        "displayName": "建筑黑白 · 深色悬停",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "arch-on-dark": {
+        "role": "neutral",
+        "displayName": "建筑黑白 · 深底文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "arch-on-dark-muted": {
+        "role": "neutral",
+        "displayName": "建筑黑白 · 深底次要文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "product-white": {
+        "role": "neutral",
+        "displayName": "产品 · 固定白底",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.0)",
+          "oklch(26.4% 0.0000 0.0)",
+          "oklch(37.9% 0.0000 0.0)",
+          "oklch(49.3% 0.0000 0.0)",
+          "oklch(60.7% 0.0000 0.0)",
+          "oklch(72.1% 0.0000 0.0)",
+          "oklch(83.6% 0.0000 0.0)",
+          "oklch(95.0% 0.0000 0.0)"
+        ]
+      },
+      "error": {
+        "role": "neutral",
+        "displayName": "状态 · 错误文字",
+        "tonalRamp": [
+          "oklch(15.0% 0.1232 30.5)",
+          "oklch(26.4% 0.1232 30.5)",
+          "oklch(37.9% 0.1232 30.5)",
+          "oklch(49.3% 0.1232 30.5)",
+          "oklch(60.7% 0.1232 30.5)",
+          "oklch(72.1% 0.1232 30.5)",
+          "oklch(83.6% 0.1232 30.5)",
+          "oklch(95.0% 0.1232 30.5)"
+        ]
       },
       "forme-ink": {
         "role": "neutral",
         "displayName": "FORME · 石墨文字",
-        "tonalRamp": ["oklch(15.0% 0.0079 59.4)", "oklch(26.4% 0.0079 59.4)", "oklch(37.9% 0.0079 59.4)", "oklch(49.3% 0.0079 59.4)", "oklch(60.7% 0.0079 59.4)", "oklch(72.1% 0.0079 59.4)", "oklch(83.6% 0.0079 59.4)", "oklch(95.0% 0.0079 59.4)"]
+        "tonalRamp": [
+          "oklch(15.0% 0.0079 59.4)",
+          "oklch(26.4% 0.0079 59.4)",
+          "oklch(37.9% 0.0079 59.4)",
+          "oklch(49.3% 0.0079 59.4)",
+          "oklch(60.7% 0.0079 59.4)",
+          "oklch(72.1% 0.0079 59.4)",
+          "oklch(83.6% 0.0079 59.4)",
+          "oklch(95.0% 0.0079 59.4)"
+        ]
       },
       "forme-muted": {
         "role": "neutral",
         "displayName": "FORME · 次要文字",
-        "tonalRamp": ["oklch(15.0% 0.0181 67.4)", "oklch(26.4% 0.0181 67.4)", "oklch(37.9% 0.0181 67.4)", "oklch(49.3% 0.0181 67.4)", "oklch(60.7% 0.0181 67.4)", "oklch(72.1% 0.0181 67.4)", "oklch(83.6% 0.0181 67.4)", "oklch(95.0% 0.0181 67.4)"]
+        "tonalRamp": [
+          "oklch(15.0% 0.0181 67.4)",
+          "oklch(26.4% 0.0181 67.4)",
+          "oklch(37.9% 0.0181 67.4)",
+          "oklch(49.3% 0.0181 67.4)",
+          "oklch(60.7% 0.0181 67.4)",
+          "oklch(72.1% 0.0181 67.4)",
+          "oklch(83.6% 0.0181 67.4)",
+          "oklch(95.0% 0.0181 67.4)"
+        ]
       },
       "forme-frame": {
         "role": "neutral",
         "displayName": "FORME · 纸白画布",
-        "tonalRamp": ["oklch(15.0% 0.0070 88.6)", "oklch(26.4% 0.0070 88.6)", "oklch(37.9% 0.0070 88.6)", "oklch(49.3% 0.0070 88.6)", "oklch(60.7% 0.0070 88.6)", "oklch(72.1% 0.0070 88.6)", "oklch(83.6% 0.0070 88.6)", "oklch(95.0% 0.0070 88.6)"]
+        "tonalRamp": [
+          "oklch(15.0% 0.0070 88.6)",
+          "oklch(26.4% 0.0070 88.6)",
+          "oklch(37.9% 0.0070 88.6)",
+          "oklch(49.3% 0.0070 88.6)",
+          "oklch(60.7% 0.0070 88.6)",
+          "oklch(72.1% 0.0070 88.6)",
+          "oklch(83.6% 0.0070 88.6)",
+          "oklch(95.0% 0.0070 88.6)"
+        ]
       },
       "forme-surface": {
         "role": "neutral",
         "displayName": "FORME · 近白面板",
-        "tonalRamp": ["oklch(15.0% 0.0041 91.4)", "oklch(26.4% 0.0041 91.4)", "oklch(37.9% 0.0041 91.4)", "oklch(49.3% 0.0041 91.4)", "oklch(60.7% 0.0041 91.4)", "oklch(72.1% 0.0041 91.4)", "oklch(83.6% 0.0041 91.4)", "oklch(95.0% 0.0041 91.4)"]
+        "tonalRamp": [
+          "oklch(15.0% 0.0041 91.4)",
+          "oklch(26.4% 0.0041 91.4)",
+          "oklch(37.9% 0.0041 91.4)",
+          "oklch(49.3% 0.0041 91.4)",
+          "oklch(60.7% 0.0041 91.4)",
+          "oklch(72.1% 0.0041 91.4)",
+          "oklch(83.6% 0.0041 91.4)",
+          "oklch(95.0% 0.0041 91.4)"
+        ]
       },
       "forme-line": {
         "role": "neutral",
         "displayName": "FORME · 细边线",
-        "tonalRamp": ["oklch(15.0% 0.0150 80.7)", "oklch(26.4% 0.0150 80.7)", "oklch(37.9% 0.0150 80.7)", "oklch(49.3% 0.0150 80.7)", "oklch(60.7% 0.0150 80.7)", "oklch(72.1% 0.0150 80.7)", "oklch(83.6% 0.0150 80.7)", "oklch(95.0% 0.0150 80.7)"]
+        "tonalRamp": [
+          "oklch(15.0% 0.0150 80.7)",
+          "oklch(26.4% 0.0150 80.7)",
+          "oklch(37.9% 0.0150 80.7)",
+          "oklch(49.3% 0.0150 80.7)",
+          "oklch(60.7% 0.0150 80.7)",
+          "oklch(72.1% 0.0150 80.7)",
+          "oklch(83.6% 0.0150 80.7)",
+          "oklch(95.0% 0.0150 80.7)"
+        ]
       },
       "forme-active": {
         "role": "neutral",
         "displayName": "FORME · 选中底",
-        "tonalRamp": ["oklch(15.0% 0.0121 67.7)", "oklch(26.4% 0.0121 67.7)", "oklch(37.9% 0.0121 67.7)", "oklch(49.3% 0.0121 67.7)", "oklch(60.7% 0.0121 67.7)", "oklch(72.1% 0.0121 67.7)", "oklch(83.6% 0.0121 67.7)", "oklch(95.0% 0.0121 67.7)"]
+        "tonalRamp": [
+          "oklch(15.0% 0.0121 67.7)",
+          "oklch(26.4% 0.0121 67.7)",
+          "oklch(37.9% 0.0121 67.7)",
+          "oklch(49.3% 0.0121 67.7)",
+          "oklch(60.7% 0.0121 67.7)",
+          "oklch(72.1% 0.0121 67.7)",
+          "oklch(83.6% 0.0121 67.7)",
+          "oklch(95.0% 0.0121 67.7)"
+        ]
       },
       "forme-accent": {
         "role": "primary",
         "displayName": "FORME · 暗红",
-        "tonalRamp": ["oklch(15.0% 0.0811 1.8)", "oklch(26.4% 0.0811 1.8)", "oklch(37.9% 0.0811 1.8)", "oklch(49.3% 0.0811 1.8)", "oklch(60.7% 0.0811 1.8)", "oklch(72.1% 0.0811 1.8)", "oklch(83.6% 0.0811 1.8)", "oklch(95.0% 0.0811 1.8)"]
+        "tonalRamp": [
+          "oklch(15.0% 0.0811 1.8)",
+          "oklch(26.4% 0.0811 1.8)",
+          "oklch(37.9% 0.0811 1.8)",
+          "oklch(49.3% 0.0811 1.8)",
+          "oklch(60.7% 0.0811 1.8)",
+          "oklch(72.1% 0.0811 1.8)",
+          "oklch(83.6% 0.0811 1.8)",
+          "oklch(95.0% 0.0811 1.8)"
+        ]
       }
     },
     "typographyMeta": {
+      "shop-display": {
+        "displayName": "首页主标题",
+        "purpose": "当前官网实际排版；变体与响应式说明见 DESIGN.md。"
+      },
+      "shop-headline": {
+        "displayName": "分区标题",
+        "purpose": "当前官网实际排版；变体与响应式说明见 DESIGN.md。"
+      },
+      "shop-title": {
+        "displayName": "编辑器商品标题",
+        "purpose": "当前官网实际排版；变体与响应式说明见 DESIGN.md。"
+      },
+      "shop-body": {
+        "displayName": "正文",
+        "purpose": "当前官网实际排版；变体与响应式说明见 DESIGN.md。"
+      },
+      "shop-hero-body": {
+        "displayName": "首屏介绍",
+        "purpose": "当前官网实际排版；变体与响应式说明见 DESIGN.md。"
+      },
+      "shop-control": {
+        "displayName": "主要按钮",
+        "purpose": "当前官网实际排版；变体与响应式说明见 DESIGN.md。"
+      },
+      "shop-select": {
+        "displayName": "顶部风格选择",
+        "purpose": "当前官网实际排版；变体与响应式说明见 DESIGN.md。"
+      },
+      "shop-brand-latin": {
+        "displayName": "品牌英文辅字",
+        "purpose": "当前官网实际排版；变体与响应式说明见 DESIGN.md。"
+      },
+      "shop-display-italian": {
+        "displayName": "意式主标题",
+        "purpose": "当前官网实际排版；变体与响应式说明见 DESIGN.md。"
+      },
+      "shop-display-arch": {
+        "displayName": "建筑黑白主标题",
+        "purpose": "当前官网实际排版；变体与响应式说明见 DESIGN.md。"
+      },
       "forme-brand": {
         "displayName": "FORME 品牌",
         "purpose": "FORME 品牌字；手机为 25px。"
@@ -104,9 +895,31 @@
       "forme-caption": {
         "displayName": "FORME 说明",
         "purpose": "按钮文字、作品信息与次要说明；正常可见文字下限。"
+      },
+      "shop-product-title": {
+        "displayName": "目录商品标题",
+        "purpose": "五款原款图卡标题；手机为 20px，字重与字体随当前主题。"
+      },
+      "shop-wearing-title": {
+        "displayName": "佩戴图卡标题",
+        "purpose": "四张近景佩戴图卡标题；手机为 20px，字重与字体随当前主题。"
+      },
+      "shop-style-select": {
+        "displayName": "编辑器款式选择",
+        "purpose": "款式 select 使用 13px 系统无衬线；与顶部主题选择区分。"
       }
     },
     "shadows": [
+      {
+        "name": "shop-photo-purchase",
+        "value": "0 12px 30px #14100a20",
+        "purpose": "照片上的原款购买条。"
+      },
+      {
+        "name": "french-product",
+        "value": "0 16px 32px #9e5a6314",
+        "purpose": "法式主题商品图区。"
+      },
       {
         "name": "forme-dropdown",
         "value": "0 10px 35px #302c2926",
@@ -120,9 +933,19 @@
     ],
     "motion": [
       {
-        "name": "showroom-selection",
-        "value": "180ms",
-        "purpose": "主展台既有选择反馈。"
+        "name": "shop-button",
+        "value": "180ms ease-out",
+        "purpose": "按钮背景过渡。"
+      },
+      {
+        "name": "campaign-in",
+        "value": "650ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "允许动态效果时的首页内容入场。"
+      },
+      {
+        "name": "product-hover",
+        "value": "500ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "允许动态效果时产品图放大至 1.035。"
       },
       {
         "name": "forme-state",
@@ -137,8 +960,24 @@
     ],
     "breakpoints": [
       {
-        "name": "showroom-stacked",
-        "value": "700px"
+        "name": "shop-compact",
+        "value": "1100px"
+      },
+      {
+        "name": "shop-cart-compact",
+        "value": "1000px"
+      },
+      {
+        "name": "shop-editor-stacked",
+        "value": "800px"
+      },
+      {
+        "name": "shop-mobile",
+        "value": "760px"
+      },
+      {
+        "name": "shop-narrow",
+        "value": "360px"
       },
       {
         "name": "forme-compact",
@@ -164,12 +1003,76 @@
   },
   "components": [
     {
+      "name": "相言 · 主要按钮",
+      "kind": "button",
+      "refersTo": "shop-button-primary",
+      "description": "定制与确认动作，使用当前主题的墨色与页面浅色。",
+      "html": "<button class=\"ds-shop-button\">开始专属定制</button>",
+      "css": ".ds-shop-button{display:inline-flex;align-items:center;justify-content:center;min-height:50px;gap:10px;padding:13px 24px;border:1px solid var(--ink,#16130c);border-radius:var(--button-radius,99px);background:var(--ink,#16130c);color:var(--page,#faf8f3);font:600 14px/1.3 -apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;text-decoration:none;cursor:pointer;transition:background-color .18s ease-out}.ds-shop-button:hover{background:var(--shop-dark-2,#211b10);border-color:var(--shop-dark-2,#211b10);color:var(--on-dark,#f4eedf)}.ds-shop-button:focus-visible{outline:2px solid var(--accent,#8c6d1f);outline-offset:5px}.ds-shop-button:disabled{opacity:.5;cursor:not-allowed}@media(max-width:760px){.ds-shop-button{min-height:48px;padding-inline:20px;font-size:13px}}"
+    },
+    {
+      "name": "相言 · 描边按钮",
+      "kind": "button",
+      "refersTo": "shop-button-outline",
+      "description": "原款选购等并列次要动作。",
+      "html": "<button class=\"ds-shop-button ds-shop-outline\">选购原款</button>",
+      "css": ".ds-shop-button{display:inline-flex;align-items:center;justify-content:center;min-height:50px;gap:10px;padding:13px 24px;border:1px solid var(--ink,#16130c);border-radius:var(--button-radius,99px);background:var(--ink,#16130c);color:var(--page,#faf8f3);font:600 14px/1.3 -apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;text-decoration:none;cursor:pointer;transition:background-color .18s ease-out}.ds-shop-button:hover{background:var(--shop-dark-2,#211b10);border-color:var(--shop-dark-2,#211b10);color:var(--on-dark,#f4eedf)}.ds-shop-button:focus-visible{outline:2px solid var(--accent,#8c6d1f);outline-offset:5px}.ds-shop-button:disabled{opacity:.5;cursor:not-allowed}@media(max-width:760px){.ds-shop-button{min-height:48px;padding-inline:20px;font-size:13px}}.ds-shop-outline{background:transparent;color:var(--ink,#16130c)}.ds-shop-outline:hover{background:var(--tint,#f1ebdd);color:var(--ink,#16130c);border-color:var(--ink,#16130c)}"
+    },
+    {
+      "name": "相言 · 深色区浅色按钮",
+      "kind": "button",
+      "refersTo": "shop-button-light",
+      "description": "深色编辑性内容区的定制入口。",
+      "html": "<button class=\"ds-shop-button ds-shop-light\">去试试我的想法</button>",
+      "css": ".ds-shop-button{display:inline-flex;align-items:center;justify-content:center;min-height:50px;gap:10px;padding:13px 24px;border:1px solid var(--ink,#16130c);border-radius:var(--button-radius,99px);background:var(--ink,#16130c);color:var(--page,#faf8f3);font:600 14px/1.3 -apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;text-decoration:none;cursor:pointer;transition:background-color .18s ease-out}.ds-shop-button:hover{background:var(--shop-dark-2,#211b10);border-color:var(--shop-dark-2,#211b10);color:var(--on-dark,#f4eedf)}.ds-shop-button:focus-visible{outline:2px solid var(--accent,#8c6d1f);outline-offset:5px}.ds-shop-button:disabled{opacity:.5;cursor:not-allowed}@media(max-width:760px){.ds-shop-button{min-height:48px;padding-inline:20px;font-size:13px}}.ds-shop-button.ds-shop-light{color:var(--shop-dark,#14100a);background:var(--on-dark,#f4eedf);border-color:var(--on-dark,#f4eedf)}.ds-shop-button.ds-shop-light:hover{background:var(--shop-dark-2,#211b10);border-color:var(--shop-dark-2,#211b10);color:var(--on-dark,#f4eedf)}"
+    },
+    {
+      "name": "相言 · 顶部风格选择",
+      "kind": "input",
+      "refersTo": "shop-theme-select",
+      "description": "四主题共用的原生 select，移动端仍可见；此片段只展示控件外观。",
+      "html": "<label class=\"ds-style\"><span class=\"ds-visually-hidden\">网站风格</span><select><option>巴黎极简</option><option>法式浪漫</option><option>意式雕塑</option><option>建筑黑白</option></select></label>",
+      "css": ".ds-style select{font:12px -apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;color:var(--ink,#16130c);min-height:40px;max-width:135px;border:1px solid var(--line,#e4dcc8);padding:8px 11px;border-radius:var(--button-radius,99px);background:var(--panel,#fff)}.ds-style select:focus-visible{outline:2px solid var(--accent,#8c6d1f);outline-offset:3px}.ds-visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:760px){.ds-style select{max-width:116px;padding:7px}}"
+    },
+    {
+      "name": "相言 · 编辑器款式选择",
+      "kind": "input",
+      "refersTo": "shop-style-picker",
+      "description": "五款编辑器共用的款式入口；此片段只展示控件外观。",
+      "html": "<label class=\"ds-style-picker\">戒指款式<select><option>围钻戒指</option><option>花环戒指</option><option>花冠戒指</option><option>繁花戒指</option><option>冠冕戒指</option></select></label>",
+      "css": ".ds-style-picker{display:flex;align-items:center;gap:12px;margin:0 0 22px;color:var(--muted,#5a5344);font:12px -apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.ds-style-picker select{min-height:40px;border:1px solid var(--line,#e4dcc8);background:var(--panel,#fff);color:var(--ink,#16130c);border-radius:var(--button-radius,99px);padding:7px 30px 7px 13px;font:13px -apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.ds-style-picker select:focus-visible{outline:2px solid var(--accent,#8c6d1f);outline-offset:3px}"
+    },
+    {
+      "name": "相言 · 主导航",
+      "kind": "nav",
+      "refersTo": "shop-navigation",
+      "description": "桌面导航链接片段，手机端由菜单展开承载同一导航。",
+      "html": "<nav class=\"ds-shop-nav\" aria-label=\"主导航\"><a href=\"#/diy/collection\">款式系列</a><a href=\"#/stonefirst/ring-02\">专属定制</a><a href=\"#/diy/story\">关于相言</a></nav>",
+      "css": ".ds-shop-nav{display:flex;gap:26px;align-items:center;background:var(--page,#faf8f3);color:var(--ink,#16130c)}.ds-shop-nav a{display:flex;align-items:center;min-height:44px;border-bottom:1px solid transparent;color:inherit;text-decoration:none;white-space:nowrap;font:13px -apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.ds-shop-nav a:hover{border-bottom-color:var(--accent,#8c6d1f);color:var(--accent,#8c6d1f)}.ds-shop-nav a:focus-visible{outline:2px solid var(--accent,#8c6d1f);outline-offset:5px}"
+    },
+    {
+      "name": "相言 · 购物车汇总",
+      "kind": "card",
+      "refersTo": "shop-cart-summary",
+      "description": "方案数量与演示参考合计；不表示可结算支付。",
+      "html": "<aside class=\"ds-cart-summary\"><h2>心意清单</h2><p>当前为演示购物车，暂不收款。</p><a class=\"ds-shop-button\" href=\"#/diy/collection\">继续挑选</a></aside>",
+      "css": ".ds-shop-button{display:inline-flex;align-items:center;justify-content:center;min-height:50px;gap:10px;padding:13px 24px;border:1px solid var(--ink,#16130c);border-radius:var(--button-radius,99px);background:var(--ink,#16130c);color:var(--page,#faf8f3);font:600 14px/1.3 -apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;text-decoration:none;cursor:pointer;transition:background-color .18s ease-out}.ds-shop-button:hover{background:var(--shop-dark-2,#211b10);border-color:var(--shop-dark-2,#211b10);color:var(--on-dark,#f4eedf)}.ds-shop-button:focus-visible{outline:2px solid var(--accent,#8c6d1f);outline-offset:5px}.ds-shop-button:disabled{opacity:.5;cursor:not-allowed}@media(max-width:760px){.ds-shop-button{min-height:48px;padding-inline:20px;font-size:13px}}.ds-cart-summary{padding:26px;border:1px solid var(--line,#e4dcc8);border-radius:var(--shop-radius,14px);background:var(--panel,#fff);color:var(--ink,#16130c);max-width:320px}.ds-cart-summary h2{margin:0;font:var(--display-weight,500) 24px/1.65 var(--shop-title,\"Songti SC\",serif)}.ds-cart-summary p{font:12px/1.8 -apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;color:var(--muted,#5a5344);margin:18px 0 22px}.ds-cart-summary .ds-shop-button{display:flex}"
+    },
+    {
+      "name": "相言 · 选中选项",
+      "kind": "chip",
+      "refersTo": "shop-option-selected",
+      "description": "编辑器浅底选中项采用较深强调文字与边线。",
+      "html": "<button class=\"ds-shop-option\" aria-pressed=\"true\">原款</button>",
+      "css": ".ds-shop-option{min-height:39px;padding:7px 11px;border:1px solid var(--accent,#8c6d1f);border-radius:var(--button-radius,99px);background:var(--tint,#f1ebdd);color:var(--accent-hover,#715618);font:13px -apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;cursor:pointer}.ds-shop-option:focus-visible{outline:2px solid var(--accent,#8c6d1f);outline-offset:5px}.ds-shop-option:disabled{opacity:.5;cursor:not-allowed}.ds-shop-option:hover:enabled{background:var(--tint,#f1ebdd);border-color:var(--accent,#8c6d1f)}@media(max-width:800px){.ds-shop-option{min-height:43px}}@media(prefers-reduced-motion:no-preference){.ds-shop-option{transition:background-color .18s ease-out,border-color .18s ease-out,color .18s ease-out}}"
+    },
+    {
       "name": "FORME · 重置编辑",
       "kind": "button",
       "refersTo": "forme-button",
       "description": "现有浅底操作按钮；重置可撤销，不承担本机保存。",
       "html": "<button class=\"ds-forme-button\">重置编辑</button>",
-      "css": ".ds-forme-button{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 12px;border:1px solid var(--line,#dfd9cf);border-radius:2px;background:var(--surface,#fffefb);color:var(--ink,#302c29);font:12px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;cursor:pointer;transition:background-color .16s,color .16s,border-color .16s}.ds-forme-button:hover:not(:disabled){background:var(--active,#ede6df)}.ds-forme-button:focus-visible{outline:2px solid var(--accent,#71394a);outline-offset:3px}.ds-forme-button:disabled{opacity:.42;cursor:default}@media(max-width:700px){.ds-forme-button{min-height:44px}}@media(prefers-reduced-motion:reduce){.ds-forme-button{transition:none}}"
+      "css": ".ds-forme-button{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 12px;border:1px solid #dfd9cf;border-radius:2px;background:#fffefb;color:#302c29;font:12px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;cursor:pointer;transition:background-color .16s,color .16s,border-color .16s}.ds-forme-button:hover:not(:disabled){background:#ede6df}.ds-forme-button:focus-visible{outline:2px solid #71394a;outline-offset:3px}.ds-forme-button:disabled{opacity:.42;cursor:default}@media(max-width:700px){.ds-forme-button{min-height:44px}}@media(prefers-reduced-motion:reduce){.ds-forme-button{transition:none}}"
     },
     {
       "name": "FORME · 作品名称",
@@ -177,7 +1080,7 @@
       "refersTo": "forme-input",
       "description": "素材页的名称输入框，保留可见标签和 80 字符上限。",
       "html": "<label class=\"ds-forme-label\" for=\"ds-forme-name\">作品名称</label><input class=\"ds-forme-input\" id=\"ds-forme-name\" maxlength=\"80\" value=\"四照花 · 独立拼接戒指\"/>",
-      "css": ".ds-forme-label{display:block;margin:24px 0 12px;color:var(--ink,#302c29);font:13px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.ds-forme-input{width:100%;min-width:0;padding:7px 9px;border:1px solid var(--line,#dfd9cf);border-radius:2px;background:var(--surface,#fffefb);color:var(--ink,#302c29);caret-color:var(--accent,#71394a);font:13px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.ds-forme-input:focus-visible{outline:2px solid var(--accent,#71394a);outline-offset:3px}@media(max-width:700px){.ds-forme-label{margin:16px 0 8px}}"
+      "css": ".ds-forme-label{display:block;margin:24px 0 12px;color:#302c29;font:13px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.ds-forme-input{width:100%;min-width:0;padding:7px 9px;border:1px solid #dfd9cf;border-radius:2px;background:#fffefb;color:#302c29;caret-color:#71394a;font:13px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.ds-forme-input:focus-visible{outline:2px solid #71394a;outline-offset:3px}@media(max-width:700px){.ds-forme-label{margin:16px 0 8px}}"
     },
     {
       "name": "FORME · 参数页签",
@@ -185,7 +1088,7 @@
       "refersTo": "forme-tab-selected",
       "description": "现有五类编辑页签；暗红文字和下边线共同表示选中。",
       "html": "<div class=\"ds-forme-tabs\" role=\"tablist\" aria-label=\"编辑工具\"><button role=\"tab\" aria-selected=\"true\">材质</button><button role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">花形</button><button role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">尺寸</button><button role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">款式</button><button role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">素材</button></div>",
-      "css": ".ds-forme-tabs{display:flex;gap:4px;margin-top:24px;border-bottom:1px solid var(--line,#dfd9cf)}.ds-forme-tabs button{flex:1;min-width:0;min-height:44px;padding:0 8px;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted,#6b6259);font:13px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;white-space:nowrap;cursor:pointer;transition:background-color .16s,color .16s,border-color .16s}.ds-forme-tabs [aria-selected=true]{border-bottom-color:var(--accent,#71394a);color:var(--accent,#71394a);font-weight:600}.ds-forme-tabs button:hover{background:var(--active,#ede6df)}.ds-forme-tabs button:focus-visible{outline:2px solid var(--accent,#71394a);outline-offset:3px}@media(max-width:700px){.ds-forme-tabs{margin:0;gap:0}.ds-forme-tabs button{flex:1;min-height:44px}}@media(prefers-reduced-motion:reduce){.ds-forme-tabs button{transition:none}}"
+      "css": ".ds-forme-tabs{display:flex;gap:4px;margin-top:24px;border-bottom:1px solid #dfd9cf}.ds-forme-tabs button{flex:1;min-width:0;min-height:44px;padding:0 8px;border:0;border-bottom:2px solid transparent;background:none;color:#6b6259;font:13px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;white-space:nowrap;cursor:pointer;transition:background-color .16s,color .16s,border-color .16s}.ds-forme-tabs [aria-selected=true]{border-bottom-color:#71394a;color:#71394a;font-weight:600}.ds-forme-tabs button:hover{background:#ede6df}.ds-forme-tabs button:focus-visible{outline:2px solid #71394a;outline-offset:3px}@media(max-width:700px){.ds-forme-tabs{margin:0;gap:0}.ds-forme-tabs button{flex:1;min-height:44px}}@media(prefers-reduced-motion:reduce){.ds-forme-tabs button{transition:none}}"
     },
     {
       "name": "FORME · 金属色样",
@@ -193,41 +1096,50 @@
       "refersTo": "forme-material-selected",
       "description": "现有带名称的四种金属色样；渐变只用于表达材质，默认金色。",
       "html": "<div class=\"ds-forme-materials\"><button><span class=\"ds-forme-metal ds-forme-silver\" aria-hidden=\"true\"></span>银色</button><button class=\"ds-active\"><span class=\"ds-forme-metal ds-forme-gold\" aria-hidden=\"true\"></span>金色</button><button><span class=\"ds-forme-metal ds-forme-rose\" aria-hidden=\"true\"></span>玫瑰金</button><button><span class=\"ds-forme-metal ds-forme-graphite\" aria-hidden=\"true\"></span>石墨色</button></div>",
-      "css": ".ds-forme-materials{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:18px}.ds-forme-materials button{display:flex;flex-direction:column;gap:10px;align-items:center;min-height:78px;padding:8px 0 10px;border:1px solid transparent;border-radius:2px;background:none;color:var(--ink,#302c29);font:12px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;white-space:nowrap;cursor:pointer;transition:background-color .16s,color .16s,border-color .16s}.ds-forme-materials .ds-active{border-color:var(--accent,#71394a);background:var(--active,#ede6df)}.ds-forme-materials button:hover{background:var(--active,#ede6df)}.ds-forme-materials button:focus-visible{outline:2px solid var(--accent,#71394a);outline-offset:3px}.ds-forme-metal{display:block;position:relative;overflow:hidden;flex:none;width:33px;height:33px;border:1px solid #00000016;border-radius:50%;background:var(--sample)}.ds-forme-silver{--sample:#bfc4c4}.ds-forme-gold{--sample:#d4b477}.ds-forme-rose{--sample:#d6a38e}.ds-forme-graphite{--sample:#666b68}.ds-forme-metal:after{content:\"\";position:absolute;inset:0;background:linear-gradient(130deg,#ffffff80 5%,transparent 36%,#ffffff90 48%,transparent 64%,#00000015 90%)}@media(max-width:700px){.ds-forme-materials{gap:12px;margin-top:10px}.ds-forme-materials button{min-height:74px;padding:8px 0;gap:6px}.ds-forme-metal{width:32px;height:32px}}@media(prefers-reduced-motion:reduce){.ds-forme-materials button{transition:none}}"
+      "css": ".ds-forme-materials{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:18px}.ds-forme-materials button{display:flex;flex-direction:column;gap:10px;align-items:center;min-height:78px;padding:8px 0 10px;border:1px solid transparent;border-radius:2px;background:none;color:#302c29;font:12px Manrope,-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;white-space:nowrap;cursor:pointer;transition:background-color .16s,color .16s,border-color .16s}.ds-forme-materials .ds-active{border-color:#71394a;background:#ede6df}.ds-forme-materials button:hover{background:#ede6df}.ds-forme-materials button:focus-visible{outline:2px solid #71394a;outline-offset:3px}.ds-forme-metal{display:block;position:relative;overflow:hidden;flex:none;width:33px;height:33px;border:1px solid #00000016;border-radius:50%;background:var(--sample)}.ds-forme-silver{--sample:#bfc4c4}.ds-forme-gold{--sample:#d4b477}.ds-forme-rose{--sample:#d6a38e}.ds-forme-graphite{--sample:#666b68}.ds-forme-metal:after{content:\"\";position:absolute;inset:0;background:linear-gradient(130deg,#ffffff80 5%,transparent 36%,#ffffff90 48%,transparent 64%,#00000015 90%)}@media(max-width:700px){.ds-forme-materials{gap:12px;margin-top:10px}.ds-forme-materials button{min-height:74px;padding:8px 0;gap:6px}.ds-forme-metal{width:32px;height:32px}}@media(prefers-reduced-motion:reduce){.ds-forme-materials button{transition:none}}"
     }
   ],
   "narrative": {
-    "northStar": "珠宝是主角",
-    "overview": "安静、温暖的展陈台。三维物件承担视觉表达；展台可在纯白 Listing 与暖调展陈之间切换。纯白模式用透明画布与纯白页面底，只保留接触阴影；暖调模式是一块跟随相机的棚拍 sweep（顶部纸白、底部暖灰，中心一层很轻的灯池）。界面以白瓷面板和细边线让位给选择、比较与观察。\n\nFORME 采用用户选定的 A · 铂纸画廊。珠宝先行。纸白画布、平直参数栏与作品签式信息承载模组编辑，暗红只提示操作和选择；这一视觉已整合到正式 `/#/modules`，尚未发布。",
+    "northStar": "相言 · 为心意留形",
+    "overview": "相言沿用用户指定的珠宝品牌官网原型，以暖纸色、中文标题和佩戴图呈现银色首饰，首页、定制编辑器与购物车共享顶部导航、主题选择和按钮语言。珠宝先行。巴黎极简为默认主题，法式浪漫、意式雕塑和建筑黑白只改变界面的颜色、圆角与标题气质。\n\n保留艺术字标。中文「相言」使用既有自绘 SVG，英文辅字使用已有 Cormorant Garamond；佩戴图明确标为 AI 示意，真实产品图与三维模型保持自身材质和颜色。\n\nFORME 保持原样。模组编辑器内部继续使用已确认的 A · 铂纸画廊，纸白画布、平直参数栏和暗红选中态不随这次官网重设计改写；本轮同步的是官网、Ring 02 与四款原始模型编辑流程，未改动模组的视觉实现。",
     "keyCharacteristics": [
-      "主展台保留纯白 Listing 与暖调展陈两种背景。",
-      "FORME 用纸白、细线与平直面板组织编辑，圆形金属色样帮助识别材质。",
-      "同一真实模型连接材质、花形、尺寸与作品信息，界面变化不代表渲染质量升级。"
+      "四主题共用界面结构；顶部原生 select 切换并保留选择。",
+      "中文宋体标题与系统无衬线控件形成层级；建筑黑白改用无衬线粗标题。",
+      "产品图区保持纯白，银色模型不叠加界面主题滤镜。",
+      "FORME 保留独立的 forme-* 词元、细线面板与带名称的金属色样。"
     ],
     "rules": [
       {
-        "name": "The FORME Scope Rule",
-        "body": "`forme-*` 词元用于 FORME 编辑器与两工作空间共用的顶部导航；其来源为 `public/forme/studio.css`、`public/forme/index.html` 与 `src/styles.css` 的共享导航规则。主展台内容区保持原有视觉。",
+        "name": "Product Color",
+        "body": "主题控制页面表面、文字和控件，不给产品图片或三维画布添加主题滤镜；五款银色模型的金属外观不由 UI 主题决定。",
         "section": "colors"
       },
       {
-        "name": "The FORME Legibility Rule",
-        "body": "FORME 正常可见文字不小于 12px；数字使用等宽数字，次要文字统一使用 `forme-muted`，不把主展台的历史小字号沿用到模组端。",
+        "name": "Readable Selection",
+        "body": "编辑器浅底选中项使用 accent-hover 文字、accent 边线和 tint 底色；深色步骤页签使用 ink 底和 page 浅字，选择不能只靠颜色表示。",
+        "section": "colors"
+      },
+      {
+        "name": "FORME Legibility",
+        "body": "FORME 正常可见文字不小于 12px；数字使用等宽数字，次要文字统一使用 forme-muted，不把官网的历史小字号沿用到模组端。",
         "section": "typography"
       },
       {
-        "name": "The FORME Quiet Surface Rule",
+        "name": "FORME Quiet Surface",
         "body": "FORME 常驻面板靠表面色与细边线分区；阴影仅用于浮动导出菜单和对话框，金属色样的渐变只表达材质，不作为页面装饰。",
         "section": "elevation"
       }
     ],
     "dos": [
-      "Do 以可检查的真实几何、光照与清晰度改善珠宝展示。",
-      "Do 保留来源与许可证入口。",
-      "Do 将 `forme-*` 词元限定在模组工作空间，并保留主展台既有视觉。",
-      "Do 保留 FORME 的可见标签、焦点、可撤销重置与局部滚动参数区。"
+      "Do 使用同一套当前主题变量连接首页、定制编辑器、购物车和顶部导航。",
+      "Do 将 AI 佩戴示意、真实模型图和已确认方案快照明确区分。",
+      "Do 保留中文可见标签、键盘焦点、减少动态效果偏好与错误恢复动作。",
+      "Do 保留 FORME 的独立词元、可撤销重置和局部滚动参数区。",
+      "Do 保留来源与许可证入口，并以真实几何、光照与清晰度改善珠宝展示。"
     ],
     "donts": [
+      "Don't 把 UI 的古金、玫瑰或陶土强调色施加到银色产品材质上。",
+      "Don't 将首页眉题或意式硬偏移阴影扩写为新界面的通用组件规范。",
       "Don't 用过度泛光掩盖切工、镶座或法线问题。",
       "Don't 将视觉比例标为实际克拉、戒围或生产规格。",
       "Don't 把本地整合、浏览器响应式检查或几何预筛选写成已部署、手机真机验证或制造认证。"

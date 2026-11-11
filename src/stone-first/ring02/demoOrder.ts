@@ -1,5 +1,7 @@
 import type {FittedStone,RingDesign,paveSpacing} from './model';
 import {RING02_TEMPLATE} from './assets';
+import {RING_CATALOG} from '../catalog';
+import type {ReferenceDesign} from '../reference/design';
 
 export const RING02_PRICE=RING02_TEMPLATE.price;
 
@@ -21,8 +23,8 @@ export type DemoOrder={
   templateRevision:string;
   revision:string;
   confirmedAt:string;
-  design:RingDesign;
-  quote:ReturnType<typeof estimateRing02>;
+  design:RingDesign|ReferenceDesign;
+  quote:{amount:number;currency:'CNY';version:string;leadTime:string};
   details:Detail[];
   thumbnail?:string;
   pave?:{units:'model';halo?:ReturnType<typeof paveSpacing>;shoulder:ReturnType<typeof paveSpacing>};
@@ -30,6 +32,7 @@ export type DemoOrder={
 };
 
 const ORDER_PREFIX='open-jewelry-studio:diy-demo-order:';
+export const CART_CHANGED='xiangyan:cart-changed';
 function validThumbnail(value:unknown):value is string{
   return typeof value==='string'&&value.length<=80*1024&&/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(value);
 }
@@ -38,7 +41,7 @@ export function hasDemoOrder(revision:string){
   catch{return false;}
 }
 export function addDemoOrder(order:DemoOrder){
-  if(!RING02_TEMPLATE.listed)throw new Error('当前款式已停售');
+  if(!RING_CATALOG.some(template=>template.revision===order.templateRevision&&template.listed))throw new Error('当前款式已停售');
   const key=ORDER_PREFIX+order.revision;
   if(localStorage.getItem(key)!==null)return false;
   const thumbnail=validThumbnail(order.thumbnail)?order.thumbnail:undefined;
@@ -47,7 +50,13 @@ export function addDemoOrder(order:DemoOrder){
     if(!thumbnail||!(error instanceof DOMException)||error.name!=='QuotaExceededError')throw error;
     localStorage.setItem(key,JSON.stringify({...order,thumbnail:undefined}));
   }
+  window.dispatchEvent(new Event(CART_CHANGED));
   return true;
+}
+
+export function removeDemoOrder(revision:string){
+  localStorage.removeItem(ORDER_PREFIX+revision);
+  window.dispatchEvent(new Event(CART_CHANGED));
 }
 
 export function demoOrders(){

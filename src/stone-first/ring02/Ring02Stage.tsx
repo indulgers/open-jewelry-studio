@@ -14,7 +14,8 @@ import {BASE_DESIGN,ZONES,buildMetal,type FittedStone,type RingDesign,type prepa
 
 export const VIEWS=[['overall','整体'],['top','戒面俯视'],['side','镶座侧面'],['macro','镶嵌特写']] as const;
 export type RingView=typeof VIEWS[number][0];
-const preset={...STUDIO_PRESETS.catalog,gemIntensity:1.18,roughness:.115};
+export const preset={...STUDIO_PRESETS.catalog,gemIntensity:1.18,roughness:.115};
+export type RingFraming={position:readonly[number,number,number];target:readonly[number,number,number];height:number};
 const cameras={
   overall:{position:[2.2,2.5,3.6],target:[0,.235,0],height:2.48},
   top:{position:[0,4.2,.001],target:[0,1.1,0],height:1.35},
@@ -22,13 +23,13 @@ const cameras={
   macro:{position:[1.7,2.6,2.6],target:[0,1.14,0],height:1.04},
 } as const;
 
-function RingCamera({view,reset}:{view:RingView;reset:number}){
+export function RingCamera({view,reset,frames=cameras}:{view:RingView;reset:number;frames?:Record<RingView,RingFraming>}){
   const controls=useRef<ComponentRef<typeof OrbitControls>>(null);
   const {camera,size,invalidate}=useThree();
   const previous=useRef<{view:RingView;reset:number;camera:OrthographicCamera;fitZoom:number}>(null);
   useLayoutEffect(()=>{
     if(!(camera instanceof OrthographicCamera)||!controls.current||!size.width||!size.height)return;
-    const framing=cameras[view];
+    const framing=frames[view];
     const fitZoom=Math.min(size.height/framing.height,size.width/(view==='top'?2.14:1.46));
     const last=previous.current;
     if(last?.camera===camera&&last.view===view&&last.reset===reset){
@@ -42,11 +43,11 @@ function RingCamera({view,reset}:{view:RingView;reset:number}){
     previous.current={view,reset,camera,fitZoom};
     camera.updateProjectionMatrix();
     invalidate();
-  },[view,reset,camera,size.width,size.height,invalidate]);
+  },[view,reset,camera,size.width,size.height,invalidate,frames]);
   return <OrbitControls ref={controls} enablePan={false} minZoom={65} maxZoom={1400}/>;
 }
 
-function RingThumbnail({captureRef,ready}:{captureRef:RefObject<(()=>string|undefined)|null>;ready:boolean}){
+export function RingThumbnail({captureRef,ready,frames=cameras}:{captureRef:RefObject<(()=>string|undefined)|null>;ready:boolean;frames?:Record<RingView,RingFraming>}){
   const {gl,scene,camera,invalidate}=useThree();
   useEffect(()=>{
     if(!ready)return;
@@ -58,7 +59,7 @@ function RingThumbnail({captureRef,ready}:{captureRef:RefObject<(()=>string|unde
       thumbnail.width=thumbnail.height=320;
       const context=thumbnail.getContext('2d');
       if(!context)return;
-      const {position,target,height}=cameras.overall;
+      const {position,target,height}=frames.overall;
       const halfWidth=height*source.width/(2*side),halfHeight=height*source.height/(2*side);
       const photo=new OrthographicCamera(-halfWidth,halfWidth,halfHeight,-halfHeight,.03,30);
       photo.position.fromArray(position);
@@ -74,11 +75,12 @@ function RingThumbnail({captureRef,ready}:{captureRef:RefObject<(()=>string|unde
       }
     };
     return ()=>{captureRef.current=null;};
-  },[captureRef,ready,gl,scene,camera,invalidate]);
+  },[captureRef,ready,gl,scene,camera,invalidate,frames]);
   return null;
 }
 
-function GemBatch({stones,environment}:{stones:FittedStone[];environment:Texture}){
+export type PlacedGem=Pick<FittedStone,'name'|'geometry'|'appearance'|'matrix'>;
+export function GemBatch({stones,environment}:{stones:PlacedGem[];environment:Texture}){
   const {geometry,appearance}=stones[0];
   const optics=useMemo(()=>createGemOptics(geometry,environment,'standard',{
     appearance,environmentOnly:true,environmentRotation:preset.rotation,environmentIntensity:preset.gemIntensity,dispersion:preset.dispersion,

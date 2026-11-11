@@ -27,7 +27,7 @@ describe('product export lifecycle',()=>{
   it('renders images of the current silver configuration after the preview is ready',async()=>{
     await loaded();
     expect(screen.getByRole('button',{name:'商品图片'})).toBeDisabled();
-    expect(screen.getByText(/银色/)).toBeInTheDocument();
+    expect(document.querySelector('.preview-heading p')).toHaveTextContent('银色');
     fireEvent.click(await screen.findByText('测试模型就绪'));
     fireEvent.click(screen.getByRole('button',{name:'商品图片'}));
     expect(screen.queryByRole('img',{name:'当前配置 · 整体'})).toBeNull();
@@ -74,16 +74,16 @@ describe('shared studio navigation',()=>{
   it('opens DIY at the root and offers the showroom as a secondary link',()=>{
     window.history.replaceState(null,'','/');
     render(<App/>);
-    expect(screen.getByRole('heading',{name:'定制你的戒指'})).toBeInTheDocument();
-    expect(screen.getByRole('link',{name:/探索珠宝展台/})).toHaveAttribute('href','#/showroom');
+    expect(screen.getByRole('heading',{name:/让心意/})).toBeInTheDocument();
+    expect(screen.getByRole('link',{name:'珠宝展台'})).toHaveAttribute('href','#/showroom');
     expect(screen.queryByRole('tab',{name:'珠宝展台'})).toBeNull();
   });
   it('enters the DIY template list and opens the listed ring editor',async()=>{
     await loaded();
     act(()=>{window.history.replaceState(null,'','/#/diy');window.dispatchEvent(new HashChangeEvent('hashchange'));});
     expect(window.location.hash).toBe('#/diy');
-    expect(screen.getByRole('heading',{name:'定制你的戒指'})).toBeInTheDocument();
-    const start=screen.getByRole('link',{name:'开始定制'});
+    expect(screen.getByRole('heading',{name:/让心意/})).toBeInTheDocument();
+    const start=screen.getAllByRole('link',{name:'开始定制'}).find(link=>link.getAttribute('href')==='#/stonefirst/ring-02')!;
     expect(start).toHaveAttribute('href','#/stonefirst/ring-02');
     expect(screen.getByRole('heading',{name:'围钻戒指'})).toBeInTheDocument();
     fireEvent.click(start);
@@ -120,6 +120,6 @@ describe('shared studio navigation',()=>{
     expect(screen.queryByRole('tab',{name:'模组 DIY'})).toBeNull();
     expect(screen.getByTitle('FORME 模组 DIY 设计工作台')).toHaveAttribute('src','/forme/index.html?embedded=1#design=example');
     act(()=>{window.history.replaceState(null,'','/#/showroom');window.dispatchEvent(new HashChangeEvent('hashchange'));});
-    expect(screen.getByRole('link',{name:'戒指定制'})).toBeInTheDocument();
+    expect(screen.getByRole('link',{name:'专属定制'})).toBeInTheDocument();
   });
 });

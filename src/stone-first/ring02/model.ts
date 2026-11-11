@@ -19,12 +19,8 @@ export type RingDesign=Record<Zone,StoneSpec>&{head:Head;reach:typeof REACHES[nu
 export const TEMPLATE_REVISION=RING02_TEMPLATE.revision;
 export const BASE_DESIGN=RING02_TEMPLATE.defaultDesign;
 
-export const ENGRAVING_LIMIT=16;
-export function engravingProblem(value:string){
-  if(value.length>ENGRAVING_LIMIT)return '刻字最多 '+ENGRAVING_LIMIT+' 个字符。';
-  if(!/^[A-Za-z0-9 .&-]*$/.test(value))return '请输入英文字母、数字、空格或 . & - 。';
-  return '';
-}
+export {ENGRAVING_LIMIT,engravingProblem} from './engraving';
+import {engravingProblem} from './engraving';
 
 function record(value:unknown):value is Record<string,unknown>{
   return typeof value==='object'&&value!==null;

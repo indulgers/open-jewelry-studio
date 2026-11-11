@@ -1,12 +1,13 @@
 import {readFileSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
 import {Document,NodeIO,VertexLayout} from '@gltf-transform/core';
 import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {MeshoptEncoder} from 'meshoptimizer';
 
-const source=new URL('../assets/source/ring-02/source.obj',import.meta.url);
+const source=process.argv[2]?resolve(process.argv[2]):new URL('../assets/source/ring-02/source.obj',import.meta.url);
 // Bump the versioned filename, assets.ts and the Vercel cache rule if this asset changes.
-const destination=new URL('../public/models/atelier/ring-02/ring-v2.glb',import.meta.url);
+const destination=process.argv[3]?resolve(process.argv[3]):new URL('../public/models/atelier/ring-02/ring-v2.glb',import.meta.url);
 await MeshoptEncoder.ready;
 const ring=new OBJLoader().parse(readFileSync(source,'utf8'));
 const document=new Document();

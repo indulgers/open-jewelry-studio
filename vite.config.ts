@@ -1,45 +1,40 @@
 import { defineConfig } from 'vitest/config';
 import {RING02_TEMPLATE} from './src/stone-first/ring02/assets.ts';
+import {RING_CATALOG} from './src/stone-first/catalog.ts';
 import {STUDIO_ENVIRONMENT} from './src/viewer/studioEnvironment.ts';
 
 export default defineConfig({
   plugins: [{
-    name:'ring02-direct-entry-preload',
+    name:'jewelry-direct-entry-preload',
     apply:'build',
     transformIndexHtml:{
       order:'post',
       handler(_html,{bundle}){
-        const editor=Object.values(bundle??{}).find(
-          chunk=>chunk.type==='chunk'&&chunk.facadeModuleId?.endsWith('/ring02/Ring02Studio.tsx'),
-        );
-        if(!editor||editor.type!=='chunk')return;
-        const assets=[
-          [RING02_TEMPLATE.image,'image'],
-          [RING02_TEMPLATE.model,'fetch'],
-          [RING02_TEMPLATE.oval,'fetch'],
-          [STUDIO_ENVIRONMENT.url,'fetch'],
-          ...[editor.fileName,...editor.imports].map(file=>['/'+file,'module']),
-        ];
-        // Start route-specific downloads as HTML arrives, before React evaluates the hash.
-        const pendingPreview=`<figure class="ring02-boot-preview" role="status" style="margin:0;padding:clamp(64px,8vw,110px) 16px 0;text-align:center;color:#635f5b">
-          <img src="${RING02_TEMPLATE.image}" alt="银色围钻戒指原款" width="822" height="598" style="display:block;margin:0 auto;width:min(100%,690px);height:min(49dvh,450px);object-fit:contain;mix-blend-mode:multiply">
-          <figcaption style="margin-top:10px;font-size:13px">原款参考 · 正在加载 3D</figcaption>
-        </figure>`;
+        const routes=Object.fromEntries(RING_CATALOG.map(template=>{
+          const suffix=template.kind==='parametric'?'/ring02/Ring02Studio.tsx':'/reference/SourceRingStudio.tsx';
+          const editor=Object.values(bundle??{}).find(chunk=>chunk.type==='chunk'&&chunk.facadeModuleId?.endsWith(suffix));
+          if(!editor||editor.type!=='chunk')return [template.editor,[]];
+          return [template.editor,[
+            [template.model,'fetch'],
+            ...(template.kind==='parametric'?[[RING02_TEMPLATE.oval,'fetch']]:[]),
+            [STUDIO_ENVIRONMENT.url,'fetch'],
+            ...[editor.fileName,...editor.imports].map(file=>['/'+file,'module']),
+          ]];
+        }));
+        // Download only the selected model as HTML arrives, before React evaluates the hash.
         return [{tag:'script',injectTo:'head-prepend',children:`
-          if(location.hash===${JSON.stringify(RING02_TEMPLATE.editor)}){
-            for(const [href,type] of ${JSON.stringify(assets)}){
-              const link=document.createElement('link');
-              link.rel=type==='module'?'modulepreload':'preload';
-              if(type!=='module')link.as=type;
-              if(type!=='image')link.crossOrigin='anonymous';
-              link.href=href;
-              document.head.append(link);
-            }
+          for(const [href,type] of (${JSON.stringify(routes)}[location.hash]||[])){
+            const link=document.createElement('link');
+            link.rel=type==='module'?'modulepreload':'preload';
+            if(type!=='module')link.as=type;
+            link.crossOrigin='anonymous';
+            link.href=href;
+            document.head.append(link);
           }`},
           {tag:'script',injectTo:'body',children:`
-            if(location.hash===${JSON.stringify(RING02_TEMPLATE.editor)}){
+            if(${JSON.stringify(RING_CATALOG.map(template=>template.editor))}.includes(location.hash)){
               const root=document.getElementById('root');
-              if(!root.hasChildNodes())root.insertAdjacentHTML('afterbegin',${JSON.stringify(pendingPreview)});
+              if(!root.hasChildNodes())root.innerHTML='<div role="status" aria-label="正在加载三维预览" style="min-height:65vh;display:grid;place-items:center"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#8c6d1f" stroke-width="1.5" stroke-dasharray="38 19"/></svg></div>';
             }`},
         ];
       },
