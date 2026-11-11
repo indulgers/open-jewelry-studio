@@ -23,9 +23,8 @@ import {STUDIO_PRESETS,type StudioPreset, type StudioPresetId} from './studioPre
 import type {StoneAppearance} from './stoneAppearance';
 import {ATELIER_GEMS,atelierGem,type GemShapeId} from '../assets/atelierManifest';
 import {FINISHED_RINGS,type FinishedRingId} from '../assets/finishedRings';
-import {PRODUCT_VIEWS,VIEW_LABELS,SAMPLE_IMAGES,type ProductImage} from '../assets/productMedia';
+import {PRODUCT_VIEWS,VIEW_LABELS,type ProductImage} from '../assets/productMedia';
 import {ProductCapture} from './ProductCapture';
-import {ProductGallery} from '../components/ProductGallery';
 import {SceneReady} from './SceneReady';
 import {StageLoading} from '../components/StageLoading';
 
@@ -70,9 +69,9 @@ function CameraControl({autoRotate,resetToken,inspection,onPerformanceWarning,mo
     onStart={()=>setInteracting(true)} onEnd={()=>setInteracting(false)} target={cameraView(inspection,compact,modelMode).target}/>;
 }
 
-export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,studioPreset,gemShape,ringStyle,stageMode,stoneAppearance='diamond',captureRequest,onImages,onCaptureProgress,captureBusy,onCaptureReady,poster}:{
+export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerformanceWarning,modelMode,studioPreset,gemShape,ringStyle,stageMode,stoneAppearance='diamond',captureRequest,onImages,onCaptureProgress,captureBusy,onCaptureReady}:{
   configuration:Configuration;quality:Quality;autoRotate:boolean;resetToken:number;onPerformanceWarning:()=>void;modelMode:ModelMode;ringStyle:FinishedRingId;stageMode:StageMode;
-  studioPreset:StudioPresetId;gemShape:GemShapeId;stoneAppearance?:StoneAppearance;captureRequest:number;onImages:(images:ProductImage[])=>void;onCaptureProgress:(message:string)=>void;captureBusy:boolean;onCaptureReady:(ready:boolean)=>void;poster?:string;
+  studioPreset:StudioPresetId;gemShape:GemShapeId;stoneAppearance?:StoneAppearance;captureRequest:number;onImages:(images:ProductImage[])=>void;onCaptureProgress:(message:string)=>void;captureBusy:boolean;onCaptureReady:(ready:boolean)=>void;
 }){
   const [readyMode,setReadyMode]=useState<string|null>(null),[simplified,setSimplified]=useState(false),[contextLost,setContextLost]=useState(false);
   const [failed,setFailed]=useState(false);
@@ -103,7 +102,7 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
     <ViewerBoundary onRetry={retry} onError={()=>setFailed(true)}>
       <Canvas key={attempt} dpr={[1,settings.maxDpr]} camera={{position:[2.9,2.6,4.7],fov:32,near:0.1,far:50}}
         frameloop={autoRotate&&ready?'always':'demand'} gl={{antialias:true,alpha:true,powerPreference:'high-performance',preserveDrawingBuffer:true}}
-        fallback={<div className="viewer-message" role="alert" aria-hidden={rendererCreated||undefined}><p>当前浏览器无法使用三维预览，{poster?'以下为固定样板图。':'请尝试使用支持 WebGL 的浏览器。'}</p>{poster&&<ProductGallery images={SAMPLE_IMAGES} sample/>}</div>}
+        fallback={<div className="viewer-message" role="alert" aria-hidden={rendererCreated||undefined}><p>当前浏览器无法使用三维预览，请尝试使用支持 WebGL 的浏览器。</p></div>}
         onCreated={({gl})=>{
           setRendererCreated(true);
           gl.toneMapping=NeutralToneMapping;gl.toneMappingExposure=1;gl.outputColorSpace=SRGBColorSpace;gl.setClearAlpha(0);
@@ -130,7 +129,7 @@ export function JewelryStage({configuration,quality,autoRotate,resetToken,onPerf
         <CameraControl {...{autoRotate,resetToken,inspection,onPerformanceWarning,modelMode,ready}}/>
         <ProductCapture request={captureRequest} {...{contentKey,modelMode,simplified,ready,onImages}} onProgress={onCaptureProgress}/>
       </Canvas>
-      {rendererCreated&&!ready&&!failed&&!contextLost&&<StageLoading poster={poster} warming={prepared}/>}
+      {rendererCreated&&!ready&&!failed&&!contextLost&&<StageLoading warming={prepared}/>}
     </ViewerBoundary>
     <div className="inspection-views" role="group" aria-label="观察视角">
       {PRODUCT_VIEWS.map(view=><button key={view} disabled={captureBusy||!ready} aria-pressed={inspection===view}

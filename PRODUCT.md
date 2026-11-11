@@ -20,7 +20,7 @@ Evaluate interactive jewelry against commercial display requirements: readable m
 
 ## Capabilities and Constraints
 
-An MIT sample ring with the user's round gemstone, a library of 19 supplied gemstone shapes, two procedural shank styles, three metal appearances, two lighting presets, camera controls, local saving, quality modes and four-view image export. No price, payment, inventory or AR. Source gemstones have no declared physical units; the sample ring is not a production SKU. Small mobile viewport verification is not physical device testing. External asset licensing and attribution are required.
+相言 provides one silver-tone Ring 02 template with head and shank customization, automatic accent placement, saved local drafts, and a demo estimate and cart. The secondary showroom keeps the reference rings, gem library, and image export. Payment, inventory, and manufacturing sign-off are outside the demo. Source geometry has no validated physical scale. Show layout gaps in model units. Small viewport checks use browser emulation. Keep the editorial image labeled separately from actual model views.
 
 ## Evidence on Hand
 

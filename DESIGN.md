@@ -1,15 +1,15 @@
 ---
-name: Ring Laboratory
-description: White studio photography and a shared jewelry storefront interface.
+name: 相言
+description: 相言的银色首饰，首页是矿石与银的品牌图，定制页是纯白摄影棚与双步骤编辑。
 colors:
-  primary: '#233b55'
-  secondary: '#233b55'
+  primary: '#242322'
+  secondary: '#242322'
   surface: '#ffffff'
-  background: '#fafbfc'
-  line: '#dce2e8'
-  muted: '#596575'
+  background: '#faf9f7'
+  line: '#e1ddd7'
+  muted: '#635f5b'
   listing: '#ffffff'
-  text: '#202b37'
+  text: '#201f1d'
   forme-ink: '#302c29'
   forme-muted: '#6b6259'
   forme-frame: '#f5f3ee'
@@ -80,17 +80,17 @@ components:
     padding: '8px 0 10px'
 ---
 
-# Design System: 戒指实验室
+# 相言设计系统
 
 ## Overview
 
-**Creative North Star: "珠宝是主角"**
+字标以自绘「相言」为唯一品牌标识。平行横画、宽窄竖笔和斜切收笔呼应戒圈抛光面，居中放在浅色导航。首页首屏以深色矿石和银色戒指构成品牌形象图，下一屏使用真实模型图和可进入的款式。形象图与可编辑模型分别标明用途。
 
-展台、款式、镶嵌编辑与购物车共用白色、深蓝灰、细边线和宋体标题。镶嵌编辑使用纯白背景、中性面积灯和本地商品棚 HDR。展台保留白底与暖调两种观察背景。
+编辑器采用商品详情结构，左侧纯白柔光 3D，右侧按戒头和戒圈分步配置。价格和当前动作放在同一行，预览视角、撤销、重置等次要动作使用文字控件。小屏保持摄影棚在上，底部固定估价。真实商品细节、选择状态和预览能力从 [Tiffany 商品详情](https://www.tiffany.com/jewelry/rings/tiffany-1837-sterling-silver-rings-1152147635.html)、[Blue Nile 定制步骤](https://www.bluenile.com/engagement-rings?jaRedirect=true) 和 [Helzberg 定制入口](https://www.helzberg.com/customize/design-your-own-engagement-ring.html) 提炼。
 
 FORME 采用用户选定的 A · 铂纸画廊。珠宝先行。纸白画布、平直参数栏与作品签式信息承载模组编辑，暗红只提示操作和选择；这一视觉已整合到正式 `/#/modules`，尚未发布。
 
-`forme-*` 词元用于模组编辑器内部。共享导航只显示珠宝展台和镶嵌 DIY，模组编辑器可通过已有链接打开。
+`forme-*` 词元用于模组编辑器内部。共享导航提供戒指定制与购物车。珠宝展台位于款式页底部，模组编辑器可通过已有链接打开。
 
 **Key Characteristics:**
 - 主展台保留纯白 Listing 与暖调展陈两种背景。
@@ -99,9 +99,9 @@ FORME 采用用户选定的 A · 铂纸画廊。珠宝先行。纸白画布、�
 
 ## Colors
 
-主要操作使用深蓝灰底白字。选中项使用同色边线和浅蓝灰底。FORME 的 `forme-accent` 用于主要动作、选中边线与焦点，`forme-active` 承载选中底色，`forme-frame` 和 `forme-surface` 区分画布与参数区域；`forme-muted` 用于次要说明，颜色不能替代文字标签。
+主要操作使用墨色底和白字。次要操作用文字和细线。选中项使用墨色边线和浅石灰底。FORME 的 `forme-accent` 用于主要动作、选中边线与焦点，`forme-active` 承载选中底色，`forme-frame` 和 `forme-surface` 区分画布与参数区域；`forme-muted` 用于次要说明，颜色不能替代文字标签。
 
-侧车中的色阶仅供文档预览，不扩充运行时色板。
+采用 [StyleKit Luxe Lookbook](https://www.stylekit.top/en/styles/luxe-lookbook) 的全幅形象图和大衬线标题，参考 [Luxury Retail](https://www.stylekit.top/en/styles/luxury-retail) 组织图片与商品详情，并将墨色、纸白、纯白摄影区、边线和焦点写为共享变量。首屏文字参考 [React Bits Animated Content](https://www.reactbits.dev/animations/animated-content) 做一次短入场，编辑区切换只做短过渡。系统开启减少动态效果时停用装饰性过渡。
 
 ## Typography
 
@@ -128,7 +128,7 @@ FORME 的品牌字使用 Cormorant Garamond，中文标题使用设备宋体，�
 | 宽度不超过 700px | 上画布、下方 292px 参数区；参数内容局部滚动，常用按钮和页签高至少 44px |
 | 手机布局且编辑器高度不超过 660px | 参数区缩至 246px，保留上方模型空间 |
 
-顶部导航共用一套字体、底色和选中态，高 64px，手机为 56px。品牌居左，两个入口居中，购物车居右。预留滚动条空间，避免切换页面时横移。FORME 操作栏分别为 68px 和 56px。模型保持可见。戒指居中构图复用 `camera.js`，画布宽度小于 520px 时距离为 35，其余为 32，避免提案再叠加初始缩放。
+顶部导航高 76px，手机为 56px。戒指定制居左，自绘字标居中，购物车居右。预留滚动条空间，避免切换页面时横移。FORME 操作栏分别为 68px 和 56px。模型保持可见。戒指居中构图复用 `camera.js`，画布宽度小于 520px 时距离为 35，其余为 32，避免提案再叠加初始缩放。
 
 ## Elevation & Depth
 
@@ -138,7 +138,7 @@ FORME 的品牌字使用 Cormorant Garamond，中文标题使用设备宋体，�
 
 ## Shapes
 
-选项为轻圆角矩形，金属色样为圆形，所有图标使用一致的细线 SVG。戒臂具有宽内壁、边缘倒角与厚度，不使用简单圆管代替完整戒臂。
+定制选项采用直角，金属色样为圆形，图标采用一致的细线。戒臂具有宽内壁、边缘倒角与厚度，不使用简单圆管代替完整戒臂。
 
 FORME 常驻面板保持平直边缘，控件微圆角、浮层稍圆，数值见 `rounded` 词元。色样为圆形。图标沿用细线 SVG；该界面规范不改变珠宝的几何、光照或着色器。
 

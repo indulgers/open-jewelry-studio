@@ -1,18 +1,23 @@
-import {BASE_DESIGN,TEMPLATE_REVISION,parseDesign,type RingDesign} from './model';
+import {BASE_DESIGN,TEMPLATE_REVISION,parseDesign,usesAutomaticPave,type RingDesign} from './model';
 
 const SAVE_KEY='open-jewelry-studio:'+TEMPLATE_REVISION;
-export type Draft={design:RingDesign;revision:string};
+const PLACEMENT_VERSION='auto-pave-1';
+export type Draft={design:RingDesign;revision:string;placementVersion:typeof PLACEMENT_VERSION};
 export function newDraft(design:RingDesign):Draft{
   const revision=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
-  return {design,revision};
+  return {design,revision,placementVersion:PLACEMENT_VERSION};
 }
 export function readDraft():Draft{
   try{
     const data=JSON.parse(localStorage.getItem(SAVE_KEY)??'null');
-    const design=parseDesign(data?.design??data);
+    const stored=data?.design??data;
+    const design=parseDesign(stored);
     if(design){
       const revision=data?.revision;
-      if(typeof revision==='string'&&/^[0-9a-f]{32}$/.test(revision))return {design,revision};
+      const samePlacement=data?.placementVersion===PLACEMENT_VERSION||!usesAutomaticPave(design);
+      if(samePlacement&&stored.metal===design.metal&&typeof revision==='string'&&/^[0-9a-f]{32}$/.test(revision)){
+        return {design,revision,placementVersion:PLACEMENT_VERSION};
+      }
       return newDraft(design);
     }
   }catch{/* Editing remains available without browser storage. */}

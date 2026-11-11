@@ -1,9 +1,9 @@
 .ring02-workspace {
-  --editor-panel: 436px;
+  --editor-panel: 455px;
   min-height: calc(100dvh - var(--shell-height));
   max-width: var(--shop-width);
   margin: 0 auto;
-  padding: 20px var(--shop-gutter) 28px;
+  padding: 24px var(--shop-gutter) calc(100px + env(safe-area-inset-bottom));
   background: var(--page);
   color: var(--ink);
   font: inherit;
@@ -12,7 +12,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 0 15px;
+  margin: 0 0 21px;
   font-size: 13px;
   color: var(--muted);
 }
@@ -20,24 +20,29 @@
 .ring02-breadcrumb [aria-current] {white-space: nowrap}
 .ring02-main {
   grid-template-columns: minmax(0,1fr) var(--editor-panel);
-  gap: clamp(22px,4vw,58px);
+  gap: clamp(28px,4.7vw,70px);
 }
 .ring02-main .stone-first-preview {
+  position: sticky;
   top: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--shop-radius);
+  border: 0;
+  border-radius: 0;
   background: #fff;
 }
 .ring02-main .stone-first-canvas {height: clamp(325px,min(42vw,calc(100dvh - 215px)),620px)}
-.ring02-preview-bar {display: flex;align-items: center;justify-content: space-between;gap: 8px;padding: 8px 12px}
+.ring02-canvas .viewer-message {padding: 12px;background: #fff;color: var(--ink);gap: 6px}
+.ring02-preview-fallback {display: flex;flex-direction: column;align-items: center;min-height: 0;gap: 5px;margin: 0;color: var(--muted)}
+.ring02-preview-fallback img {display: block;width: 100%;height: min(32vh,300px);min-height: 0;object-fit: contain}
+.ring02-preview-bar {display: flex;align-items: center;justify-content: space-between;gap: 8px;padding: 12px 18px}
 .ring02-preview-bar>div {display: flex;align-items: baseline;flex-wrap: wrap;gap: 6px 10px}
-.ring02-preview-bar strong {font-size: 13px;font-weight: 500}
-.ring02-preview-bar span {font-size: 12px;color: var(--muted)}
+.ring02-preview-bar strong {font-size: 12px;font-weight: 500}
+.ring02-preview-bar span {font-size: 12px;color: var(--muted);font-variant-numeric: tabular-nums}
 .ring02-main .stone-first-camera-views {
-  justify-content: center;
-  gap: 5px;
-  padding: 8px 6px;
-  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: clamp(6px,1.8vw,25px);
+  padding: 6px 8px 10px;
+  border-top: 0;
   background: #fff;
 }
 .ring02-workspace button {
@@ -50,76 +55,97 @@
   font-size: 13px;
 }
 .ring02-workspace button:hover:enabled {background: var(--tint);border-color: var(--line-strong)}
-.ring02-workspace button[aria-pressed=true] {background: var(--tint)!important;border-color: var(--accent)!important;color: var(--accent)}
-.ring02-preview-bar button, .ring02-main .stone-first-camera-views button {font-size: 12px}
+.ring02-workspace button[aria-pressed=true]:not(:disabled) {background: var(--tint);border-color: var(--accent);color: var(--accent)}
+.ring02-main :is(button,input,summary,[tabindex]) {scroll-margin-bottom: 88px}
+.ring02-workspace .ring02-preview-bar button, .ring02-workspace .stone-first-camera-views button {border: 0;background: transparent;font-size: 12px}
+.ring02-workspace .ring02-preview-bar button:is(:hover,:focus-visible), .ring02-workspace .ring02-preview-bar button[aria-pressed=true] {text-decoration: underline;text-underline-offset: 4px;background: transparent}
+.ring02-workspace .stone-first-camera-views button {border-bottom: 1px solid transparent;padding-inline: 0;white-space: nowrap}
+.ring02-workspace .stone-first-camera-views button[aria-pressed=true] {border-bottom-color: var(--accent);background: transparent;font-weight: 600}
 .ring02-main .stone-first-panel {border: 0;border-radius: 0;overflow: visible;background: transparent;min-width: 0}
-.ring02-product {margin-bottom: 13px}
-.ring02-product h1 {margin: 0;font: 500 clamp(28px,3.4vw,43px)/1.2 var(--shop-title)}
+.ring02-product {margin: 4px 0 21px}
+.ring02-product h1 {margin: 0;font: 500 clamp(31px,3.65vw,49px)/1.15 var(--shop-title);letter-spacing:.065em}
 .ring02-product p {margin: 7px 0 0;color: var(--muted);font-size: 14px}
 .ring02-zones {
   display: grid;
   grid-template-columns: repeat(2,minmax(0,1fr));
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 18px;
+  border-block: 1px solid var(--line);
+  margin-bottom: 22px;
 }
-.ring02-zones button {min-height: 46px;border: 0;border-bottom: 2px solid transparent;border-radius: 0;font-size: 15px}
-.ring02-zones button[aria-pressed=true] {border-bottom-color: var(--accent)!important;background: transparent!important;font-weight: 600}
+.ring02-workspace .ring02-zones button {min-height: 46px;border: 0;border-bottom: 1px solid transparent;background: transparent;font-size: 14px}
+.ring02-workspace .ring02-zones button[aria-pressed=true]:not(:disabled) {border-bottom-color: var(--accent);background: transparent;font-weight: 600}
+.ring02-zones span {margin-inline-end: 7px;font: 500 13px/1 Georgia,serif;font-variant-numeric: tabular-nums}
 .ring02-fields {min-height: 0;padding: 0 0 5px}
 @media(prefers-reduced-motion:no-preference) {
-  .ring02-fields {animation: ring02-part-in .18s ease-out}
-  @keyframes ring02-part-in {from {opacity: .6;transform: translateY(3px)}}
+  .ring02-workspace button {transition: background-color .18s ease-out,border-color .18s ease-out,color .18s ease-out}
 }
 .ring02-fields fieldset {min-width: 0;border: 0;padding: 0;margin: 0 0 17px}
-.ring02-fields legend {margin-bottom: 7px;font-size: 13px;font-weight: 600}
+.ring02-fields legend {margin-bottom: 8px;font-size: 13px;font-weight: 600}
 .ring02-fields h2 {font-size: 15px;font-weight: 600;margin: 0 0 6px}
 .ring02-fields>p {font-size: 13px;color: var(--muted);margin: 0 0 13px;line-height: 1.55}
 .ring02-fields .stone-first-options {display: grid;grid-auto-flow: column;grid-auto-columns: minmax(0,1fr);gap: 7px}
-.ring02-fields .stone-first-options button {min-width: 0}
+.ring02-fields .stone-first-options button {min-width: 0;font-weight: 400}
 .ring02-fields .ring02-gems {grid-auto-flow: row;grid-template-columns: repeat(2,minmax(0,1fr))}
-.ring02-gems button, .ring02-fields #ring02-field-metal button {display: flex;align-items: center;justify-content: center;gap: 6px}
+.ring02-gems button {display: flex;align-items: center;justify-content: center;gap: 6px}
 .ring02-swatch {width: 11px;height: 11px;border: 1px solid #21283235;border-radius: 50%;flex: none}
 .swatch-diamond {background: #f2f5f7}
 .swatch-sapphire {background: #234885}
 .swatch-ruby {background: #972543}
 .swatch-emerald {background: #1c6c50}
 .ring02-heads {display: grid;grid-template-columns: repeat(3,minmax(0,1fr));gap: 7px}
-.ring02-heads button {display: flex;flex-direction: column;align-items: center;justify-content: center;gap: 4px;min-width: 0;padding: 7px 4px}
-.ring02-heads svg {width: 32px;height: 32px}
+.ring02-workspace .ring02-heads button {display: flex;flex-direction: column;align-items: center;justify-content: center;gap: 4px;min-width: 0;padding: 12px 4px;min-height: 86px;color: var(--ink)}
+.ring02-heads svg {width: 34px;height: 34px;stroke-width: .95}
 .ring02-heads strong {font-size: 13px;font-weight: 500}
 .ring02-heads small {font-size: 11px;color: var(--muted);white-space: nowrap}
-.ring02-head-zones {margin-bottom: 10px}
-.ring02-fields .stone-first-note {background: transparent;padding: 0;color: var(--muted)!important;font-size: 12px!important;margin-top: 5px!important}
+.ring02-fields .ring02-head-zones {grid-template-columns: repeat(2,minmax(0,1fr));margin: 4px 0 12px;border-bottom: 1px solid var(--line)}
+.ring02-workspace .ring02-head-zones button {border: 0;border-bottom: 1px solid transparent;background: transparent}
+.ring02-workspace .ring02-head-zones button[aria-pressed=true] {border-bottom-color: var(--accent);background: transparent;font-weight: 600}
+.ring02-layout-note {display: grid;align-content: center;min-height: calc(3em + 28px);margin: 0 0 16px;padding: 11px 0;border-block: 1px solid var(--line);font-size: 12px;line-height: 1.5}
+.ring02-layout-note p {margin: 0;color: var(--muted)}
+.ring02-layout-note dl {display: grid;gap: 4px;margin: 0}
+.ring02-layout-note dl div {display: flex;justify-content: space-between;gap: 8px}
+.ring02-layout-note dt {color: var(--muted)}
+.ring02-layout-note dd {margin: 0;font-variant-numeric: tabular-nums;text-align: right}
 .ring02-summary {border-top: 1px solid var(--line);padding: 12px 0;font-size: 13px}
 .ring02-summary summary {cursor: pointer;font-weight: 500}
 .ring02-summary ul {list-style: none;padding: 0;margin: 10px 0 0}
 .ring02-summary li+li {margin-top: 5px}
 .ring02-summary button {display: flex;flex-wrap: wrap;justify-content: space-between;gap: 6px 14px;width: 100%;text-align: left}
 .ring02-actions {display: flex;flex-wrap: wrap;gap: 7px;padding: 0 0 10px}
-.ring02-actions button {min-height: 32px;font-size: 12px}
+.ring02-workspace .ring02-actions button {min-height: 38px;border: 0;background: transparent;padding-inline: 7px;font-size: 12px}
+.ring02-actions button:hover:enabled {text-decoration: underline;text-underline-offset: 3px}
 .ring02-status {font-size: 12px;color: var(--muted);line-height: 1.55;margin: 0 0 9px}
-.ring02-status:empty {display: none}
+.ring02-editor-feedback {min-height: 3.1em}
+.ring02-engraving input {width: 100%;min-height: 44px;padding: 10px 12px;border: 1px solid var(--line-strong);border-radius: var(--shop-radius);color: var(--ink);background: var(--panel);font-size: 16px;caret-color: var(--accent)}
+.ring02-engraving input::placeholder {color: var(--muted)}
+.ring02-engraving input:focus-visible {outline: 2px solid var(--accent);outline-offset: 3px}
+.ring02-engraving p, .ring02-engraving figcaption {font-size: 12px;line-height: 1.55;color: var(--muted);margin: 7px 0 0}
+.ring02-engraving p[role=alert] {color: #872c3d;min-height: 1.55em}
+.ring02-engraving-sample {margin: 12px 0 0;padding: 12px;background: var(--panel);border: 1px solid var(--line);text-align: center}
+.ring02-engraving-sample blockquote {display: grid;place-content: center;margin: 0 auto;width: min(100%,240px);min-height: 52px;padding: 5px 14px 9px;border-block: 1px solid #9e9892;background: linear-gradient(#e4dfdb,#faf9f7 55%,#ded9d5);border-radius: 0 0 50% 50%;font: 500 15px/1.2 Georgia,serif;letter-spacing: .04em;overflow-wrap: anywhere;white-space: pre-wrap}
+.ring02-engraving-actions {display: flex;justify-content: flex-end;gap: 8px;margin-top: 10px}
 .ring02-purchase {
   width: var(--editor-panel);
-  position: sticky;
+  position: fixed;
+  right: max(var(--shop-gutter),calc((100% - var(--shop-width)) / 2 + var(--shop-gutter)));
   bottom: 0;
   z-index: 2;
-  margin: 10px 0 0 auto;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
   border-radius: var(--shop-radius);
   background: var(--panel);
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 155px;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
 }
-.ring02-purchase p {margin: 0;font-size: 13px}
+.ring02-purchase p {margin: 0;font-size: 13px;white-space: nowrap}
 .ring02-purchase strong {font-size: 22px;font-variant-numeric: tabular-nums}
 .ring02-purchase small {color: var(--muted);font-size: 12px}
-.ring02-purchase .ring02-cart-notice {flex-basis: 100%;color: #2a624c}
+.ring02-purchase .shop-button {min-width: 0;justify-content: center;white-space: nowrap}
+.ring02-purchase .ring02-cart-notice {position: absolute;bottom: 100%;right: 0}
+.ring02-cart-notice:not(:empty) {padding: 8px 12px;background: var(--panel);color: #2a624c;border: 1px solid var(--line)}
 .ring02-dialog {width: min(460px,calc(100% - 26px));max-height: calc(100dvh - 32px);overflow: auto;border: 1px solid var(--line);border-radius: var(--shop-radius);padding: 22px;color: var(--ink);background: var(--panel)}
-.ring02-dialog::backdrop {background: #151e2a82}
+.ring02-dialog::backdrop {background: #231b1882}
 .ring02-dialog h2 {font: 500 25px/1.3 var(--shop-title);margin: 0 0 14px}
 .ring02-dialog p,.ring02-dialog dl {font-size: 14px;line-height: 1.55}
 .ring02-dialog dl {display: grid;gap: 7px}
@@ -134,8 +160,16 @@
   .ring02-main {grid-template-columns: minmax(0,1fr);gap: 19px}
   .ring02-main .stone-first-preview {position: static}
   .ring02-main .stone-first-canvas {height: clamp(250px,65vw,390px)}
-  .ring02-purchase {width: auto;margin: 10px calc(-1 * var(--shop-gutter)) 0;border-inline: 0;border-radius: 0;padding: 9px var(--shop-gutter) max(9px,env(safe-area-inset-bottom))}
+  .ring02-purchase {width: auto;inset-inline: 0;grid-template-columns: minmax(0,1fr) 132px;border-inline: 0;border-radius: 0;padding: 9px var(--shop-gutter) max(9px,env(safe-area-inset-bottom))}
+  .ring02-purchase small {font-size: 11px}
+  .ring02-purchase .ring02-cart-notice {right: var(--shop-gutter)}
+  .app-shell .ring02-purchase .shop-button {padding-inline: 11px;font-size: 13px}
   .ring02-workspace button {min-height: 43px}
-  .ring02-product {margin-bottom: 9px}
+  .ring02-product {margin-bottom: 14px}
+  .ring02-preview-bar {padding-inline: 9px}
   .ring02-breadcrumb {margin-bottom: 11px}
+}
+@media(max-width: 370px) {
+  .ring02-zone-description {min-height: 3.1em}
+  .ring02-fields .stone-first-options button {padding-inline: 6px}
 }

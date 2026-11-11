@@ -1,8 +1,16 @@
-import {beforeEach,describe,expect,it} from 'vitest';
+import {beforeEach,describe,expect,it,vi} from 'vitest';
 import {BASE_DESIGN,TEMPLATE_REVISION} from './model';
 import {addDemoOrder,demoOrders,estimateRing02,type DemoOrder} from './demoOrder';
 
-beforeEach(()=>localStorage.clear());
+const publication=vi.hoisted(()=>({listed:true}));
+vi.mock('./assets',async importOriginal=>{
+  const actual=await importOriginal<typeof import('./assets')>();
+  return {...actual,RING02_TEMPLATE:{...actual.RING02_TEMPLATE,get listed(){return publication.listed;}}};
+});
+beforeEach(()=>{
+  localStorage.clear();
+  publication.listed=true;
+});
 
 describe('Ring 02 demo order',()=>{
   it('prices the current selected options and drops hidden halo charges',()=>{
@@ -21,8 +29,30 @@ describe('Ring 02 demo order',()=>{
     design.center.appearance='ruby';
     expect(addDemoOrder({...first,quote:estimateRing02(design)})).toBe(false);
     expect(addDemoOrder({...first,revision:'a4e7fa93-650c-460f-a9d2-2a90d8519684',quote:estimateRing02(design)})).toBe(true);
+    publication.listed=false;
+    expect(()=>addDemoOrder({...first,revision:'unlisted'})).toThrow('当前款式已停售');
     const orders=demoOrders();
     expect(orders).toHaveLength(2);
     expect(orders.find(order=>order.revision===first.revision)).toMatchObject({quote:{amount:2280},design:{center:{appearance:'diamond'}},stones:first.stones});
+  });
+  it('preserves a snapshot, ignores invalid stored image URLs and saves the order if only the snapshot exceeds the quota',()=>{
+    const thumbnail='data:image/jpeg;base64,/9j/2Q==';
+    const order:DemoOrder={
+      templateRevision:TEMPLATE_REVISION,revision:'snapshot',confirmedAt:'2026-11-10T12:00:00.000Z',
+      design:BASE_DESIGN,quote:estimateRing02(BASE_DESIGN),details:[],stones:[],thumbnail,
+    };
+    expect(addDemoOrder(order)).toBe(true);
+    expect(demoOrders()[0].thumbnail).toBe(thumbnail);
+    const key='open-jewelry-studio:diy-demo-order:snapshot';
+    localStorage.setItem(key,JSON.stringify({...order,thumbnail:'https://example.com/remote.jpg'}));
+    expect(demoOrders()[0].thumbnail).toBeUndefined();
+
+    const storage=vi.spyOn(Storage.prototype,'setItem').mockImplementationOnce(()=>{
+      throw new DOMException('Cart quota exceeded','QuotaExceededError');
+    });
+    try{
+      expect(addDemoOrder({...order,revision:'quota'})).toBe(true);
+      expect(demoOrders().find(item=>item.revision==='quota')).toMatchObject({thumbnail:undefined,quote:order.quote});
+    }finally{storage.mockRestore();}
   });
 });

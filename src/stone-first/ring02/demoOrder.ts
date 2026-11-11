@@ -1,16 +1,7 @@
-import type {FittedStone,RingDesign} from './model';
+import type {FittedStone,RingDesign,paveSpacing} from './model';
+import {RING02_TEMPLATE} from './assets';
 
-// Sample values in whole yuan. Replace this table with business-approved data for a live quote.
-export const RING02_PRICE={
-  version:'ring-02-demo-1',
-  base:2280,
-  leadTime:'7–10 个工作日',
-  head:{halo:0,'four-prong':-200,bezel:-100},
-  centerLarge:200,
-  accentLarge:80,
-  coloredAccent:100,
-  longShoulder:120,
-} as const;
+export const RING02_PRICE=RING02_TEMPLATE.price;
 
 const yuan=new Intl.NumberFormat('zh-CN',{style:'currency',currency:'CNY',maximumFractionDigits:0});
 export function formatYuan(amount:number){return yuan.format(amount);}
@@ -33,23 +24,34 @@ export type DemoOrder={
   design:RingDesign;
   quote:ReturnType<typeof estimateRing02>;
   details:Detail[];
+  thumbnail?:string;
+  pave?:{units:'model';halo?:ReturnType<typeof paveSpacing>;shoulder:ReturnType<typeof paveSpacing>};
   stones:{id:string;zone:FittedStone['zone'];appearance:FittedStone['appearance'];placement:number[]}[];
 };
 
 const ORDER_PREFIX='open-jewelry-studio:diy-demo-order:';
+function validThumbnail(value:unknown):value is string{
+  return typeof value==='string'&&value.length<=80*1024&&/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(value);
+}
 export function hasDemoOrder(revision:string){
   try{return localStorage.getItem(ORDER_PREFIX+revision)!==null;}
   catch{return false;}
 }
 export function addDemoOrder(order:DemoOrder){
+  if(!RING02_TEMPLATE.listed)throw new Error('当前款式已停售');
   const key=ORDER_PREFIX+order.revision;
   if(localStorage.getItem(key)!==null)return false;
-  localStorage.setItem(key,JSON.stringify(order));
+  const thumbnail=validThumbnail(order.thumbnail)?order.thumbnail:undefined;
+  try{localStorage.setItem(key,JSON.stringify({...order,thumbnail}));}
+  catch(error){
+    if(!thumbnail||!(error instanceof DOMException)||error.name!=='QuotaExceededError')throw error;
+    localStorage.setItem(key,JSON.stringify({...order,thumbnail:undefined}));
+  }
   return true;
 }
 
 export function demoOrders(){
-  const orders:Pick<DemoOrder,'templateRevision'|'revision'|'confirmedAt'|'quote'|'details'>[]=[];
+  const orders:Pick<DemoOrder,'templateRevision'|'revision'|'confirmedAt'|'quote'|'details'|'thumbnail'>[]=[];
   for(let index=0;index<localStorage.length;index++){
     const key=localStorage.key(index);
     if(!key?.startsWith(ORDER_PREFIX))continue;
@@ -60,7 +62,7 @@ export function demoOrders(){
         &&Number.isSafeInteger(order.quote?.amount)&&order.quote.amount>0&&order.quote.currency==='CNY'
         &&typeof order.quote.version==='string'&&typeof order.quote.leadTime==='string'&&Array.isArray(order.details)
         &&order.details.every((detail:Detail)=>detail&&typeof detail.label==='string'&&typeof detail.value==='string')){
-        orders.push(order);
+        orders.push({...order,thumbnail:validThumbnail(order.thumbnail)?order.thumbnail:undefined});
       }
     }catch{continue;}
   }

@@ -43,7 +43,7 @@ export function constrainDesign(input:Design):Design{
  const parameters={...input.parameters};
  for(const [key,,min,max] of PARAMS)parameters[key]=clamp(parameters[key],min,max);
  parameters.repeat=Math.round(parameters.repeat);
- return {...input,parameters,ringDiameter:clamp(input.ringDiameter,15,23),
+ return {...input,metal:'white',parameters,ringDiameter:clamp(input.ringDiameter,15,23),
   mainDiameter:clamp(input.mainDiameter,2,6),accentDiameter:clamp(input.accentDiameter,0.55,1.4),
   gapMm:clamp(input.gapMm,0.10,0.3),crownLiftMm:clamp(input.crownLiftMm,.2,1.7),seatDepthMm:clamp(input.seatDepthMm,.06,.25),prongCount:input.prongCount===6?6:4};
 }

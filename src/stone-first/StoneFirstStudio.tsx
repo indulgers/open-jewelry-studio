@@ -104,7 +104,7 @@ export function StoneFirstStudio(){
         <h2>01 / 选戒指结构</h2><p>先决定镶座承力形式，再选金属与宝石占据的比例。全部五种结构均可预览。</p>
         <h3>选择专业配方</h3><div className="stone-first-recipe-grid">{RECIPES.map(r=><button key={r.id} aria-pressed={d.recipe===r.id} onClick={()=>selectRecipe(r.id)}><strong>{r.name}</strong><small>{r.description}</small></button>)}</div>
         <h3>戒指结构原型</h3><div className="stone-first-options">{STRUCTURES.map(([id,name])=><button key={id} aria-pressed={d.structure===id} onClick={()=>update('structure',id)}>{name}</button>)}</div>
-        <h3>金属材质</h3><div className="stone-first-options">{([['white','白金色'],['yellow','黄金色'],['rose','玫瑰金色']] as const).map(([id,name])=><button key={id} aria-pressed={d.metal===id} onClick={()=>update('metal',id)}>{name}</button>)}</div>
+        <p className="stone-first-note">金属外观 · 银色</p>
         <label className="stone-first-range"><span>戒圈内径（参数标称）</span><output>{d.ringDiameter.toFixed(1)} mm</output><input type="range" min="15" max="23" step=".5" value={d.ringDiameter} onChange={e=>update('ringDiameter',Number(e.target.value))}/></label>
        </>}
        {step===1&&<>

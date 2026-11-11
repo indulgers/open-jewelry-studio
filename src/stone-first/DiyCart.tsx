@@ -1,6 +1,17 @@
 import {useEffect,useState} from 'react';
+import {RING02_TEMPLATE} from './ring02/assets';
 import {demoOrders,formatYuan} from './ring02/demoOrder';
 import './diy-home.css';
+
+function CartImage({thumbnail}:{thumbnail?:string}){
+  const [failed,setFailed]=useState<string>();
+  const preview=failed===thumbnail?undefined:thumbnail;
+  return <figure className="diy-cart-image">
+    <img src={preview??RING02_TEMPLATE.image} alt={preview?'已确认的戒指方案':'银色围钻戒指款式参考图'}
+      width="320" height="320" onError={preview?()=>setFailed(preview):undefined}/>
+    {!preview&&<figcaption>款式参考图</figcaption>}
+  </figure>;
+}
 
 export function DiyCart(){
   const [orders,setOrders]=useState<ReturnType<typeof demoOrders>|null>(null);
@@ -14,19 +25,22 @@ export function DiyCart(){
     window.addEventListener('storage',refresh);
     return ()=>window.removeEventListener('storage',refresh);
   },[]);
-  return <main className="diy-home">
+  return <main className="diy-home diy-cart-page">
     <header className="diy-home-intro">
       <a href="#/diy">全部款式</a>
       <h1>演示购物车</h1>
       <p>方案保留在本机，价格和交期为示例。</p>
     </header>
-    {error?<p role="alert">无法读取当前浏览器的购物车。</p>:orders?.length===0?<p>购物车为空。</p>:null}
+    {error?<p role="alert">无法读取当前浏览器的购物车。</p>:orders?.length===0?<div className="diy-cart-empty"><p>购物车为空。</p><a className="shop-button" href="#/diy">选择款式</a></div>:null}
     <div className="diy-cart">
-      {orders?.map(order=><article key={order.revision} className="diy-template diy-template-details">
-        <h2>围钻戒指 · 1 件</h2>
-        <p>确认于 <time dateTime={order.confirmedAt}>{new Date(order.confirmedAt).toLocaleString('zh-CN')}</time></p>
-        <dl>{order.details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl>
-        <p><strong>{formatYuan(order.quote.amount)}</strong> · 示例交期 {order.quote.leadTime}</p>
+      {orders?.map(order=><article key={order.revision} className="diy-cart-order">
+        <CartImage thumbnail={order.thumbnail}/>
+        <div>
+          <h2>{RING02_TEMPLATE.name} · 1 件</h2>
+          <p>确认于 <time dateTime={order.confirmedAt}>{new Date(order.confirmedAt).toLocaleString('zh-CN')}</time></p>
+          <dl>{order.details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl>
+          <p><strong>{formatYuan(order.quote.amount)}</strong> · 示例交期 {order.quote.leadTime}</p>
+        </div>
       </article>)}
     </div>
   </main>;

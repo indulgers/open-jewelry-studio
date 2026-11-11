@@ -1,6 +1,5 @@
-import type {Dispatch,CSSProperties} from 'react';
-import type {Configuration,ConfigurationAction,MetalFinish} from '../configuration/configuration';
-import {METALS} from '../configuration/configuration';
+import type {Dispatch} from 'react';
+import type {Configuration,ConfigurationAction} from '../configuration/configuration';
 import type {Quality} from '../viewer/quality';
 type Props={configuration:Configuration;dispatch:Dispatch<ConfigurationAction>;quality:Quality;onQualityChange:(value:Quality)=>void;
   autoRotate:boolean;onAutoRotateChange:(value:boolean)=>void;onResetEditing:()=>void;onResetView:()=>void;hideStructure?:boolean;stoneOnly?:boolean};
@@ -18,13 +17,6 @@ export function Configurator({configuration,dispatch,quality,onQualityChange,aut
         <span>{style==='plain'?'素圈戒臂':'分叉戒臂'}</span>
       </label>)}
     </div></fieldset>}
-    {!stoneOnly&&<fieldset><legend>金属外观 <span>{METALS[configuration.metalFinish].name}</span></legend>
-      <div className="metal-choices">{(Object.keys(METALS) as MetalFinish[]).map(finish=><label className="metal-choice" key={finish}>
-        <input type="radio" name="metal" checked={configuration.metalFinish===finish} onChange={()=>dispatch({type:'set-metal',value:finish})}/>
-        <span className={`metal-disc metal-${finish}`} style={{'--metal':METALS[finish].swatch} as CSSProperties}/>
-        <span>{METALS[finish].name}</span>
-      </label>)}</div>
-    </fieldset>}
     {!hideStructure&&<fieldset><legend>主石展示尺寸</legend><div className="choice-grid sizes">
       {(['small','medium','large'] as const).map((size,i)=><label className="choice size-choice" key={size}>
         <input type="radio" name="size" checked={configuration.stoneSize===size} onChange={()=>dispatch({type:'set-size',value:size})}/>
@@ -40,6 +32,6 @@ export function Configurator({configuration,dispatch,quality,onQualityChange,aut
     <div className="view-preferences"><label><input type="checkbox" checked={autoRotate} onChange={e=>onAutoRotateChange(e.target.checked)}/><span>自动旋转</span></label>
       <button className="text-button" onClick={onResetView}>重置视角</button></div>
     {!stoneOnly&&<><button className="save-button" onClick={onResetEditing}>重置编辑<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button>
-    <p className="save-help">恢复默认戒臂、金属和 DIY 主石尺寸。</p></>}
+    <p className="save-help">恢复默认戒臂和 DIY 主石尺寸。</p></>}
   </div>;
 }

@@ -24,10 +24,10 @@ async function loaded(){render(<App/>);await screen.findByRole('button',{name:'�
 const exportButton=()=>screen.getByRole('button',{name:'生成四个角度的商品图'});
 
 describe('product export lifecycle',()=>{
-  it('opens the matching catalog immediately and renders other finishes before showing their gallery',async()=>{
-    await loaded();fireEvent.click(screen.getByRole('button',{name:'商品图片'}));
-    expect(screen.getByRole('img',{name:'当前配置 · 整体'})).toHaveAttribute('src','/media/sample/overall.jpg');
-    fireEvent.click(screen.getByRole('radio',{name:'玫瑰金色'}));
+  it('renders images of the current silver configuration after the preview is ready',async()=>{
+    await loaded();
+    expect(screen.getByRole('button',{name:'商品图片'})).toBeDisabled();
+    expect(screen.getByText(/银色/)).toBeInTheDocument();
     fireEvent.click(await screen.findByText('测试模型就绪'));
     fireEvent.click(screen.getByRole('button',{name:'商品图片'}));
     expect(screen.queryByRole('img',{name:'当前配置 · 整体'})).toBeNull();
@@ -83,7 +83,7 @@ describe('shared studio navigation',()=>{
     act(()=>{window.history.replaceState(null,'','/#/diy');window.dispatchEvent(new HashChangeEvent('hashchange'));});
     expect(window.location.hash).toBe('#/diy');
     expect(screen.getByRole('heading',{name:'定制你的戒指'})).toBeInTheDocument();
-    const start=screen.getByRole('link',{name:'开始 DIY'});
+    const start=screen.getByRole('link',{name:'开始定制'});
     expect(start).toHaveAttribute('href','#/stonefirst/ring-02');
     expect(screen.getByRole('heading',{name:'围钻戒指'})).toBeInTheDocument();
     fireEvent.click(start);
@@ -120,6 +120,6 @@ describe('shared studio navigation',()=>{
     expect(screen.queryByRole('tab',{name:'模组 DIY'})).toBeNull();
     expect(screen.getByTitle('FORME 模组 DIY 设计工作台')).toHaveAttribute('src','/forme/index.html?embedded=1#design=example');
     act(()=>{window.history.replaceState(null,'','/#/showroom');window.dispatchEvent(new HashChangeEvent('hashchange'));});
-    expect(screen.getByRole('link',{name:'镶嵌 DIY'})).toBeInTheDocument();
+    expect(screen.getByRole('link',{name:'戒指定制'})).toBeInTheDocument();
   });
 });

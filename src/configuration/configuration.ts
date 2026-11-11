@@ -12,7 +12,7 @@ export type ConfigurationAction =
   | {type:'set-metal';value:MetalFinish}
   | {type:'set-size';value:StoneSize}
   | {type:'reset'};
-export const DEFAULT_CONFIGURATION:Configuration={schemaVersion:1,shankStyle:'plain',metalFinish:'yellow',stoneSize:'medium'};
+export const DEFAULT_CONFIGURATION:Configuration={schemaVersion:1,shankStyle:'plain',metalFinish:'white',stoneSize:'medium'};
 export function parseConfiguration(input:unknown):Configuration|null {
   if(!input||typeof input!=='object'||Array.isArray(input))return null;
   const value=input as Record<string,unknown>;

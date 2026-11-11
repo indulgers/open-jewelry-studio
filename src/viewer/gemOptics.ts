@@ -42,6 +42,7 @@ uniform BVH bvh;
 uniform BVH mountBvh;
 #include <common>
 float mountDetail;
+vec3 cameraForward;
 
 vec3 rotateEnvironment(vec3 d){
   float c=cos(environmentRotation),s=sin(environmentRotation);
@@ -61,7 +62,8 @@ float fresnelDielectric(float c,float n1,float n2){
 }
 vec3 outsideRadiance(vec3 origin,vec3 direction,vec3 smoothRay){
   // A soft camera obstruction preserves dark facets against the white sweep.
-  float facingObserver=dot(direction,normalize(cameraPosition-origin));
+  vec3 towardCamera=isOrthographic?-cameraForward:normalize(cameraPosition-origin);
+  float facingObserver=dot(direction,towardCamera);
   float obstruction=smoothstep(0.9563,0.9848,facingObserver);
   vec3 studio=environment(direction,smoothRay)*mix(1.0,0.12,obstruction);
   if(hasMount&&mountDetail>0.0){
@@ -111,12 +113,15 @@ vec3 traceRadiance(vec3 incoming,vec3 normal,float eta,vec3 smoothRay){
   return radiance;
 }
 void main(){
-  vec3 incident=normalize(vWorldPosition-cameraPosition);
+  cameraForward=normalize(-viewMatrixInverse[2].xyz);
+  vec3 incident=isOrthographic?cameraForward:normalize(vWorldPosition-cameraPosition);
   // Use the same planar facet for entry as the BVH uses for internal hits.
   vec3 normal=normalize(cross(dFdx(vWorldPosition),dFdy(vWorldPosition)));
   if(dot(incident,normal)>0.0)normal=-normal;
   vec2 uv=gl_FragCoord.xy/resolution;
   vec3 smoothRay=(projectionMatrixInverse*vec4(uv*2.0-1.0,0.0,1.0)).xyz;
+  // Give the parallel rays a continuous filter footprint across the image.
+  if(isOrthographic)smoothRay.z=-1.0;
   smoothRay=normalize((viewMatrixInverse*vec4(smoothRay,0.0)).xyz);
   float scale=max(length(modelMatrix[0].xyz),max(length(modelMatrix[1].xyz),length(modelMatrix[2].xyz)));
   float pixelDiameter=stoneDiameter*scale*detailResolution.y*0.5*gl_FragCoord.w/projectionMatrixInverse[1][1];

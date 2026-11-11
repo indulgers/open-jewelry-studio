@@ -6,7 +6,7 @@
 .stone-first-top-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .stone-first-workspace button,.stone-first-import{cursor:pointer;border:1px solid #dad7d1;background:#fff;border-radius:8px;padding:10px 13px;font:inherit;color:#403d38;font-size:12px;transition:background .15s,border-color .15s}
 .stone-first-workspace button:hover,.stone-first-import:hover{border-color:#a89d8c;background:#f9f7f3}
-.stone-first-workspace button[aria-pressed=true],.stone-first-workspace button[aria-current=step]{border-color:#887763!important;background:#f0e9dd!important;color:#423828}
+.stone-first-workspace:not(.ring02-workspace) button[aria-pressed=true],.stone-first-workspace:not(.ring02-workspace) button[aria-current=step]{border-color:#887763!important;background:#f0e9dd!important;color:#423828}
 .stone-first-workspace button:disabled{opacity:.45;cursor:not-allowed}
 .stone-first-import{position:relative;overflow:hidden}
 .stone-first-import input{position:absolute;width:1px;height:1px;opacity:0}

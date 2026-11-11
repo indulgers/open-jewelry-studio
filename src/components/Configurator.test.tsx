@@ -15,16 +15,15 @@ function Harness({hideStructure=false}:{hideStructure?:boolean}={}){
     <output aria-label="当前参数">{JSON.stringify(configuration)}</output></>;
 }
 describe('configuration panel',()=>{
-  it('hides structure controls for fixed models and keeps metal editable',async()=>{
-    const user=userEvent.setup();render(<Harness hideStructure/>);
+  it('hides structure controls for fixed models and keeps the silver finish',async()=>{
+    render(<Harness hideStructure/>);
     expect(screen.queryByRole('radio',{name:'分叉戒臂'})).not.toBeInTheDocument();
     expect(screen.queryByRole('radio',{name:'大'})).not.toBeInTheDocument();
-    await user.click(screen.getByRole('radio',{name:'白金色'}));
+    expect(screen.queryByRole('group',{name:/金属外观/})).not.toBeInTheDocument();
     expect(JSON.parse(screen.getByLabelText('当前参数').textContent!)).toMatchObject({stoneSize:'medium',metalFinish:'white'});
   });
   it('resets edited fields to defaults without a save entry',async()=>{
     const user=userEvent.setup();render(<Harness/>);
-    await user.click(screen.getByRole('radio',{name:'玫瑰金色'}));
     await user.click(screen.getByRole('radio',{name:'分叉戒臂'}));
     await user.click(screen.getByRole('radio',{name:'大'}));
     expect(screen.queryByRole('button',{name:'保存到本机'})).not.toBeInTheDocument();
