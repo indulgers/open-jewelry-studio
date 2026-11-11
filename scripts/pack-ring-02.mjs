@@ -6,7 +6,8 @@ import {MeshoptEncoder} from 'meshoptimizer';
 
 const source=new URL('../assets/source/ring-02/source.obj',import.meta.url);
 // Bump the versioned filename, assets.ts and the Vercel cache rule if this asset changes.
-const destination=new URL('../public/models/atelier/ring-02/ring-v1.glb',import.meta.url);
+const destination=new URL('../public/models/atelier/ring-02/ring-v2.glb',import.meta.url);
+await MeshoptEncoder.ready;
 const ring=new OBJLoader().parse(readFileSync(source,'utf8'));
 const document=new Document();
 const buffer=document.createBuffer();
@@ -18,6 +19,18 @@ for(const part of ring.children){
   part.geometry.deleteAttribute('uv');
   const geometry=metal?mergeVertices(part.geometry,1e-6):part.geometry;
   if(!geometry.index)geometry.setIndex(Array.from({length:geometry.getAttribute('position').count},(_,index)=>index));
+  if(metal){
+    // Reorder the same triangles and vertices to improve index locality for transport.
+    const indices=Uint32Array.from(geometry.index.array);
+    const [remap]=MeshoptEncoder.reorderMesh(indices,true,true);
+    const position=geometry.getAttribute('position').array;
+    const ordered=new Float32Array(position.length);
+    for(let vertex=0;vertex<remap.length;vertex++){
+      ordered.set(position.subarray(vertex*3,vertex*3+3),remap[vertex]*3);
+    }
+    position.set(ordered);
+    geometry.index.array.set(indices);
+  }
   const primitive=document.createPrimitive();
   for(const [attr,semantic] of [['position','POSITION'],['normal','NORMAL']]){
     if(!geometry.hasAttribute(attr))continue;
@@ -34,10 +47,9 @@ const manifest=JSON.parse(glb.toString('utf8',20,20+jsonSize));
 const bin=glb.subarray(jsonSize+28);
 const codec='EXT_meshopt_compression';
 const gemViews=new Set(manifest.meshes.filter(mesh=>mesh.name.startsWith('gem_'))
-  .flatMap(mesh=>Object.values(mesh.primitives[0].attributes))
+  .flatMap(({primitives:[primitive]})=>Object.values(primitive.attributes))
   .map(index=>manifest.accessors[index].bufferView));
 
-await MeshoptEncoder.ready;
 const chunks=[];
 let byteOffset=0;
 for(const [id,view] of manifest.bufferViews.entries()){

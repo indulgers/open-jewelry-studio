@@ -7,9 +7,12 @@
   color: var(--muted);
   font-size: 13px;
 }
+.ring02-stage-loading {flex-direction: column;gap: 10px}
+.ring02-stage-loading img {display: block;width: min(100%, 690px);height: min(49dvh, 450px);object-fit: contain;mix-blend-mode: multiply}
+.ring02-load-status {display: flex;align-items: center;gap: 8px}
 .ring02-spinner {
-  width: 22px;
-  height: 22px;
+  width: 15px;
+  height: 15px;
   border: 2px solid var(--line);
   border-top-color: var(--accent);
   border-radius: 50%;
@@ -19,5 +22,6 @@
 @media(prefers-reduced-motion:reduce) {.ring02-spinner {animation: none}}
 .ring02-canvas:has(.ring02-stage-loading) .viewer-boundary {visibility: hidden}
 .ring02-canvas > .ring02-stage-loading {position: absolute;inset: 0;padding: 0}
+.ring02-canvas > .ring02-stage-loading img {height: calc(100% - 40px)}
 .ring02-main .stone-first-preview:has(.ring02-stage-loading) {border-color: transparent;background: transparent}
 .ring02-main .stone-first-preview:has(.ring02-stage-loading) .stone-first-camera-views {visibility: hidden}

@@ -6,7 +6,7 @@
   "outputDirectory": "dist",
   "headers": [
     {
-      "source": "/models/atelier/ring-02/ring-v1.glb",
+      "source": "/models/atelier/ring-02/ring-v2.glb",
       "headers": [
         {"key": "Cache-Control", "value": "public, max-age=31536000, immutable"}
       ]

@@ -104,7 +104,7 @@ describe('ring 02 template',()=>{
   });
 
   it('keeps the shipped model under the download budget and preserves each source stone position',async()=>{
-    expect(readFileSync('public'+RING02_MODEL).byteLength).toBeLessThan(1_250_000);
+    expect(readFileSync('public'+RING02_MODEL).byteLength).toBeLessThan(1_000_000);
     const source=new OBJLoader().parse(readFileSync('assets/source/ring-02/source.obj','utf8'));
     const oval=(await new GLTFLoader().parseAsync(new Uint8Array(readFileSync('public'+RING02_OVAL)).buffer,'')).scene;
     const original=fitStones(prepareTemplate(source,oval),BASE_DESIGN);

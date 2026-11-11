@@ -1,6 +1,11 @@
 import {formatYuan} from './ring02/demoOrder';
 import {RING02_TEMPLATE} from './ring02/assets';
+import {loadRing02} from './ring02/entry';
 import './diy-home.css';
+
+function warmEditor(){
+  void loadRing02().catch(()=>{});
+}
 
 const templates=[RING02_TEMPLATE].filter(template=>template.listed);
 
@@ -28,14 +33,14 @@ export function DiyHome(){
       {templates.length===0&&<p>当前没有可定制的款式。</p>}
       <div className="diy-template-grid">
         {templates.map(template=><article key={template.editor} className="diy-template">
-          <a href={template.editor} className="diy-template-image" aria-label={'查看'+template.name}>
+          <a href={template.editor} className="diy-template-image" onMouseEnter={warmEditor} onFocus={warmEditor} aria-label={'查看'+template.name}>
             <img src={template.image} alt="银色围钻戒指，四段围钻与镶钻戒臂" width={822} height={598}/>
           </a>
           <div className="diy-template-details">
             <h3>{template.name}</h3>
             <p>{template.description}</p>
             <p className="diy-reference-price"><strong>{formatYuan(template.price.base)}</strong> 演示参考价</p>
-            <a className="shop-button" href={template.editor}>开始定制
+            <a className="shop-button" href={template.editor} onMouseEnter={warmEditor} onFocus={warmEditor}>开始定制
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
             </a>
           </div>

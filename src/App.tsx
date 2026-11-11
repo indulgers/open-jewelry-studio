@@ -1,5 +1,4 @@
 import {lazy,Suspense,useCallback,useEffect,useLayoutEffect,useReducer,useState} from 'react';
-import {preload} from 'react-dom';
 import {DEFAULT_CONFIGURATION,configurationReducer} from './configuration/configuration';
 import {STORAGE_KEY} from './configuration/storage';
 import {Configurator} from './components/Configurator';
@@ -19,15 +18,10 @@ import {StageLoading} from './components/StageLoading';
 import {DiyHome} from './stone-first/DiyHome';
 import {DiyCart} from './stone-first/DiyCart';
 import {RING02_TEMPLATE} from './stone-first/ring02/assets';
-import {STUDIO_ENVIRONMENT} from './viewer/studioEnvironment';
+import {loadRing02} from './stone-first/ring02/entry';
 import {Ring02Loading} from './stone-first/ring02/Ring02Loading';
 const JewelryStage=lazy(()=>import('./viewer/JewelryStage').then(module=>({default:module.JewelryStage})));
-const Ring02Studio=lazy(()=>{
-  for(const href of [RING02_TEMPLATE.model,RING02_TEMPLATE.oval,STUDIO_ENVIRONMENT.url]){
-    preload(href,{as:'fetch',crossOrigin:'anonymous'});
-  }
-  return import('./stone-first/ring02/Ring02Studio').then(module=>({default:module.Ring02Studio}));
-});
+const Ring02Studio=lazy(()=>loadRing02().then(module=>({default:module.Ring02Studio})));
 const StoneFirstStudio=lazy(()=>import('./stone-first/StoneFirstStudio').then(module=>({default:module.StoneFirstStudio})));
 
 function JewelryStudio({active}:{active:boolean}){
