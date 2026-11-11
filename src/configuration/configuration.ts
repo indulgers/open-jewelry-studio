@@ -1,5 +1,10 @@
 export type ShankStyle = 'plain' | 'split';
 export type MetalFinish = 'yellow' | 'white' | 'rose';
+export const METALS={
+  yellow:{name:'黄金色',color:'#efcf94',swatch:'#c3a05e'},
+  white:{name:'白金色',color:'#ededeb',swatch:'#c9cece'},
+  rose:{name:'玫瑰金色',color:'#e4bda7',swatch:'#c79078'},
+};
 export type StoneSize = 'small' | 'medium' | 'large';
 export type Configuration = {schemaVersion:1; shankStyle:ShankStyle; metalFinish:MetalFinish; stoneSize:StoneSize};
 export type ConfigurationAction =

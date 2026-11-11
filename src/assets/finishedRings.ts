@@ -13,7 +13,7 @@ export type FinishedRing = {
 
 const DRACO = '/draco/';
 
-export const FINISHED_RINGS: FinishedRing[] = [
+const rings: FinishedRing[] = [
   {
     id: 'halo',
     name: '经典光环',
@@ -42,6 +42,10 @@ export const FINISHED_RINGS: FinishedRing[] = [
     replaceCenter: false,
   },
 ];
+
+export const FINISHED_RINGS=import.meta.env.VITE_PUBLIC_SHOWROOM==='1'
+  ?rings.filter(ring=>ring.replaceCenter)
+  :rings;
 
 export function finishedRing(id: FinishedRingId): FinishedRing {
   return FINISHED_RINGS.find((ring) => ring.id === id) ?? FINISHED_RINGS[0];

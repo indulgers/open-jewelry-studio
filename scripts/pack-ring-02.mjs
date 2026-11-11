@@ -1,0 +1,79 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {Document,NodeIO,VertexLayout} from '@gltf-transform/core';
+import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
+import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
+import {MeshoptEncoder} from 'meshoptimizer';
+
+const source=new URL('../assets/source/ring-02/source.obj',import.meta.url);
+// Bump the versioned filename, assets.ts and the Vercel cache rule if this asset changes.
+const destination=new URL('../public/models/atelier/ring-02/ring-v1.glb',import.meta.url);
+const ring=new OBJLoader().parse(readFileSync(source,'utf8'));
+const document=new Document();
+const buffer=document.createBuffer();
+const scene=document.createScene();
+for(const part of ring.children){
+  if(!part.isMesh||part.name.startsWith('unresolved_'))continue;
+  const metal=part.name.startsWith('metal_');
+  if(metal)part.geometry.deleteAttribute('normal');
+  part.geometry.deleteAttribute('uv');
+  const geometry=metal?mergeVertices(part.geometry,1e-6):part.geometry;
+  if(!geometry.index)geometry.setIndex(Array.from({length:geometry.getAttribute('position').count},(_,index)=>index));
+  const primitive=document.createPrimitive();
+  for(const [attr,semantic] of [['position','POSITION'],['normal','NORMAL']]){
+    if(!geometry.hasAttribute(attr))continue;
+    const accessor=document.createAccessor().setType('VEC3').setArray(geometry.getAttribute(attr).array).setBuffer(buffer);
+    primitive.setAttribute(semantic,accessor);
+  }
+  primitive.setIndices(document.createAccessor().setType('SCALAR').setArray(geometry.index.array).setBuffer(buffer));
+  const mesh=document.createMesh(part.name).addPrimitive(primitive);
+  scene.addChild(document.createNode(part.name).setMesh(mesh));
+}
+const glb=Buffer.from(await new NodeIO().setVertexLayout(VertexLayout.SEPARATE).writeBinary(document));
+const jsonSize=glb.readUInt32LE(12);
+const manifest=JSON.parse(glb.toString('utf8',20,20+jsonSize));
+const bin=glb.subarray(jsonSize+28);
+const codec='EXT_meshopt_compression';
+const gemViews=new Set(manifest.meshes.filter(mesh=>mesh.name.startsWith('gem_'))
+  .flatMap(mesh=>Object.values(mesh.primitives[0].attributes))
+  .map(index=>manifest.accessors[index].bufferView));
+
+await MeshoptEncoder.ready;
+const chunks=[];
+let byteOffset=0;
+for(const [id,view] of manifest.bufferViews.entries()){
+  const index=view.target===34963;
+  const accessor=manifest.accessors.find(accessor=>accessor.bufferView===id);
+  const mode=index?'INDICES':'ATTRIBUTES';
+  const stride=index?(accessor.componentType===5125?4:2):(view.byteStride??12);
+  const offset=view.byteOffset??0;
+  const source=bin.subarray(offset,offset+view.byteLength);
+  const count=source.length/stride;
+  // The template's position and normal accessors are Float32. Preserve index order.
+  const quantize=!index&&!gemViews.has(id);
+  const values=quantize?MeshoptEncoder.encodeFilterExp(new Float32Array(source.buffer,source.byteOffset,source.length/4),count,stride,18,'SharedComponent'):source;
+  const encoded=MeshoptEncoder.encodeGltfBuffer(values,count,stride,mode);
+  view.extensions={[codec]:{buffer:0,byteOffset,byteLength:encoded.length,byteStride:stride,count,mode,...(quantize?{filter:'EXPONENTIAL'}:{})}};
+  view.buffer=1;
+  chunks.push(encoded);
+  byteOffset+=encoded.length;
+}
+manifest.extensionsUsed=[codec];
+manifest.extensionsRequired=[codec];
+const uncompressedLength=manifest.buffers[0].byteLength;
+manifest.buffers=[{byteLength:byteOffset},{byteLength:uncompressedLength,extensions:{[codec]:{fallback:true}}}];
+
+const json=Buffer.from(JSON.stringify(manifest));
+const pad=bytes=>(4-bytes.length%4)%4;
+const jsonChunk=Buffer.concat([json,Buffer.alloc(pad(json),0x20)]);
+const compressed=Buffer.concat(chunks);
+const binChunk=Buffer.concat([compressed,Buffer.alloc(pad(compressed))]);
+const header=Buffer.alloc(20);
+header.write('glTF');
+header.writeUInt32LE(2,4);
+header.writeUInt32LE(header.length+jsonChunk.length+8+binChunk.length,8);
+header.writeUInt32LE(jsonChunk.length,12);
+header.write('JSON',16);
+const binHeader=Buffer.alloc(8);
+binHeader.writeUInt32LE(binChunk.length,0);
+binHeader.write('BIN',4);
+writeFileSync(destination,Buffer.concat([header,jsonChunk,binHeader,binChunk]));

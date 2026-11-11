@@ -26,7 +26,7 @@ docker compose up -d --build
 
 ## 继续使用现有 Vercel 前端
 
-原有 `vercel.json` 和部署方式不变，两个 Tab 都进入同一个静态构建。Python/VTK 服务需要单独的容器运行环境，无法仅随 Vite 静态文件运行。
+Vercel 使用 `npm run build:public`，模组工作区通过 `/#/modules` 进入同一个静态构建。Python/VTK 服务需要单独的容器运行环境，无法仅随 Vite 静态文件运行。
 
 把 `services/forme` 的容器部署到现有服务器/容器服务，开启 HTTPS。将 `deploy/vercel-with-geometry.example.json` 中 `YOUR-GEOMETRY-HOST` 替换成实际服务域名后作为根目录 `vercel.json`，再部署前端。这里使用外部 rewrite 而非 Node Serverless 函数转发，避免将大 STL 放进函数请求体；几何服务对外入口仍应有上传/频率限制。前端与下载链接始终使用主站 `/api/forme/*`。没有服务配置时，普通编辑与预览导出可用，融合操作明确提示服务不可用。
 

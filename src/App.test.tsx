@@ -13,6 +13,8 @@ vi.mock('./viewer/JewelryStage',()=>({JewelryStage:({onCaptureReady,onCapturePro
     <output aria-label="待处理出图请求">{captureRequest}</output></>;
 }}));
 
+vi.mock('./stone-first/ring02/Ring02Studio',()=>({Ring02Studio:()=> <main><h1>测试围钻戒指编辑器</h1></main>}));
+
 beforeEach(()=>{
   window.history.replaceState(null,'','/');
   vi.stubGlobal('matchMedia',()=>({matches:false,addEventListener:()=>{},removeEventListener:()=>{}}));
@@ -55,28 +57,64 @@ describe('product export lifecycle',()=>{
   });
 });
 
+describe('stone-first finished ring studies',()=>{
+  it('offers an editable optical center stone for the classic halo without claiming other meshes are refittable',async()=>{
+    await loaded();
+    expect(screen.getByText(/这款戒指保留原主石/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:/经典光环/}));
+    expect(screen.getByText(/颜色仅作用于主石预览/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'蓝宝石'}));
+    expect(screen.getByRole('button',{name:'蓝宝石'})).toHaveAttribute('aria-pressed','true');
+    fireEvent.click(screen.getByRole('button',{name:/复古椭圆/}));
+    expect(screen.getByRole('button',{name:'蓝宝石'})).toBeDisabled();
+  });
+});
+
 describe('shared studio navigation',()=>{
+  it('enters the DIY template list and opens the listed ring editor',async()=>{
+    await loaded();
+    fireEvent.click(screen.getByRole('tab',{name:'镶嵌 DIY'}));
+    expect(window.location.hash).toBe('#/diy');
+    expect(screen.getByRole('heading',{name:'定制你的戒指'})).toBeInTheDocument();
+    const start=screen.getByRole('link',{name:'开始 DIY'});
+    expect(start).toHaveAttribute('href','#/stonefirst/ring-02');
+    expect(screen.getByRole('heading',{name:'围钻戒指'})).toBeInTheDocument();
+    fireEvent.click(start);
+    expect(await screen.findByRole('heading',{name:'测试围钻戒指编辑器'})).toBeInTheDocument();
+    expect(window.location.hash).toBe('#/stonefirst/ring-02');
+  });
+  it('unmounts the ring editor when browser navigation leaves DIY',async()=>{
+    window.history.replaceState(null,'','/#/stonefirst/ring-02');
+    render(<App/>);
+    await screen.findByRole('heading',{name:'测试围钻戒指编辑器'});
+    act(()=>{
+      window.history.replaceState(null,'','/#/showroom');
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(screen.queryByText('测试围钻戒指编辑器')).not.toBeInTheDocument();
+  });
   it('loads the module editor on demand and retains its frame across tabs',async()=>{
     await loaded();
     expect(screen.queryByTitle('FORME 模组 DIY 设计工作台')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('tab',{name:'模组 DIY'}));
+    expect(screen.queryByRole('tab',{name:'模组 DIY'})).toBeNull();
+    act(()=>{window.history.replaceState(null,'','/#/modules');window.dispatchEvent(new HashChangeEvent('hashchange'));});
     const frame=screen.getByTitle('FORME 模组 DIY 设计工作台');
     expect(frame).toHaveAttribute('src','/forme/index.html?embedded=1');
     expect(window.location.hash).toBe('#/modules');
     expect(screen.queryByText('测试模型就绪')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab',{name:'珠宝展台'}));
     await screen.findByRole('button',{name:'测试模型就绪'});
-    fireEvent.click(screen.getByRole('tab',{name:'模组 DIY'}));
+    act(()=>{window.history.replaceState(null,'','/#/modules');window.dispatchEvent(new HashChangeEvent('hashchange'));});
     expect(screen.getByTitle('FORME 模组 DIY 设计工作台')).toBe(frame);
   });
   it('opens shared designs in the module tab and supports browser navigation',async()=>{
     window.history.replaceState(null,'','/#/modules?design=example');
     render(<App/>);
-    expect(screen.getByRole('tab',{name:'模组 DIY'})).toHaveAttribute('aria-selected','true');
+    expect(screen.queryByRole('tab',{name:'模组 DIY'})).toBeNull();
     expect(screen.getByTitle('FORME 模组 DIY 设计工作台')).toHaveAttribute('src','/forme/index.html?embedded=1#design=example');
     act(()=>{window.history.replaceState(null,'','/#/showroom');window.dispatchEvent(new HashChangeEvent('hashchange'));});
     expect(screen.getByRole('tab',{name:'珠宝展台'})).toHaveAttribute('aria-selected','true');
     fireEvent.keyDown(screen.getByRole('tab',{name:'珠宝展台'}),{key:'ArrowRight'});
-    expect(screen.getByRole('tab',{name:'模组 DIY'})).toHaveFocus();
+    expect(screen.getByRole('tab',{name:'镶嵌 DIY'})).toHaveFocus();
   });
 });

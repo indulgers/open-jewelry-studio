@@ -1,6 +1,6 @@
 # 戒指实验室
 
-React + Three.js + React Three Fiber + drei 的本地珠宝配置演示。无专有珠宝 SDK，无后台、价格计算和支付。
+React + Three.js + React Three Fiber + drei 的本地珠宝配置演示。无专有珠宝 SDK。Ring 02 支持本地配置、演示估价与加购。
 
 ## 启动
 
@@ -30,6 +30,8 @@ npm run dev -- --port 5179
 - 19 个 3DM 都没有声明物理单位。GLB 保留源数值与切面法线、仅将轴转为 Y-up。单件展示统一平面最大宽度，同时保留长宽高比例；成品只适配圆形主石。
 
 建模交付、转换与限制见 [资产接入说明](docs/atelier-assets.md)。当前模型来源见 [第三方说明](THIRD_PARTY_NOTICES.md)。两款 WebGI 成品模型仅作本地效果研究，不可商用或再分发，公开部署前必须替换。旧六爪研究模型和 EXR 仍保留在仓库，默认展示不加载它们。
+
+公开部署使用 `npm run build:public`，Vercel 和 Docker 使用同一命令。公开构建仅保留经典光环展台模型、Ring 02 与其他可公开素材。模组 DIY 可从 `/#/modules` 直接打开。
 
 ### 当前边界
 
@@ -65,4 +67,4 @@ npm run dev -- --port 5179
 
 ## 模组 DIY（FORME V1.3）
 
-同一个前端新增「珠宝展台 / 模组 DIY」Tab，支持四照花重复结构的正交编辑与 STL / OBJ / JSON / PNG 导出。实体融合通过同域 `/api/forme/*` 接入 Python 几何服务。开发、Vercel 接入和单服务器 Docker Compose 部署步骤见 [模组 DIY 部署说明](docs/module-diy-deployment.md)。
+访问 `/#/modules` 打开模组工作区，支持四照花重复结构的正交编辑与 STL / OBJ / JSON / PNG 导出。实体融合通过同域 `/api/forme/*` 接入 Python 几何服务。开发、Vercel 接入和单服务器 Docker Compose 部署步骤见 [模组 DIY 部署说明](docs/module-diy-deployment.md)。

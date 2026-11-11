@@ -1,0 +1,46 @@
+.diy-home {
+  max-width: var(--shop-width);
+  margin: 0 auto;
+  padding: 44px var(--shop-gutter) 70px;
+}
+.diy-home-intro {margin-bottom: 24px}
+.diy-home h1, .diy-template h2 {font-family: var(--shop-title);font-weight: 500;color: var(--ink);margin: 0}
+.diy-home h1 {font-size: clamp(30px, 4vw, 48px);line-height: 1.23}
+.diy-home p {margin: 8px 0 0;color: var(--muted);font-size: 14px;line-height: 1.7}
+.diy-home-intro a {display: inline-block;margin-bottom: 14px;font-size: 13px}
+.diy-template-grid {display: grid;gap: 24px}
+.diy-template {
+  display: grid;
+  grid-template-columns: minmax(0,1.45fr) minmax(260px,1fr);
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+.diy-template-image {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  border-right: 1px solid var(--line);
+  background: #fff;
+  overflow: hidden;
+}
+.diy-template img {display: block;width: 100%;height: auto;max-height: 460px;object-fit: contain;transition: transform .24s ease-out}
+.diy-template-image:hover img {transform: scale(1.025)}
+.diy-template-details {align-self: center;padding: clamp(20px,4.5vw,65px)}
+.diy-template h2 {font-size: clamp(23px,3vw,34px);line-height: 1.3}
+.diy-template .diy-reference-price {margin-top: 24px}
+.diy-reference-price strong {color: var(--ink);font-size: 20px;font-variant-numeric: tabular-nums;margin-left: 4px}
+.diy-template .shop-button {margin-top: 14px}
+.diy-cart {display: grid;gap: 14px;max-width: 680px}
+.diy-cart .diy-template {display: block;padding: 24px}
+.diy-cart h2 {font-size: 24px}
+.diy-cart dl {display: grid;gap: 9px;font-size: 14px;line-height: 1.5}
+.diy-cart dl div {display: grid;grid-template-columns: 6.5rem 1fr;gap: 8px}
+.diy-cart dt {color: var(--muted)}
+.diy-cart dd {margin: 0;overflow-wrap: anywhere}
+@media(max-width: 680px) {
+  .diy-home {padding-top: 27px}
+  .diy-template {grid-template-columns: minmax(0,1fr)}
+  .diy-template-image {border-right: 0;border-bottom: 1px solid var(--line)}
+  .diy-template-details {padding: 20px}
+  .diy-template .diy-reference-price {margin-top: 14px}
+}

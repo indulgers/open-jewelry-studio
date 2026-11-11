@@ -3,13 +3,14 @@ import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {MeshRefractionMaterial as BaseRefractionMaterial} from '@react-three/drei/materials/MeshRefractionMaterial';
 import {MeshBVH,MeshBVHUniformStruct,SAH,shaderStructs,shaderIntersectFunction} from 'three-mesh-bvh';
 import {qualitySettings,type Quality} from './quality';
+import {STONE_APPEARANCES,type StoneAppearance} from './stoneAppearance';
 
 export function attenuationCoefficients(color:Color,distance:number){
   if(!Number.isFinite(distance)||distance<=0)throw new Error('Absorption distance must be positive');
   return new Vector3(...[color.r,color.g,color.b].map(c=>Math.max(0,-Math.log(Math.min(1,Math.max(1e-6,c)))/distance)));
 }
 
-export type GemOpticsOptions={environmentRotation?:number;environmentIntensity?:number;dispersion?:number;
+export type GemOpticsOptions={environmentRotation?:number;environmentIntensity?:number;dispersion?:number;appearance?:StoneAppearance;
   mount?:{bvh:MeshBVHUniformStruct;color:Color;roughness:number}};
 
 // Based on drei's MIT MeshRefractionMaterial (N8Programs). Bounded deterministic
@@ -150,7 +151,10 @@ export function updateGemOptics(material:ShaderMaterial,options:GemOpticsOptions
   const u=material.uniforms;
   u.environmentRotation.value=options.environmentRotation??0;
   u.environmentIntensity.value=options.environmentIntensity??1;
-  u.aberrationStrength.value=options.dispersion??0.004;
+  const appearance=STONE_APPEARANCES[options.appearance??'diamond'];
+  u.ior.value=appearance.ior;
+  u.attenuation.value.copy(attenuationCoefficients(new Color(appearance.transmittance),appearance.absorptionDistance));
+  u.aberrationStrength.value=(options.dispersion??0.004)*appearance.dispersionScale;
   u.hasMount.value=!!options.mount;u.mountBvh.value=options.mount?.bvh??u.bvh.value;
   u.mountColor.value.copy(options.mount?.color??new Color('white'));
   u.mountRoughness.value=options.mount?.roughness??0.15;

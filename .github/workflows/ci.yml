@@ -19,4 +19,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run build
+      - run: npm run build:public
+      - name: Verify public assets
+        run: |
+          test -f dist/models/atelier/ring-02/ring-v1.glb
+          test ! -e dist/models/webgi
+          test ! -e dist/models/reference
+          test ! -e dist/environments/reference
+          test ! -e dist/media/sample

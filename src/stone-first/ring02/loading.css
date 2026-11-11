@@ -1,0 +1,23 @@
+.ring02-stage-loading,.ring02-load-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 36px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.ring02-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ring02-spin .85s linear infinite;
+}
+@keyframes ring02-spin {to {transform: rotate(1turn)}}
+@media(prefers-reduced-motion:reduce) {.ring02-spinner {animation: none}}
+.ring02-canvas:has(.ring02-stage-loading) .viewer-boundary {visibility: hidden}
+.ring02-canvas > .ring02-stage-loading {position: absolute;inset: 0;padding: 0}
+.ring02-main .stone-first-preview:has(.ring02-stage-loading) {border-color: transparent;background: transparent}
+.ring02-main .stone-first-preview:has(.ring02-stage-loading) .stone-first-camera-views {visibility: hidden}
