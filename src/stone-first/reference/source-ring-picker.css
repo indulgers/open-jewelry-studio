@@ -69,6 +69,11 @@ html:has(.source-library[open]) {overflow: hidden}
   .source-head-options .source-part-grid,.source-band-options .source-part-grid {grid-template-columns: repeat(2,minmax(0,1fr))}
 }
 
+@media (max-width: 360px) {
+  .source-ring-workspace .ring02-purchase {grid-template-columns: minmax(0,1fr) 124px}
+  .source-ring-workspace .ring02-purchase .shop-button {padding-inline: 8px}
+}
+
 @media (max-width: 800px) and (min-height: 700px) {
   .ring02-main.source-ring-main .stone-first-preview {position: sticky; top: 64px; z-index: 1}
   .source-ring-main .stone-first-panel :is(button,input,summary) {scroll-margin-top: calc(154px + clamp(180px,51vw,310px))}
