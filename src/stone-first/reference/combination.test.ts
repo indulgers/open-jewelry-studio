@@ -134,25 +134,31 @@ it('keeps regenerated shoulder stones clear of the shank, head and other stones'
   }finally{rings.forEach(ring=>ring.dispose());}
 },15000);
 
-it('keeps the stock Starlight collar above the inner shank lip',async()=>{
-  const template=RING_CATALOG.find(ring=>ring.id==='ring-starlight')!;
-  const bytes=Uint8Array.from(readFileSync('public'+template.model)).buffer;
-  const {scene}=await jewelryModelLoader().parseAsync(bytes,'');
-  const stock=prepareReferenceRing(scene,template.id);
+it.each([
+  ['ring-starlight','metal_97',.1],
+  ['ring-solstice','metal_1',.05],
+] as const)('keeps the Starlight collar above the inner shank lip on %s',async(id,shankName,edge)=>{
+  const rings=await Promise.all([...new Set(['ring-starlight',id])].map(async id=>{
+    const template=RING_CATALOG.find(ring=>ring.id===id)!;
+    const bytes=Uint8Array.from(readFileSync('public'+template.model)).buffer;
+    const {scene}=await jewelryModelLoader().parseAsync(bytes,'');
+    return prepareReferenceRing(scene,id);
+  }));
   try{
-    const ring=combineReferenceRings(stock,stock);
-    const collar=ring.metal.find(part=>part.name==='metal_94')!;
-    const shank=ring.metal.find(part=>part.name==='metal_97')!;
+    const [head,band=head]=rings;
+    const ring=combineReferenceRings(head,band);
+    const collar=ring.metal.find(part=>part.name===(head===band?'metal_94':'head:metal_94'))!;
+    const shank=ring.metal.find(part=>part.name===shankName)!;
     const options={indirect:true,setBoundingBox:false};
     const collarTree=new MeshBVH(collar.geometry,options),shankTree=new MeshBVH(shank.geometry,options);
     Object.assign(collar.geometry,{boundsTree:collarTree});
     const mount=new Matrix4().makeTranslation(0,collar.offsetY??0,0);
     expect(shankTree.intersectsGeometry(collar.geometry,mount)).toBe(true);
-    for(const z of [-.1,.1]){
+    for(const z of [-edge,0,edge]){
       const ray=new Ray(new Vector3(0,0,z),new Vector3(0,1,0));
       const collarY=collarTree.raycastFirst(ray,DoubleSide)!.point.y+(collar.offsetY??0);
       const shankY=shankTree.raycastFirst(ray,DoubleSide)!.point.y;
       expect(collarY).toBeGreaterThan(shankY);
     }
-  }finally{stock.dispose();}
+  }finally{rings.forEach(ring=>ring.dispose());}
 });

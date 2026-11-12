@@ -66,6 +66,8 @@ export function combineReferenceRings(head:ReferenceRing,band:ReferenceRing):Rin
   const seatCorrection:Record<string,number>={
     'ring-starlight:ring-crown':.05,
     'ring-starlight:ring-starlight':.04,
+    'ring-starlight:ring-solstice':.068,
+    'ring-starlight:ring-rosette':.02,
     'ring-solstice:ring-floral':.04,
     'ring-solstice:ring-petal':.02,
     'ring-solstice:ring-crown':.10,
