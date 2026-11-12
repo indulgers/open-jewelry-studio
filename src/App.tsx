@@ -1,3 +1,4 @@
+import {HALO_COMBINATION_ROUTE} from './stone-first/reference/parts';
 import {lazy,Suspense,useCallback,useEffect,useLayoutEffect,useReducer,useState} from 'react';
 import {DEFAULT_CONFIGURATION,configurationReducer} from './configuration/configuration';
 import {STORAGE_KEY} from './configuration/storage';
@@ -123,6 +124,7 @@ function readRoute():StudioRoute{
     case '#/diy/collection':return {tab:'stonefirst',page:'catalog',section:'collection'};
     case '#/diy/story':return {tab:'stonefirst',page:'catalog',section:'story'};
     case '#/diy/cart':return {tab:'stonefirst',page:'cart'};
+    case HALO_COMBINATION_ROUTE:return {tab:'stonefirst',page:'reference',templateId:'ring-02'};
     case RING02_TEMPLATE.editor:return {tab:'stonefirst',page:'ring02'};
   }
   const reference=RING_CATALOG.find(template=>template.kind==='reference'&&template.editor===hash);

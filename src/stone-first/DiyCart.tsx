@@ -1,6 +1,8 @@
 import {useEffect,useState} from 'react';
 import {RING_CATALOG} from './catalog';
 import {CART_CHANGED,demoOrders,formatYuan,removeDemoOrder} from './ring02/demoOrder';
+import {bandStyle,HALO_COMBINATION_ROUTE,headName} from './reference/parts';
+import {parseReferenceDesign,referenceParts} from './reference/design';
 import './diy-home.css';
 import './diy-cart.css';
 
@@ -46,14 +48,18 @@ export function DiyCart(){
       <div className="diy-cart">
         {orders.map(order=>{
           const template=RING_CATALOG.find(item=>item.revision===order.templateRevision);
-          const name=template?.name??'戒指定制方案';
+          const design=parseReferenceDesign(order.design);
+          const parts=template&&design?referenceParts(template,design):null;
+          const mixed=parts&&(parts.head.id!==template?.id||parts.band.id!==template?.id);
+          const name=mixed?headName(parts.head.name)+' × '+bandStyle(parts.band.id).name:template?.name??'戒指定制方案';
+          const editor=design&&template?.kind==='parametric'?HALO_COMBINATION_ROUTE:template?.editor;
           return <article key={order.revision} className="diy-cart-order">
-            <CartImage thumbnail={order.thumbnail} image={template?.image} name={name}/>
+            <CartImage thumbnail={order.thumbnail} image={mixed?undefined:template?.image} name={name}/>
             <div className="cart-order-info">
               <div className="cart-order-top"><div><span className="collection-label">{template?.collection??'专属定制'}</span><h2>{name}</h2><p>银色 · 1 件</p></div><button className="cart-remove" aria-label={'移除'+name} onClick={()=>remove(order.revision)}>移除</button></div>
               <p className="cart-order-price"><strong>{formatYuan(order.quote.amount)}</strong><span>参考价</span></p>
               <details className="cart-details"><summary>查看款式与配置</summary><dl>{order.details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>确认于 <time dateTime={order.confirmedAt}>{new Date(order.confirmedAt).toLocaleString('zh-CN')}</time></p></details>
-              {template&&<a className="cart-customize" href={template.editor}>定制此款</a>}
+              {editor&&<a className="cart-customize" href={editor}>定制此款</a>}
               <p className="cart-delivery">示例交期 {order.quote.leadTime} · 工艺与圈号待确认</p>
             </div>
           </article>;

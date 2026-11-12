@@ -1,3 +1,4 @@
+import {HALO_COMBINATION_ROUTE} from '../reference/parts';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {Mesh} from 'three';
 import {jewelryModelLoader} from '../../viewer/modelLoader';
@@ -411,6 +412,7 @@ export function Ring02Studio(){
       <a href="#/diy">全部款式</a><span aria-hidden="true">/</span><span aria-current="page">{RING02_TEMPLATE.name}</span>
     </nav>
     <RingStylePicker id="ring-02"/>
+    <a className="shop-text-link" href={HALO_COMBINATION_ROUTE}>搭配其他戒头和戒圈</a>
     {template?<Editor template={template}/>:<Ring02Loading retry={error?()=>{setError(false);setAttempt(count=>count+1);}:undefined}/>}
   </main>;
 }

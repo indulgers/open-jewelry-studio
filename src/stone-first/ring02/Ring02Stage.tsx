@@ -1,7 +1,7 @@
 import {Suspense,useEffect,useLayoutEffect,useMemo,useRef,useState,type ComponentRef,type RefObject} from 'react';
 import {Canvas,useThree} from '@react-three/fiber';
 import {OrbitControls} from '@react-three/drei';
-import {DoubleSide,NeutralToneMapping,OrthographicCamera,type Texture} from 'three';
+import {DoubleSide,NeutralToneMapping,OrthographicCamera,Vector3,type Texture} from 'three';
 import {JewelryLighting,clearJewelryLightingCache} from '../../viewer/JewelryLighting';
 import {StudioFillLights} from '../../viewer/StudioFillLights';
 import {createMetalMaterial} from '../../viewer/materials';
@@ -26,28 +26,38 @@ const cameras={
 export function RingCamera({view,reset,frames=cameras}:{view:RingView;reset:number;frames?:Record<RingView,RingFraming>}){
   const controls=useRef<ComponentRef<typeof OrbitControls>>(null);
   const {camera,size,invalidate}=useThree();
-  const previous=useRef<{view:RingView;reset:number;camera:OrthographicCamera;fitZoom:number}>(null);
+  const previous=useRef<{view:RingView;reset:number;camera:OrthographicCamera;framing:RingFraming;fitZoom:number}>(null);
   useLayoutEffect(()=>{
     if(!(camera instanceof OrthographicCamera)||!controls.current||!size.width||!size.height)return;
     const framing=frames[view];
-    const fitZoom=Math.min(size.height/framing.height,size.width/(view==='top'?2.14:1.46));
+    const widthFit=size.width/(view==='top'?2.14:1.46);
+    const fitZoom=Math.min(size.height/framing.height,widthFit);
     const last=previous.current;
     if(last?.camera===camera&&last.view===view&&last.reset===reset){
-      camera.zoom*=fitZoom/last.fitZoom;
+      // Resize against the previous model so swapping parts keeps the user's zoom.
+      camera.zoom*=Math.min(size.height/last.framing.height,widthFit)/last.fitZoom;
+      if(framing!==last.framing){
+        const delta=new Vector3().fromArray(framing.target).sub(new Vector3().fromArray(last.framing.target));
+        camera.position.add(delta);
+        controls.current.target.add(delta);
+        controls.current.update();
+      }
     }else{
       camera.position.fromArray(framing.position);
       camera.zoom=fitZoom;
       controls.current.target.fromArray(framing.target);
       controls.current.update();
     }
-    previous.current={view,reset,camera,fitZoom};
+    previous.current={view,reset,camera,framing,fitZoom};
     camera.updateProjectionMatrix();
     invalidate();
   },[view,reset,camera,size.width,size.height,invalidate,frames]);
   return <OrbitControls ref={controls} enablePan={false} minZoom={65} maxZoom={1400}/>;
 }
 
-export function RingThumbnail({captureRef,ready,frames=cameras}:{captureRef:RefObject<(()=>string|undefined)|null>;ready:boolean;frames?:Record<RingView,RingFraming>}){
+export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady}:{
+  captureRef:RefObject<(()=>string|undefined)|null>;ready:boolean;frames?:Record<RingView,RingFraming>;onCaptureReady?:(ready:boolean)=>void;
+}){
   const {gl,scene,camera,invalidate}=useThree();
   useEffect(()=>{
     if(!ready)return;
@@ -74,8 +84,9 @@ export function RingThumbnail({captureRef,ready,frames=cameras}:{captureRef:RefO
         invalidate();
       }
     };
-    return ()=>{captureRef.current=null;};
-  },[captureRef,ready,gl,scene,camera,invalidate,frames]);
+    onCaptureReady?.(true);
+    return ()=>{captureRef.current=null;onCaptureReady?.(false);};
+  },[captureRef,ready,gl,scene,camera,invalidate,frames,onCaptureReady]);
   return null;
 }
 
