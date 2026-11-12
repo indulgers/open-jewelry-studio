@@ -31,7 +31,7 @@ export function isBandMetal(id:string,name:string) {
     case 'ring-rosette':return [12,40,43,46,49].includes(part);
     case 'ring-petal':return [1,14100,14114,14314,14317,14320].includes(part)||(part>=13944&&part<=14097);
     case 'ring-crown':return part!==170;
-    case 'ring-starlight':return [94,97].includes(part);
+    case 'ring-starlight':return part===97;
     case 'ring-solstice':return [1,25].includes(part);
     default:return false;
   }

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import {readFileSync} from 'node:fs';
 import {expect,it} from 'vitest';
-import {Box3,Matrix4,Vector3,type BufferGeometry} from 'three';
+import {Box3,DoubleSide,Matrix4,Ray,Vector3,type BufferGeometry} from 'three';
 import {MeshBVH} from 'three-mesh-bvh';
 import {jewelryModelLoader} from '../../viewer/modelLoader';
 import {RING_CATALOG} from '../catalog';
@@ -23,7 +23,13 @@ it('mounts every catalog head on each original band finish',async()=>{
       const label=head.id+' × '+band.id;
       expect(ring.stones.filter(stone=>stone.zone!=='shoulder')).toHaveLength(head.stones.filter(stone=>stone.zone!=='shoulder').length);
       expect(ring.stones.filter(stone=>stone.zone==='shoulder')).toHaveLength(band.stones.filter(stone=>stone.zone==='shoulder').length);
+      if(head.id==='ring-starlight'&&head!==band){
+        const collar=ring.metal.find(part=>part.name==='head:metal_94');
+        expect(collar?.geometry,label).toBe(head.metal.find(part=>part.name==='metal_94')!.geometry);
+        expect(collar?.offsetY,label).toBe(ring.metal.find(part=>part.name==='head:metal_126')!.offsetY);
+      }
       if(head===band)continue;
+      if(band.id==='ring-starlight')expect(ring.metal.some(part=>part.name==='metal_94'),label).toBe(false);
       const baskets=ring.metal.filter(part=>part.name.startsWith('head:'));
       const bandParts=ring.metal.filter(part=>!part.name.startsWith('head:'));
       const hit=(first:typeof ring.metal[number],second:typeof ring.metal[number],matrix:Matrix4)=>{
@@ -127,3 +133,26 @@ it('keeps regenerated shoulder stones clear of the shank, head and other stones'
     expect(failures).toEqual([]);
   }finally{rings.forEach(ring=>ring.dispose());}
 },15000);
+
+it('keeps the stock Starlight collar above the inner shank lip',async()=>{
+  const template=RING_CATALOG.find(ring=>ring.id==='ring-starlight')!;
+  const bytes=Uint8Array.from(readFileSync('public'+template.model)).buffer;
+  const {scene}=await jewelryModelLoader().parseAsync(bytes,'');
+  const stock=prepareReferenceRing(scene,template.id);
+  try{
+    const ring=combineReferenceRings(stock,stock);
+    const collar=ring.metal.find(part=>part.name==='metal_94')!;
+    const shank=ring.metal.find(part=>part.name==='metal_97')!;
+    const options={indirect:true,setBoundingBox:false};
+    const collarTree=new MeshBVH(collar.geometry,options),shankTree=new MeshBVH(shank.geometry,options);
+    Object.assign(collar.geometry,{boundsTree:collarTree});
+    const mount=new Matrix4().makeTranslation(0,collar.offsetY??0,0);
+    expect(shankTree.intersectsGeometry(collar.geometry,mount)).toBe(true);
+    for(const z of [-.1,.1]){
+      const ray=new Ray(new Vector3(0,0,z),new Vector3(0,1,0));
+      const collarY=collarTree.raycastFirst(ray,DoubleSide)!.point.y+(collar.offsetY??0);
+      const shankY=shankTree.raycastFirst(ray,DoubleSide)!.point.y;
+      expect(collarY).toBeGreaterThan(shankY);
+    }
+  }finally{stock.dispose();}
+});

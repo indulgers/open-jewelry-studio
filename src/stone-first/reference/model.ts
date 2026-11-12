@@ -58,25 +58,32 @@ function ringFrames(metal:Part[],stones:SourceGem[]):Record<RingView,RingFraming
 }
 
 export function combineReferenceRings(head:ReferenceRing,band:ReferenceRing):RingAssembly{
-  if(head===band)return head;
+  if(head===band&&head.id!=='ring-starlight')return head;
   // The older halo uses a different neck. Offsets were checked against the actual seat and stone meshes.
   const haloAsHead:Record<string,number>={'ring-floral':.072,'ring-rosette':.056,'ring-petal':.066,'ring-crown':.054,'ring-starlight':.15,'ring-solstice':.01};
   const haloAsBand:Record<string,number>={'ring-floral':-.092,'ring-rosette':-.043,'ring-petal':-.072,'ring-crown':-.17};
   const adjustment=head.id==='ring-02'?(haloAsHead[band.id!]??0):band.id==='ring-02'?(haloAsBand[head.id!]??0):0;
   const seatCorrection:Record<string,number>={
     'ring-starlight:ring-crown':.05,
+    'ring-starlight:ring-starlight':.04,
     'ring-solstice:ring-floral':.04,
     'ring-solstice:ring-petal':.02,
     'ring-solstice:ring-crown':.10,
     'ring-solstice:ring-starlight':.10,
   };
   const offsetY=band.seatY-head.seatY+adjustment+(seatCorrection[head.id+':'+band.id]??0);
-  const legacyConnector=head.id==='ring-02'?({
-    'ring-crown':['metal_23','metal_26'],'ring-starlight':['metal_94'],'ring-solstice':['metal_25'],
+  const legacyCollars=head.id==='ring-02'?({
+    'ring-crown':['metal_23','metal_26'],'ring-starlight':[],'ring-solstice':['metal_25'],
   } as Record<string,string[]>)[band.id!]:undefined;
+  // Starlight brings its own collar. Keep the target band's structural shoulders.
+  const starlightCollars=head.id==='ring-starlight'?({
+    'ring-floral':['metal_683'],'ring-rosette':['metal_40'],'ring-petal':['metal_14314'],
+    'ring-crown':['metal_23','metal_26'],'ring-solstice':['metal_25'],
+  } as Record<string,string[]>)[band.id!]:undefined;
+  const removedCollars=legacyCollars??starlightCollars;
   const metal=[
-    ...band.metal.filter(part=>isBandMetal(band.id!,part.name)&&!legacyConnector?.includes(part.name)),
-    ...head.metal.filter(part=>!isBandMetal(head.id!,part.name)||(legacyConnector&&part.name==='reference_crown_shank_shell')).map(part=>({...part,name:'head:'+part.name,offsetY})),
+    ...band.metal.filter(part=>isBandMetal(band.id!,part.name)&&!removedCollars?.includes(part.name)),
+    ...head.metal.filter(part=>!isBandMetal(head.id!,part.name)||(legacyCollars&&part.name==='reference_crown_shank_shell')).map(part=>({...part,name:head===band?part.name:'head:'+part.name,offsetY})),
   ];
   const stones=[
     ...head.stones.filter(stone=>stone.zone!=='shoulder').map(stone=>({...stone,matrix:new Matrix4().makeTranslation(0,offsetY,0).multiply(stone.matrix)})),

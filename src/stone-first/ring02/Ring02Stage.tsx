@@ -5,8 +5,8 @@ import {DoubleSide,NeutralToneMapping,OrthographicCamera,Vector3,type Texture} f
 import {JewelryLighting,clearJewelryLightingCache} from '../../viewer/JewelryLighting';
 import {StudioFillLights} from '../../viewer/StudioFillLights';
 import {createMetalMaterial} from '../../viewer/materials';
-import {createGemOptics,syncGemDraw} from '../../viewer/gemOptics';
-import {STUDIO_PRESETS} from '../../viewer/studioPresets';
+import {createGemOptics,syncGemDraw,type GemOpticsOptions} from '../../viewer/gemOptics';
+import {STUDIO_PRESETS,type StudioPreset} from '../../viewer/studioPresets';
 import {ViewerBoundary} from '../../viewer/ViewerBoundary';
 import {Ring02Loading} from './Ring02Loading';
 import {RING02_POSTER} from './assets';
@@ -91,11 +91,11 @@ export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady}:{
 }
 
 export type PlacedGem=Pick<FittedStone,'name'|'geometry'|'appearance'|'matrix'>;
-export function GemBatch({stones,environment}:{stones:PlacedGem[];environment:Texture}){
+export function GemBatch({stones,environment,studio=preset,mount}:{stones:PlacedGem[];environment:Texture;studio?:StudioPreset;mount?:GemOpticsOptions['mount']}){
   const {geometry,appearance}=stones[0];
   const optics=useMemo(()=>createGemOptics(geometry,environment,'standard',{
-    appearance,environmentOnly:true,environmentRotation:preset.rotation,environmentIntensity:preset.gemIntensity,dispersion:preset.dispersion,
-  }),[geometry,environment,appearance]);
+    appearance,mount,environmentOnly:!mount,environmentRotation:studio.rotation,environmentIntensity:studio.gemIntensity,dispersion:studio.dispersion,
+  }),[geometry,environment,appearance,studio,mount]);
   useEffect(()=>()=>optics.dispose(),[optics]);
   return stones.map(stone=><mesh key={stone.name} name={stone.name} geometry={geometry} material={optics.material}
     matrix={stone.matrix} matrixAutoUpdate={false}

@@ -15,3 +15,13 @@ it('detects nearby occluders rather than darkening every metal vertex',()=>{
   for(let i=0;i<p.count;i++){if(n.getY(i)>0.9)top.push(ao[i]);if(n.getY(i)<-0.9)bottom.push(ao[i]);}
   expect(Math.min(...top)).toBeLessThan(0.8);expect(Math.min(...bottom)).toBeGreaterThan(0.99);mount.dispose();base.dispose();lid.dispose();
 });
+
+it('traces translated assembly parts alongside non-indexed shanks',()=>{
+  const head=new BoxGeometry(),shank=head.toNonIndexed();
+  const mount=createMountGeometry([head,shank],[2,0]);
+  try{
+    const ray=new Ray(new Vector3(0,2,3),new Vector3(0,0,-1));
+    expect(mount.tree.raycastFirst(ray,DoubleSide)?.distance).toBeCloseTo(2.5);
+    expect(head.getAttribute('position').getY(0)).toBe(.5);
+  }finally{mount.dispose();head.dispose();shank.dispose();}
+});

@@ -3,8 +3,16 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {MeshBVH,MeshBVHUniformStruct,SAH} from 'three-mesh-bvh';
 
 /** Static world-space metal only. Shared by all stones, never rebuilt for camera/finish changes. */
-export function createMountGeometry(sources:BufferGeometry[]){
-  const copies=sources.map(source=>{const copy=source.clone();for(const key of Object.keys(copy.attributes))if(key!=='position')copy.deleteAttribute(key);copy.clearGroups();return copy;});
+export function createMountGeometry(sources:BufferGeometry[],offsetsY?:number[]){
+  const indexed=sources.every(source=>source.index!==null);
+  const copies=sources.map((source,index)=>{
+    const copy=!indexed&&source.index?source.toNonIndexed():source.clone();
+    for(const key of Object.keys(copy.attributes))if(key!=='position')copy.deleteAttribute(key);
+    copy.clearGroups();
+    const y=offsetsY?.[index];
+    if(y)copy.translate(0,y,0);
+    return copy;
+  });
   const geometry=mergeGeometries(copies,false);copies.forEach(g=>g.dispose());
   if(!geometry)throw new Error('Cannot combine metal geometry');
   const tree=new MeshBVH(geometry,{strategy:SAH}),bvh=new MeshBVHUniformStruct();bvh.updateFrom(tree);
