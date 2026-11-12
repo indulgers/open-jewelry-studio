@@ -1,6 +1,4 @@
 import {useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
-import {Mesh} from 'three';
-import {jewelryModelLoader} from '../../viewer/modelLoader';
 import {preloadJewelryLighting} from '../../viewer/JewelryLighting';
 import {STONE_APPEARANCES,STONE_APPEARANCE_IDS,type StoneAppearance} from '../../viewer/stoneAppearance';
 import {RING_CATALOG,type CatalogRing} from '../catalog';
@@ -9,7 +7,7 @@ import {ReviewDialog} from '../ring02/ReviewDialog';
 import {VIEWS,type RingView} from '../ring02/Ring02Stage';
 import {ENGRAVING_LIMIT,engravingProblem} from '../ring02/engraving';
 import {addDemoOrder,formatYuan,hasDemoOrder} from '../ring02/demoOrder';
-import {combineReferenceRings,prepareReferenceRing,type ReferenceRing} from './model';
+import {createReferenceLibrary} from './part-library';
 import {ORIGINAL_REFERENCE,parseReferenceDesign,referenceDetails,referenceParts,referenceQuote,ZONE_NAMES,type ReferenceDesign} from './design';
 import {BAND_STYLES,bandStyle,headName} from './parts';
 import {PAVE_DIAMETERS,PAVE_LENGTHS,describePaveGap} from './pave-options';
@@ -41,7 +39,7 @@ function PartChoices({kind,label,choices,selected,disabled,pending,onSelect}:{
   </fieldset>;
 }
 
-function Editor({template,original}:{template:CatalogRing;original:ReferenceRing}){
+function Editor({template}:{template:CatalogRing}){
   const originalKey='open-jewelry-studio:'+template.revision;
   const key=template.kind==='parametric'?originalKey+':combination':originalKey;
   const [history,setHistory]=useState(()=>{
@@ -64,18 +62,14 @@ function Editor({template,original}:{template:CatalogRing;original:ReferenceRing
   const [captureFrame,setCaptureFrame]=useState<SourceFrame|null>(null);
   const {head,band,zones}=referenceParts(template,design);
   const style=bandStyle(band.id);
-  const headModel=useReferenceModel(!compare&&head.id!==template.id?head:undefined);
-  const bandModel=useReferenceModel(!compare&&band.id!==template.id&&band.id!==head.id?band:undefined);
-  const activeHead=compare||head.id===template.id?original:headModel.ring;
-  const activeBand=compare||band.id===template.id?original:band.id===head.id?activeHead:bandModel.ring;
+  const selection=useReferenceSelection(compare?template.id:head.id,compare?template.id:band.id);
   const paved=zones.includes('shoulder');
   const diameter=compare||!paved?100:design.paveDiameter??100;
   const length=compare||!paved?100:design.paveLength??100;
-  const stockRing=useMemo(()=>activeHead&&activeBand?combineReferenceRings(activeHead,activeBand):null,[activeHead,activeBand]);
-  const ring=useMemo(()=>stockRing&&activeBand?applyReferencePave(stockRing,activeBand,diameter,length):null,
-    [stockRing,activeBand,diameter,length]);
+  const ring=useMemo(()=>selection.parts?applyReferencePave(selection.parts.stock,selection.parts.band,diameter,length):null,
+    [selection.parts,diameter,length]);
   const pave=ring?.pave;
-  const loadingError=headModel.error||bandModel.error;
+  const loadingError=selection.error;
   const zone=part==='shank'?(zones.includes('shoulder')?'shoulder':null):zones.includes(headZone)?headZone:'center';
   const mixed=head.id!==template.id||band.id!==template.id;
   const displayName=mixed?headName(head.name)+' × '+style.name:template.name;
@@ -90,10 +84,6 @@ function Editor({template,original}:{template:CatalogRing;original:ReferenceRing
   const visiblePreview=canCapture?preview:lastPreview.current;
   const swapping=!ring&&!loadingError;
   const previousParts=visiblePreview?referenceParts(template,visiblePreview.design):null;
-  const retrySwap=()=>{
-    if(headModel.error)headModel.retry();
-    if(bandModel.error)bandModel.retry();
-  };
   const quote=referenceQuote(template,design),details=referenceDetails(template,design,compare?null:pave);
   const engravingDirty=engraving!==design.engraving;
   const engravingError=engravingProblem(engraving.trim());
@@ -139,10 +129,10 @@ function Editor({template,original}:{template:CatalogRing;original:ReferenceRing
       <div className="ring02-preview-bar"><div><strong>{visiblePreview?.name??sceneName}</strong><span>{visiblePreview?visiblePreview.ring.stones.length+' 颗宝石':''}</span></div><button aria-pressed={compare} onClick={()=>setCompare(!compare)}>对比原款</button></div>
       {preview?<SourceRingStage ring={preview.ring} template={template} design={preview.design} view={view} reset={reset} captureRef={capture} onCaptureReady={setCaptureFrame}/>
         :<div className="stone-first-canvas ring02-canvas source-ring-canvas">
-          <SourceLoading template={template} retry={loadingError?retrySwap:undefined}/>
+          <SourceLoading template={template} retry={loadingError?selection.retry:undefined}/>
         </div>}
       {!ring&&visiblePreview&&<div className="source-ring-swap-status" role={loadingError?'alert':'status'}>
-        {loadingError?<><span>新搭配未加载</span><button onClick={retrySwap}>重试</button></>:'正在更新搭配…'}
+        {loadingError?<><span>新搭配未加载</span><button onClick={selection.retry}>重试</button></>:'正在更新搭配…'}
       </div>}
       <div className="stone-first-camera-views" role="group" aria-label="戒指观察视角">{VIEWS.map(([id,label])=><button key={id} aria-pressed={view===id} onClick={()=>{setView(id);setReset(n=>n+1);}}>{label}</button>)}</div>
     </section>
@@ -197,40 +187,31 @@ function Editor({template,original}:{template:CatalogRing;original:ReferenceRing
   </>;
 }
 
-function useReferenceModel(template?:CatalogRing){
-  const cache=useRef(new Map<string,ReferenceRing>());
-  const [failedId,setFailedId]=useState<string>(),[attempt,setAttempt]=useState(0);
-  const [,renderLoaded]=useState(0);
-  useEffect(()=>()=>{cache.current.forEach(ring=>ring.dispose());cache.current.clear();},[]);
+function useReferenceSelection(headId:string,bandId:string){
+  type Loaded=Awaited<ReturnType<ReturnType<typeof createReferenceLibrary>['load']>>;
+  const [library,setLibrary]=useState<ReturnType<typeof createReferenceLibrary>>();
+  const [loaded,setLoaded]=useState<{key:string;parts:Loaded}>();
+  const [failed,setFailed]=useState<string>(),[attempt,setAttempt]=useState(0);
+  const key=headId+':'+bandId;
   useEffect(()=>{
-    if(!template||cache.current.has(template.id))return;
-    const controller=new AbortController();
-    fetch(template.model,{signal:controller.signal}).then(response=>{
-      if(!response.ok)throw new Error('模型不可用');
-      return response.arrayBuffer();
-    }).then(async bytes=>{
-      if(controller.signal.aborted)return;
-      const {scene}=await jewelryModelLoader().parseAsync(bytes,'');
-      if(controller.signal.aborted){
-        scene.traverse(object=>{if(object instanceof Mesh){
-          object.geometry.dispose();
-          (Array.isArray(object.material)?object.material:[object.material]).forEach(material=>material.dispose());
-        }});
-        return;
-      }
-      cache.current.set(template.id,prepareReferenceRing(scene,template.id));
-      renderLoaded(count=>count+1);
-    }).catch(()=>{if(!controller.signal.aborted)setFailedId(template.id);});
-    return ()=>controller.abort();
-  },[template,attempt]);
-  return {ring:template?cache.current.get(template.id):undefined,
-    error:failedId!==undefined&&failedId===template?.id&&!cache.current.has(failedId),
-    retry:()=>{setFailedId(undefined);setAttempt(n=>n+1);}};
+    const next=createReferenceLibrary();
+    setLibrary(next);
+    return ()=>next.dispose();
+  },[]);
+  useEffect(()=>{
+    if(!library)return;
+    let current=true;
+    library.load(headId,bandId).then(parts=>{
+      if(current){setLoaded({key,parts});setFailed(undefined);}
+    }).catch(()=>{if(current)setFailed(key);});
+    return ()=>{current=false;};
+  },[library,headId,bandId,key,attempt]);
+  return {parts:loaded?.key===key?loaded.parts:undefined,error:failed===key,
+    retry:()=>{setFailed(undefined);setAttempt(value=>value+1);}};
 }
 
 export function SourceRingStudio({templateId}:{templateId:string}){
   const template=RING_CATALOG.find(item=>item.id===templateId)!;
-  const {ring,error,retry}=useReferenceModel(template);
   return <main className="stone-first-workspace ring02-workspace">
     <div className="source-ring-entry">
       <div><nav className="ring02-breadcrumb" aria-label="所在页面"><a href="#/diy/collection">全部款式</a><span aria-hidden="true">/</span><span aria-current="page">{template.name}</span></nav>
@@ -238,6 +219,6 @@ export function SourceRingStudio({templateId}:{templateId:string}){
       </div>
       <RingStylePicker id={template.id}/>
     </div>
-    {ring?<Editor template={template} original={ring}/>:<SourceLoading template={template} retry={error?retry:undefined}/>}
+    <Editor template={template}/>
   </main>;
 }

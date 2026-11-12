@@ -2,7 +2,7 @@ import {CapsuleGeometry,CatmullRomCurve3,DoubleSide,Matrix4,Ray,Vector3,type Buf
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {MeshBVH} from 'three-mesh-bvh';
 import {edgeExtent,packPaveRow} from '../ring02/pave';
-import type {ReferenceRing,RingAssembly,SourceGem} from './model';
+import type {ReferenceBand,RingAssembly,SourceGem} from './model';
 import {isShoulderBead} from './parts';
 import type {PaveDiameter,PaveLength,PaveSummary} from './pave-options';
 
@@ -48,7 +48,7 @@ function summarize(rows:{stone:SourceGem;center:Vector3}[][],diameter:number):Pa
   return {count:rows.reduce((total,row)=>total+row.length,0),minGap:gaps.length?Math.min(...gaps):null,maxGap:gaps.length?Math.max(...gaps):null,diameter};
 }
 
-type PaveSource=Pick<ReferenceRing,'id'|'metal'|'stones'|'reflowShank'>;
+type PaveSource=Pick<ReferenceBand,'id'|'metal'|'stones'|'reflowShank'>;
 
 function shoulderRail(id:string|undefined){
   return id==='ring-02'?'metal_shank_with_shoulders':id==='ring-starlight'?'metal_97':'metal_1';
@@ -143,7 +143,7 @@ export function prepareReferencePave(band:PaveSource){
   };
 }
 
-export function applyReferencePave(ring:RingAssembly,band:ReferenceRing,diameter:PaveDiameter,length:PaveLength){
+export function applyReferencePave(ring:RingAssembly,band:ReferenceBand,diameter:PaveDiameter,length:PaveLength){
   const shoulders=band.paveRows();
   if(!shoulders)return {...ring,pave:null};
   if(diameter===100&&length===100)return {...ring,pave:shoulders.stock};

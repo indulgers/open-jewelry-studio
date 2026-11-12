@@ -1,0 +1,63 @@
+{
+  "ring-02": {
+    "scale": 0.10132006563441065,
+    "axisY": -0.0026984214782714844,
+    "seatY": 1.1119571643820414,
+    "head": "/models/parts/heads/ring-02-c1ca8abd32fe.glb",
+    "band": "/models/parts/bands/ring-02-1fd2fb583ac5.glb",
+    "headStones": "/models/parts/stones/ring-02-head-d95244e0f447.glb",
+    "pave": "/models/parts/stones/ring-02-pave-1704e6c6d4af.glb",
+    "adapter": "/models/parts/bands/ring-02-adapter-fd6bb68dd202.glb"
+  },
+  "ring-floral": {
+    "scale": 0.10105547856878035,
+    "axisY": 2.999985694885254,
+    "seatY": 1.0605786931895662,
+    "head": "/models/parts/heads/ring-floral-58ef4010ea66.glb",
+    "band": "/models/parts/bands/ring-floral-3d1ced8d5334.glb",
+    "headStones": "/models/parts/stones/ring-floral-head-d9d7bc2d00da.glb"
+  },
+  "ring-rosette": {
+    "scale": 0.10325414063652032,
+    "axisY": 3.0003414154052734,
+    "seatY": 1.1342114823379041,
+    "head": "/models/parts/heads/ring-rosette-9e1637219a1a.glb",
+    "band": "/models/parts/bands/ring-rosette-a447cfda2ab5.glb",
+    "headStones": "/models/parts/stones/ring-rosette-head-eea9d99c65ed.glb"
+  },
+  "ring-petal": {
+    "scale": 0.10325720115078382,
+    "axisY": 3.6016435623168945,
+    "seatY": 1.0654446062313296,
+    "head": "/models/parts/heads/ring-petal-78cfc9cb00b2.glb",
+    "band": "/models/parts/bands/ring-petal-70a5154d7a2a.glb",
+    "headStones": "/models/parts/stones/ring-petal-head-617a1bc0f69e.glb",
+    "pave": "/models/parts/stones/ring-petal-pave-5acf85110a61.glb"
+  },
+  "ring-crown": {
+    "scale": 0.09988185076370738,
+    "axisY": 2.9639945030212402,
+    "seatY": 1.0006169299992327,
+    "head": "/models/parts/heads/ring-crown-d5af87f2a871.glb",
+    "band": "/models/parts/bands/ring-crown-d2e712c4dcb6.glb",
+    "headStones": "/models/parts/stones/ring-crown-head-b11bdb2f1193.glb",
+    "pave": "/models/parts/stones/ring-crown-pave-748ab36a3702.glb"
+  },
+  "ring-starlight": {
+    "scale": 0.09915026298682111,
+    "axisY": 2.9916439056396484,
+    "seatY": 1.111311454405768,
+    "head": "/models/parts/heads/ring-starlight-5864ae4a2ea2.glb",
+    "band": "/models/parts/bands/ring-starlight-52ae25dda1f7.glb",
+    "headStones": "/models/parts/stones/ring-starlight-head-7dcc69cdaeff.glb",
+    "pave": "/models/parts/stones/ring-starlight-pave-f4bd40becbd0.glb"
+  },
+  "ring-solstice": {
+    "scale": 0.2209383023676032,
+    "axisY": 1.4983348846435547,
+    "seatY": 1.082965569361355,
+    "head": "/models/parts/heads/ring-solstice-a4fa750be0f7.glb",
+    "band": "/models/parts/bands/ring-solstice-73ee897ed672.glb",
+    "headStones": "/models/parts/stones/ring-solstice-head-0f0d2879186b.glb"
+  }
+}

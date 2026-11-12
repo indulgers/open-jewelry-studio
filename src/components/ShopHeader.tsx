@@ -39,7 +39,7 @@ export function ShopHeader({page}:{page:string|null}){
     <div className="shop-announcement">银色珠宝，心意由你定义<span> · </span>相言定制系列</div>
     <header className="site-header">
       <nav className="shop-navigation" aria-label="主导航">
-        <a href="#/diy/collection" aria-current={page==='catalog'?'page':undefined}>款式系列</a>
+        <a href="#/diy/collection" aria-current={page==='collection'?'page':undefined}>款式系列</a>
         <a href="#/stonefirst/ring-02">专属定制</a>
         <a href="#/diy/story">关于相言</a>
       </nav>

@@ -152,7 +152,7 @@ export default function App(){
     return()=>window.removeEventListener('hashchange',sync);
   },[]);
   return <div className="app-shell" data-workspace={tab}>
-    <ShopHeader page={diyPage}/>
+    <ShopHeader page={route.tab==='stonefirst'&&route.section==='collection'?'collection':diyPage}/>
     <section id="panel-showroom" aria-label="珠宝展台" hidden={tab!=='showroom'}><JewelryStudio active={tab==='showroom'}/></section>
     <section id="panel-modules" aria-label="模组 DIY" hidden={tab!=='modules'}>{modulesVisited&&<ModuleStudio active={tab==='modules'}/>}</section>
     <section id="panel-stonefirst" aria-label="戒指定制" hidden={tab!=='stonefirst'}>{tab==='stonefirst'&&(diyPage==='catalog'?<DiyHome section={route.section}/>:diyPage==='cart'?<DiyCart/>:<Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='ring02'?<Ring02Studio/>:diyPage==='reference'?<SourceRingStudio key={route.templateId} templateId={route.templateId!}/>:<StoneFirstStudio/>}</Suspense>)}</section>

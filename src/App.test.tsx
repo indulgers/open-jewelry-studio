@@ -83,6 +83,10 @@ describe('shared studio navigation',()=>{
     act(()=>{window.history.replaceState(null,'','/#/diy');window.dispatchEvent(new HashChangeEvent('hashchange'));});
     expect(window.location.hash).toBe('#/diy');
     expect(screen.getByRole('heading',{name:/让心意/})).toBeInTheDocument();
+    expect(screen.getAllByRole('link',{name:'开始定制'})).toHaveLength(4);
+    expect(screen.getAllByRole('img',{name:/近景佩戴示意/})).toHaveLength(4);
+    fireEvent.click(screen.getAllByRole('link',{name:'查看全部款式'})[0]);
+    expect(await screen.findByRole('heading',{name:'全部款式'})).toBeInTheDocument();
     const start=screen.getAllByRole('link',{name:'开始定制'}).find(link=>link.getAttribute('href')==='#/stonefirst/ring-02')!;
     expect(start).toHaveAttribute('href','#/stonefirst/ring-02');
     expect(screen.getByRole('heading',{name:'围钻戒指'})).toBeInTheDocument();

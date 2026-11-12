@@ -6,6 +6,12 @@
   "outputDirectory": "dist",
   "headers": [
     {
+      "source": "/models/parts/:kind/:file",
+      "headers": [
+        {"key": "Cache-Control", "value": "public, max-age=31536000, immutable"}
+      ]
+    },
+    {
       "source": "/models/atelier/:ring/ring-:version.glb",
       "headers": [
         {"key": "Cache-Control", "value": "public, max-age=31536000, immutable"}

@@ -1,4 +1,4 @@
-import {RING02_TEMPLATE} from './ring02/assets';
+import {RING02_TEMPLATE} from './ring02/assets.ts';
 
 export type CatalogRing={
   id:string;kind:'parametric'|'reference';name:string;collection:string;subtitle:string;description:string;

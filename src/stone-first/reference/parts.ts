@@ -17,6 +17,10 @@ export function bandName(id:string) {
 export const headName=(name:string)=>name.replace(/戒指$/,'戒头');
 export const HALO_COMBINATION_ROUTE='#/stonefirst/combine/ring-02';
 
+export const LEGACY_HALO_COLLARS:Record<string,readonly string[]>={
+  'ring-crown':['metal_23','metal_26'],'ring-starlight':[],'ring-solstice':['metal_25'],
+};
+
 // These are the original basket seat heights and band-side connector parts, in source coordinates.
 export const SEAT_Y:Record<string,number>={
   'ring-02':10.972,'ring-floral':13.495,'ring-rosette':13.985,'ring-petal':13.920,'ring-crown':12.982,'ring-starlight':14.2,'ring-solstice':6.4,

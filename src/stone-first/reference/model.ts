@@ -2,21 +2,19 @@ import {Box3,Matrix4,Mesh,Vector3,type BufferGeometry,type Object3D} from 'three
 import {toCreasedNormals} from 'three/addons/utils/BufferGeometryUtils.js';
 import type {RingFraming,RingView} from '../ring02/Ring02Stage';
 
-import {isBandMetal,SEAT_Y} from './parts';
+import {isBandMetal,LEGACY_HALO_COLLARS,SEAT_Y} from './parts';
 import {prepareReferencePave} from './pave';
 
-type Part={name:string;geometry:BufferGeometry;offsetY?:number};
+type Part={name:string;geometry:BufferGeometry;offsetY?:number;sourceOrder?:number};
 export type SourceGem=Part&{zone:'center'|'halo'|'shoulder';matrix:Matrix4};
 export type RingAssembly={metal:Part[];stones:SourceGem[];frames:Record<RingView,RingFraming>};
-export type ReferenceRing=RingAssembly&{
-  id?:string;seatY:number;reflowShank?:BufferGeometry;paveRows:()=>ReturnType<typeof prepareReferencePave>;dispose:()=>void;
+export type ReferenceHead=Pick<RingAssembly,'metal'|'stones'>&{id?:string;seatY:number};
+export type ReferenceBand=ReferenceHead&{
+  reflowShank?:BufferGeometry;paveRows:()=>ReturnType<typeof prepareReferencePave>;disposePave:()=>void;
 };
-export function prepareReferenceRing(scene:Object3D,id?:string):ReferenceRing{
-  const bounds=new Box3().setFromObject(scene);
-  const width=bounds.max.x-bounds.min.x;
-  if(!Number.isFinite(width)||width<=0)throw new Error('戒指模型为空');
-  // These supplied sources put the finger axis above zero. Center the bore without changing proportions.
-  const scale=2/width,axisY=bounds.min.y+width/2;
+export type ReferenceRing=RingAssembly&ReferenceBand&{dispose:()=>void};
+
+export function prepareReferenceGeometry(scene:Object3D,scale:number,axisY:number){
   const metal:Part[]=[],stones:SourceGem[]=[];
   let reflowShank:BufferGeometry|undefined;
   scene.traverse(object=>{
@@ -26,21 +24,39 @@ export function prepareReferenceRing(scene:Object3D,id?:string):ReferenceRing{
     if(geometry!==object.geometry)object.geometry.dispose();
     geometry.scale(scale,scale,scale).translate(0,-axisY*scale,0);
     geometry.computeBoundingBox();
-    if(match)stones.push({name:object.name,geometry,zone:match[1] as SourceGem['zone'],matrix:new Matrix4()});
+    const part={name:object.name,geometry,sourceOrder:object.userData.sourceOrder as number|undefined};
+    if(match)stones.push({...part,zone:match[1] as SourceGem['zone'],matrix:new Matrix4()});
     else if(object.name==='metal_reflow_shank')reflowShank=geometry;
-    else metal.push({name:object.name,geometry});
+    else metal.push(part);
     const materials=Array.isArray(object.material)?object.material:[object.material];
     materials.forEach(material=>material.dispose());
   });
-  const center=stones.find(stone=>stone.zone==='center');
-  if(!center||!metal.length){[...metal,...stones].forEach(part=>part.geometry.dispose());throw new Error('模型缺少主石或戒托');}
-  const frames=ringFrames(metal,stones);
+  return {metal,stones,reflowShank,dispose(){
+    reflowShank?.dispose();
+    for(const part of [...metal,...stones])part.geometry.dispose();
+  }};
+}
+
+export function prepareReferenceBand(band:Omit<ReferenceBand,'paveRows'|'disposePave'>):ReferenceBand{
   let paved:ReturnType<typeof prepareReferencePave>|undefined;
-  const ring:ReferenceRing={id,reflowShank,seatY:((id?SEAT_Y[id]:0)-axisY)*scale,metal,stones,frames,
-    paveRows:():ReturnType<typeof prepareReferencePave>=>paved===undefined?(paved=prepareReferencePave(ring)):paved,
-    dispose(){paved?.dispose();reflowShank?.dispose();[...metal,...stones].forEach(part=>part.geometry.dispose());},
+  return {...band,
+    paveRows:()=>paved===undefined?(paved=prepareReferencePave(band)):paved,
+    disposePave:()=>paved?.dispose(),
   };
-  return ring;
+}
+
+export function prepareReferenceRing(scene:Object3D,id?:string):ReferenceRing{
+  const bounds=new Box3().setFromObject(scene);
+  const width=bounds.max.x-bounds.min.x;
+  if(!Number.isFinite(width)||width<=0)throw new Error('戒指模型为空');
+  const scale=2/width,axisY=bounds.min.y+width/2;
+  const parts=prepareReferenceGeometry(scene,scale,axisY);
+  if(!parts.stones.some(stone=>stone.zone==='center')||!parts.metal.length){
+    parts.dispose();
+    throw new Error('模型缺少主石或戒托');
+  }
+  const band=prepareReferenceBand({id,seatY:((id?SEAT_Y[id]:0)-axisY)*scale,...parts});
+  return {...band,frames:ringFrames(parts.metal,parts.stones),dispose(){band.disposePave();parts.dispose();}};
 }
 
 function ringFrames(metal:Part[],stones:SourceGem[]):Record<RingView,RingFraming>{
@@ -57,8 +73,9 @@ function ringFrames(metal:Part[],stones:SourceGem[]):Record<RingView,RingFraming
   };
 }
 
-export function combineReferenceRings(head:ReferenceRing,band:ReferenceRing):RingAssembly{
-  if(head===band&&head.id!=='ring-starlight')return head;
+export function combineReferenceRings(head:ReferenceHead,band:ReferenceBand,adapter?:Part):RingAssembly{
+  const same=head.id===band.id;
+  if(head===band&&head.id!=='ring-starlight'&&'frames' in head)return head as ReferenceRing;
   // The older halo uses a different neck. Offsets were checked against the actual seat and stone meshes.
   const haloAsHead:Record<string,number>={'ring-floral':.072,'ring-rosette':.056,'ring-petal':.066,'ring-crown':.054,'ring-starlight':.15,'ring-solstice':.01};
   const haloAsBand:Record<string,number>={'ring-floral':-.092,'ring-rosette':-.043,'ring-petal':-.072,'ring-crown':-.17};
@@ -74,18 +91,28 @@ export function combineReferenceRings(head:ReferenceRing,band:ReferenceRing):Rin
     'ring-solstice:ring-starlight':.10,
   };
   const offsetY=band.seatY-head.seatY+adjustment+(seatCorrection[head.id+':'+band.id]??0);
-  const legacyCollars=head.id==='ring-02'?({
-    'ring-crown':['metal_23','metal_26'],'ring-starlight':[],'ring-solstice':['metal_25'],
-  } as Record<string,string[]>)[band.id!]:undefined;
+  const legacyCollars=head.id==='ring-02'?LEGACY_HALO_COLLARS[band.id!]:undefined;
   // Starlight brings its own collar. Keep the target band's structural shoulders.
   const starlightCollars=head.id==='ring-starlight'?({
     'ring-floral':['metal_683'],'ring-rosette':['metal_40'],'ring-petal':['metal_14314'],
     'ring-crown':['metal_23','metal_26'],'ring-solstice':['metal_25'],
   } as Record<string,string[]>)[band.id!]:undefined;
   const removedCollars=legacyCollars??starlightCollars;
+  const bandMetal=band.metal.filter(part=>isBandMetal(band.id!,part.name)&&!removedCollars?.includes(part.name));
+  const headMetal=head.metal.filter(part=>!isBandMetal(head.id!,part.name));
+  if(legacyCollars){
+    const shell=adapter??head.metal.find(part=>part.name==='reference_crown_shank_shell');
+    if(shell)headMetal.push(shell);
+  }
+  if(same&&head.id!=='ring-starlight'){
+    const order=(a:Part,b:Part)=>(a.sourceOrder??0)-(b.sourceOrder??0);
+    const metal=[...headMetal,...bandMetal].sort(order);
+    const stones=[...head.stones.filter(stone=>stone.zone!=='shoulder'),...band.stones.filter(stone=>stone.zone==='shoulder')].sort(order);
+    return {metal,stones,frames:ringFrames(metal,stones)};
+  }
   const metal=[
-    ...band.metal.filter(part=>isBandMetal(band.id!,part.name)&&!removedCollars?.includes(part.name)),
-    ...head.metal.filter(part=>!isBandMetal(head.id!,part.name)||(legacyCollars&&part.name==='reference_crown_shank_shell')).map(part=>({...part,name:head===band?part.name:'head:'+part.name,offsetY})),
+    ...bandMetal,
+    ...headMetal.map(part=>({...part,name:same?part.name:'head:'+part.name,offsetY})),
   ];
   const stones=[
     ...head.stones.filter(stone=>stone.zone!=='shoulder').map(stone=>({...stone,matrix:new Matrix4().makeTranslation(0,offsetY,0).multiply(stone.matrix)})),
