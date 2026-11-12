@@ -1,4 +1,3 @@
-import {HALO_COMBINATION_ROUTE} from '../reference/parts';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {Mesh} from 'three';
 import {jewelryModelLoader} from '../../viewer/modelLoader';
@@ -18,6 +17,7 @@ import {RING02_TEMPLATE} from './assets';
 import {Ring02Loading} from './Ring02Loading';
 import '../stone-first.css';
 import './ring02.css';
+import '../reference/source-ring-picker.css';
 
 preloadJewelryLighting();
 
@@ -214,7 +214,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
 
   const spec=current[zone];
   const headName=HEAD_NAMES[visible.head];
-  return <><div className="stone-first-main ring02-main">
+  return <><div className="stone-first-main ring02-main source-ring-main">
     <section className="stone-first-preview" aria-label="戒指预览">
       <div className="ring02-preview-bar">
         <div><strong>{compare?'原款':headName}</strong><span>{stones.length} 颗宝石</span></div>
@@ -407,12 +407,13 @@ export function Ring02Studio(){
       if(owned)disposeTemplate(owned);
     };
   },[attempt]);
-  return <main className="stone-first-workspace ring02-workspace">
-    <nav className="ring02-breadcrumb" aria-label="所在页面">
-      <a href="#/diy">全部款式</a><span aria-hidden="true">/</span><span aria-current="page">{RING02_TEMPLATE.name}</span>
-    </nav>
-    <RingStylePicker id="ring-02"/>
-    <a className="shop-text-link" href={HALO_COMBINATION_ROUTE}>搭配其他戒头和戒圈</a>
+  return <main className="stone-first-workspace ring02-workspace source-ring-workspace">
+    <div className="source-ring-entry">
+      <nav className="ring02-breadcrumb" aria-label="所在页面">
+        <a href={RING02_TEMPLATE.editor}>围钻戒指</a><span aria-hidden="true">/</span><span aria-current="page">原款精调</span>
+      </nav>
+      <RingStylePicker id="ring-02"/>
+    </div>
     {template?<Editor template={template}/>:<Ring02Loading retry={error?()=>{setError(false);setAttempt(count=>count+1);}:undefined}/>}
   </main>;
 }

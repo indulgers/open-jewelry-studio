@@ -1,7 +1,8 @@
 import {useEffect,useState} from 'react';
 import {RING_CATALOG} from './catalog';
 import {CART_CHANGED,demoOrders,formatYuan,removeDemoOrder} from './ring02/demoOrder';
-import {bandStyle,HALO_COMBINATION_ROUTE,headName} from './reference/parts';
+import {RING02_PRECISION_ROUTE} from './ring02/assets';
+import {bandStyle,headName} from './reference/parts';
 import {parseReferenceDesign,referenceParts} from './reference/design';
 import './diy-home.css';
 import './diy-cart.css';
@@ -52,7 +53,7 @@ export function DiyCart(){
           const parts=template&&design?referenceParts(template,design):null;
           const mixed=parts&&(parts.head.id!==template?.id||parts.band.id!==template?.id);
           const name=mixed?headName(parts.head.name)+' × '+bandStyle(parts.band.id).name:template?.name??'戒指定制方案';
-          const editor=design&&template?.kind==='parametric'?HALO_COMBINATION_ROUTE:template?.editor;
+          const editor=template?.kind==='parametric'&&order.pave?.units==='model'?RING02_PRECISION_ROUTE:template?.editor;
           return <article key={order.revision} className="diy-cart-order">
             <CartImage thumbnail={order.thumbnail} image={mixed?undefined:template?.image} name={name}/>
             <div className="cart-order-info">

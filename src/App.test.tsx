@@ -13,7 +13,9 @@ vi.mock('./viewer/JewelryStage',()=>({JewelryStage:({onCaptureReady,onCapturePro
     <output aria-label="待处理出图请求">{captureRequest}</output></>;
 }}));
 
-vi.mock('./stone-first/ring02/Ring02Studio',()=>({Ring02Studio:()=> <main><h1>测试围钻戒指编辑器</h1></main>}));
+vi.mock('./stone-first/ring02/Ring02Studio',()=>({Ring02Studio:()=> <main><h1>测试原款精调</h1></main>}));
+vi.mock('./stone-first/reference/SourceRingStudio',()=>({SourceRingStudio:({templateId}:{templateId:string})=>
+  <main><h1>组合编辑器 {templateId}</h1></main>}));
 
 beforeEach(()=>{
   window.history.replaceState(null,'','/#/showroom');
@@ -91,18 +93,26 @@ describe('shared studio navigation',()=>{
     expect(start).toHaveAttribute('href','#/stonefirst/ring-02');
     expect(screen.getByRole('heading',{name:'围钻戒指'})).toBeInTheDocument();
     fireEvent.click(start);
-    expect(await screen.findByRole('heading',{name:'测试围钻戒指编辑器'})).toBeInTheDocument();
+    expect(await screen.findByRole('heading',{name:'组合编辑器 ring-02'})).toBeInTheDocument();
     expect(window.location.hash).toBe('#/stonefirst/ring-02');
   });
   it('unmounts the ring editor when browser navigation leaves DIY',async()=>{
     window.history.replaceState(null,'','/#/stonefirst/ring-02');
     render(<App/>);
-    await screen.findByRole('heading',{name:'测试围钻戒指编辑器'});
+    await screen.findByRole('heading',{name:'组合编辑器 ring-02'});
     act(()=>{
       window.history.replaceState(null,'','/#/showroom');
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
-    expect(screen.queryByText('测试围钻戒指编辑器')).not.toBeInTheDocument();
+    expect(screen.queryByText('组合编辑器 ring-02')).not.toBeInTheDocument();
+  });
+  it.each([
+    ['combine','组合编辑器 ring-02'],
+    ['precision','测试原款精调'],
+  ])('opens the %s route for saved halo workflows',async (mode,title)=>{
+    window.history.replaceState(null,'','/#/stonefirst/'+mode+'/ring-02');
+    render(<App/>);
+    expect(await screen.findByRole('heading',{name:title})).toBeInTheDocument();
   });
   it('loads the module editor on demand and retains its frame across tabs',async()=>{
     await loaded();

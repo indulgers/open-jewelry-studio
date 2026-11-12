@@ -4,10 +4,12 @@ import {STONE_APPEARANCES,STONE_APPEARANCE_IDS,type StoneAppearance} from '../..
 import {RING_CATALOG,type CatalogRing} from '../catalog';
 import {RingStylePicker} from '../RingStylePicker';
 import {ReviewDialog} from '../ring02/ReviewDialog';
+import {RING02_PRECISION_ROUTE} from '../ring02/assets';
 import {VIEWS,type RingView} from '../ring02/Ring02Stage';
 import {ENGRAVING_LIMIT,engravingProblem} from '../ring02/engraving';
 import {addDemoOrder,formatYuan,hasDemoOrder} from '../ring02/demoOrder';
 import {createReferenceLibrary} from './part-library';
+import {PartCard,PartLibrary,headChoices,sourceImage} from './PartLibrary';
 import {ORIGINAL_REFERENCE,parseReferenceDesign,referenceDetails,referenceParts,referenceQuote,ZONE_NAMES,type ReferenceDesign} from './design';
 import {BAND_STYLES,bandStyle,headName} from './parts';
 import {PAVE_DIAMETERS,PAVE_LENGTHS,describePaveGap} from './pave-options';
@@ -20,8 +22,6 @@ import './source-ring-picker.css';
 preloadJewelryLighting();
 
 type PartChoice={id:string;name:string;image:string};
-const sourceImage=(id:string)=>RING_CATALOG.find(ring=>ring.id===id)!.image;
-const headChoices=RING_CATALOG.map(ring=>({id:ring.id,name:headName(ring.name),image:ring.image}));
 const bandChoices=BAND_STYLES.map(style=>({id:style.name,name:style.name,image:sourceImage(style.finishes[0].id)}));
 
 function PartChoices({kind,label,choices,selected,disabled,pending,onSelect}:{
@@ -32,10 +32,8 @@ function PartChoices({kind,label,choices,selected,disabled,pending,onSelect}:{
   return <fieldset className={'source-part-options source-'+kind+'-options'} disabled={disabled}>
     <legend>{label}</legend>
     {fixed?<p className="source-fixed-finish">{choices[0].name}</p>:
-      <div className="source-part-grid">{choices.map(item=><button type="button" key={item.id} className="source-part-card" aria-pressed={selected===item.id} onClick={()=>onSelect(item.id)}>
-        <span className="source-part-image"><img src={item.image} alt="" decoding="async" loading="lazy"/></span>
-        <span className="source-part-name">{item.name}{pending&&selected===item.id&&<span className="ring02-spinner" aria-hidden="true"/>}</span>
-      </button>)}</div>}
+      <div className="source-part-grid">{choices.map(({id,name,image})=><PartCard key={id} item={{id,name,image}}
+        selected={selected===id} pending={pending} onSelect={onSelect}/>)}</div>}
   </fieldset>;
 }
 
@@ -53,6 +51,8 @@ function Editor({template}:{template:CatalogRing}){
   });
   const {design,revision,past}=history;
   const [part,setPart]=useState<'head'|'shank'>('head');
+  const [library,setLibrary]=useState<'head'|'band'|null>(null);
+  const libraryTrigger=useRef<HTMLButtonElement>(null);
   const [headZone,setHeadZone]=useState<'center'|'halo'>('center');
   const [view,setView]=useState<RingView>('overall'),[reset,setReset]=useState(0);
   const [compare,setCompare]=useState(false),[review,setReview]=useState(false);
@@ -124,7 +124,7 @@ function Editor({template}:{template:CatalogRing}){
       setReview(false);setMessage('已加入购物车。');
     }catch{setMessage('购物车未能保存，请允许浏览器存储后重试。');}
   }
-  return <><div className="stone-first-main ring02-main source-ring-main" data-editing-pave={part==='shank'&&paved?true:undefined}>
+  return <><div className="stone-first-main ring02-main source-ring-main">
     <section className="stone-first-preview" aria-label="戒指预览">
       <div className="ring02-preview-bar"><div><strong>{visiblePreview?.name??sceneName}</strong><span>{visiblePreview?visiblePreview.ring.stones.length+' 颗宝石':''}</span></div><button aria-pressed={compare} onClick={()=>setCompare(!compare)}>对比原款</button></div>
       {preview?<SourceRingStage ring={preview.ring} template={template} design={preview.design} view={view} reset={reset} captureRef={capture} onCaptureReady={setCaptureFrame}/>
@@ -140,6 +140,8 @@ function Editor({template}:{template:CatalogRing}){
       <header className="ring02-product"><h1>专属定制</h1><p>{displayName} · 银色</p></header>
       <div className="source-part-tabs" role="group" aria-label="选择戒指部件"><button aria-pressed={part==='head'} onClick={()=>setPart('head')}>戒头</button><button aria-pressed={part==='shank'} onClick={()=>setPart('shank')}>戒圈与铺钻</button></div>
       <div className="stone-first-fields ring02-fields source-ring-fields">
+        <button type="button" className="source-library-trigger shop-text-link" ref={libraryTrigger} aria-haspopup="dialog"
+          aria-label={part==='head'?'查看全部戒头':'查看全部戒圈'} disabled={compare} onClick={()=>setLibrary(part==='head'?'head':'band')}>查看全部</button>
         {part==='head'?<>
           <PartChoices kind="head" label="戒头款式" choices={headChoices} selected={head.id} disabled={compare} pending={swapping&&previousParts?.head.id!==head.id} onSelect={selectHead}/>
           {zones.includes('halo')&&<div className="ring02-head-zones stone-first-options" role="group" aria-label="戒头镶嵌区域">{(['center','halo'] as const).map(id=><button key={id} aria-pressed={zone===id} onClick={()=>setHeadZone(id)}>{ZONE_NAMES[id]}</button>)}</div>}
@@ -174,7 +176,7 @@ function Editor({template}:{template:CatalogRing}){
           <div className="ring02-engraving-actions"><button disabled={!engravingDirty} onClick={()=>setEngraving(design.engraving)}>取消修改</button><button disabled={!engravingDirty||!!engravingError} onClick={()=>{const text=engraving.trim();change({...design,engraving:text});setEngraving(text);}}>确认刻字</button></div>
         </fieldset>}
       </div>
-      <details className="ring02-summary"><summary>配置摘要</summary><dl className="source-ring-summary">{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl></details>
+      <details className="ring02-summary"><summary>配置摘要</summary><dl className="source-ring-summary">{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl>{template.kind==='parametric'&&<a className="source-precision-link" href={RING02_PRECISION_ROUTE}>精调原款围钻</a>}</details>
       <div className="ring02-actions"><button disabled={!past.length||compare} onClick={()=>{const next=past[past.length-1];setHistory({design:next,revision:crypto.randomUUID(),past:past.slice(0,-1)});setEngraving(next.engraving);setMessage('');}}>撤销</button><button disabled={compare} onClick={()=>{change(ORIGINAL_REFERENCE);setEngraving('');}}>恢复原款</button></div>
       <p className="ring02-status ring02-editor-feedback" role="status">{compare?'正在对比原款。再次点击可继续编辑。':message}</p>
       <p className="ring02-status" role={saveError?'alert':undefined}>{saveError?'浏览器未能保存草稿，请保留此页面。':engravingDirty?'请确认或取消刻字修改。':'草稿已保留在本机'}</p>
@@ -183,6 +185,8 @@ function Editor({template}:{template:CatalogRing}){
     <section className="ring02-purchase" aria-label="估价与演示加购"><div><p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p><small>示例交期 {quote.leadTime} · 待工艺确认</small></div>
       {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:part==='head'?<button className="shop-button" onClick={()=>setPart('shank')}>下一步 · 配置戒圈</button>:<button className="shop-button" disabled={compare||engravingDirty||!canCapture} onClick={()=>{setMessage('');setReview(true);}}>查看方案</button>}
     </section>
+    {library&&<PartLibrary kind={library} trigger={libraryTrigger} selected={library==='head'?head.id:band.id}
+      onClose={()=>setLibrary(null)} onSelect={library==='head'?selectHead:selectFinish}/>}
     {review&&<ReviewDialog title="确认你的戒指方案" onClose={()=>setReview(false)}><p>{displayName} · 参考估价 {formatYuan(quote.amount)}</p><dl>{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>当前为演示加购，价格、圈号与制作工艺待正式确认。</p>{message&&<p role="alert">{message}</p>}<div className="ring02-dialog-actions"><button autoFocus onClick={()=>setReview(false)}>继续修改</button><button className="shop-button" disabled={!canCapture} onClick={confirm}>确认并加入演示购物车</button></div></ReviewDialog>}
   </>;
 }
@@ -212,11 +216,9 @@ function useReferenceSelection(headId:string,bandId:string){
 
 export function SourceRingStudio({templateId}:{templateId:string}){
   const template=RING_CATALOG.find(item=>item.id===templateId)!;
-  return <main className="stone-first-workspace ring02-workspace">
+  return <main className="stone-first-workspace ring02-workspace source-ring-workspace">
     <div className="source-ring-entry">
-      <div><nav className="ring02-breadcrumb" aria-label="所在页面"><a href="#/diy/collection">全部款式</a><span aria-hidden="true">/</span><span aria-current="page">{template.name}</span></nav>
-        {template.kind==='parametric'&&<a className="source-precision-link" href={template.editor}>精调原款围钻</a>}
-      </div>
+      <nav className="ring02-breadcrumb" aria-label="所在页面"><a href="#/diy/collection">全部款式</a><span aria-hidden="true">/</span><span aria-current="page">{template.name}</span></nav>
       <RingStylePicker id={template.id}/>
     </div>
     <Editor template={template}/>

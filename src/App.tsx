@@ -19,7 +19,7 @@ import {ModuleStudio} from './components/ModuleStudio';
 import {StageLoading} from './components/StageLoading';
 import {DiyHome} from './stone-first/DiyHome';
 import {DiyCart} from './stone-first/DiyCart';
-import {RING02_TEMPLATE} from './stone-first/ring02/assets';
+import {RING02_PRECISION_ROUTE} from './stone-first/ring02/assets';
 import {loadRing02} from './stone-first/ring02/entry';
 import {Ring02Loading} from './stone-first/ring02/Ring02Loading';
 const JewelryStage=lazy(()=>import('./viewer/JewelryStage').then(module=>({default:module.JewelryStage})));
@@ -125,9 +125,9 @@ function readRoute():StudioRoute{
     case '#/diy/story':return {tab:'stonefirst',page:'catalog',section:'story'};
     case '#/diy/cart':return {tab:'stonefirst',page:'cart'};
     case HALO_COMBINATION_ROUTE:return {tab:'stonefirst',page:'reference',templateId:'ring-02'};
-    case RING02_TEMPLATE.editor:return {tab:'stonefirst',page:'ring02'};
+    case RING02_PRECISION_ROUTE:return {tab:'stonefirst',page:'ring02'};
   }
-  const reference=RING_CATALOG.find(template=>template.kind==='reference'&&template.editor===hash);
+  const reference=RING_CATALOG.find(template=>template.editor===hash);
   if(reference)return {tab:'stonefirst',page:'reference',templateId:reference.id};
   if(hash.startsWith('#/stonefirst'))return {tab:'stonefirst',page:'recipes'};
   if(hash.startsWith('#/modules'))return {tab:'modules'};

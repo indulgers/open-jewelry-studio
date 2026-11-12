@@ -36,21 +36,21 @@
 .shop-section-heading h2{font-size:clamp(28px,3vw,42px);line-height:1.4}
 .shop-section-heading p{color:var(--muted);font-size:14px;margin:12px 0 0}
 .collection-count{color:var(--muted);font-size:12px;white-space:nowrap;padding-bottom:4px}
-.diy-template-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px 24px}
+.diy-template-grid{--product-row-space:40px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:24px;margin-bottom:calc(-1 * var(--product-row-space))}
 @media(min-width:1101px){.diy-template-grid[data-count="4"]{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.diy-template{min-width:0}
+.diy-template{min-width:0;display:grid;grid-row:span 7;grid-template-rows:subgrid;padding-bottom:var(--product-row-space)}
 .diy-template-image{display:block;position:relative;overflow:hidden;background:#fff;border-radius:var(--shop-radius)}
 .diy-template-image img{display:block;width:100%;height:auto;aspect-ratio:1;object-fit:contain;padding:20px}
 .product-badge{position:absolute;left:14px;top:14px;background:var(--page);color:var(--ink);font-size:11px;padding:5px 10px;border-radius:var(--button-radius)}
-.diy-template-details{padding-top:18px;min-width:0}
+.diy-template-details{padding-top:18px;min-width:0;display:grid;grid-row:span 6;grid-template-rows:subgrid;align-items:start}
 .diy-template h3{font-size:23px;line-height:1.4;margin-top:6px}
 .diy-template p{color:var(--muted);font-size:13px;margin:7px 0 0}
 .template-description{max-width:30em;line-height:1.8}
 .diy-template .diy-reference-price{display:flex;align-items:baseline;gap:10px;margin-top:18px}
 .diy-reference-price strong{font-size:24px;color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
 .diy-reference-price span{font-size:11px}
-.product-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-.product-actions .shop-button{flex:1;padding-inline:12px;white-space:nowrap}
+.product-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}
+.diy-template .product-actions .shop-button{justify-content:center;gap:6px;padding-inline:10px;white-space:nowrap}
 .diy-editorial{background:var(--shop-dark);color:var(--on-dark);padding-block:72px}
 .diy-editorial-grid{display:grid;grid-template-columns:.92fr 1.08fr;gap:65px;align-items:center}
 .diy-editorial figure{position:relative;margin:0;background:#fff;border-radius:var(--shop-radius);overflow:hidden}
@@ -85,12 +85,13 @@
   .diy-hero-art{aspect-ratio:4/4.7;margin-inline:calc(-1 * var(--shop-gutter))}.diy-hero-art>img{object-position:50% 55%}.diy-hero-tag{bottom:18px;left:18px;right:18px}.diy-hero-tag>img{display:block;width:46px;height:46px}.diy-hero-tag{padding:12px;gap:9px}.diy-hero-tag strong{font-size:13px}
   .diy-service-strip>div{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding-block:18px;text-align:center}.diy-service-strip span{grid-column:1/-1;font-size:10px}.diy-service-strip p{font-size:13px}
   .diy-collection{padding-block:46px}.shop-section-heading{align-items:start;flex-direction:column;gap:14px;margin-bottom:24px}.shop-section-heading h2{font-size:28px}.shop-section-heading p{font-size:13px}
-  .diy-template-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 14px}
+  .diy-template-grid{grid-template-columns:repeat(2,minmax(0,1fr));--product-row-space:28px;column-gap:14px}
   .diy-template h3{font-size:20px}.diy-template-image img{padding:12px}.product-badge{left:9px;top:9px;font-size:10px}.product-actions{gap:8px}.product-actions .shop-button{padding-inline:10px;font-size:12px}.diy-reference-price strong{font-size:21px}
   .diy-editorial{padding-block:40px}.diy-editorial-grid{grid-template-columns:1fr;gap:32px}.diy-editorial img{aspect-ratio:1.12;padding:24px}.diy-editorial h2{font-size:31px}.diy-editorial p{font-size:14px}
   .diy-story{grid-template-columns:1fr;gap:25px;padding-block:48px}.diy-story h2{font-size:30px}.diy-story p{font-size:14px}
   .diy-footer{grid-template-columns:1fr;gap:24px}.diy-footer nav{justify-content:space-between;gap:12px}.diy-footer small{font-size:10px}
 }
+@media(max-width:480px){.product-actions{grid-template-columns:1fr}}
 @media(max-width:360px){.diy-hero-tag>img{display:none}.diy-hero-ctas{gap:8px}.diy-hero-ctas .shop-button{padding-inline:15px}.diy-hero-notes dd{font-size:10px}}
 
 .diy-wearing{padding-block:70px 0}

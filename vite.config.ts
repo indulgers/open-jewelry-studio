@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import {RING02_TEMPLATE} from './src/stone-first/ring02/assets.ts';
+import {RING02_PRECISION_ROUTE,RING02_TEMPLATE} from './src/stone-first/ring02/assets.ts';
 import {RING_CATALOG} from './src/stone-first/catalog.ts';
 import referenceParts from './src/stone-first/reference/part-assets.json' with {type:'json'};
 import {HALO_COMBINATION_ROUTE} from './src/stone-first/reference/parts.ts';
@@ -12,10 +12,15 @@ export default defineConfig({
     transformIndexHtml:{
       order:'post',
       handler(_html,{bundle}){
-        const entries=[...RING_CATALOG,{...RING_CATALOG[0],kind:'reference' as const,editor:HALO_COMBINATION_ROUTE}];
+        const halo=RING_CATALOG[0];
+        const entries=[
+          ...RING_CATALOG.map(template=>({...template,parametric:false})),
+          {...halo,editor:HALO_COMBINATION_ROUTE,parametric:false},
+          {...halo,editor:RING02_PRECISION_ROUTE,parametric:true},
+        ];
         const parts:Record<string,{head:string;band:string;headStones:string;pave?:string;adapter?:string}>=referenceParts;
         const routes=Object.fromEntries(entries.map(template=>{
-          const parametric=template.kind==='parametric';
+          const {parametric}=template;
           const suffix=parametric?'/ring02/Ring02Studio.tsx':'/reference/SourceRingStudio.tsx';
           const editor=Object.values(bundle??{}).find(chunk=>chunk.type==='chunk'&&chunk.facadeModuleId?.endsWith(suffix));
           if(!editor||editor.type!=='chunk')return [template.editor,{assets:[]}];

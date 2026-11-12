@@ -60,7 +60,7 @@ export function removeDemoOrder(revision:string){
 }
 
 export function demoOrders(){
-  const orders:(Pick<DemoOrder,'templateRevision'|'revision'|'confirmedAt'|'quote'|'details'|'thumbnail'>&{design?:unknown})[]=[];
+  const orders:(Pick<DemoOrder,'templateRevision'|'revision'|'confirmedAt'|'quote'|'details'|'thumbnail'|'pave'>&{design?:unknown})[]=[];
   for(let index=0;index<localStorage.length;index++){
     const key=localStorage.key(index);
     if(!key?.startsWith(ORDER_PREFIX))continue;

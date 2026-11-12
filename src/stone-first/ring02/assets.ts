@@ -1,5 +1,6 @@
 import type {RingDesign,StoneSpec} from './model.ts';
 
+export const RING02_PRECISION_ROUTE='#/stonefirst/precision/ring-02';
 export const RING02_MODEL='/models/atelier/ring-02/ring-v2.glb';
 export const RING02_OVAL='/models/atelier/gems/oval.glb';
 export const RING02_POSTER='/media/diy/ring-02.jpg';

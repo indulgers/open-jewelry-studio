@@ -1,12 +1,11 @@
 import {useEffect,useState} from 'react';
 import {formatYuan} from './ring02/demoOrder';
-import {loadRing02} from './ring02/entry';
 import {RING_CATALOG,type CatalogRing} from './catalog';
 import {purchaseOriginal} from './purchase';
 import {loadReferenceRing} from './reference/entry';
 import './diy-home.css';
 
-function warmEditor(template:CatalogRing){void (template.kind==='parametric'?loadRing02():loadReferenceRing(template)).catch(()=>{});}
+function warmEditor(template:CatalogRing){void loadReferenceRing(template).catch(()=>{});}
 const HOME_FEATURED_IDS=['ring-starlight','ring-solstice','ring-petal','ring-rosette'];
 const homeSelection=HOME_FEATURED_IDS.flatMap(id=>RING_CATALOG.filter(ring=>ring.id===id&&ring.listed));
 const Arrow=()=> <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>;
