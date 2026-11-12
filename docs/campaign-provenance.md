@@ -61,3 +61,10 @@ Use case: precise-object-edit. Image 1 is the EDIT TARGET, a close fashion photo
 ```text
 Use case: precise-object-edit. Edit the ring only in this existing photo. Keep all other pixels and composition as unchanged as possible, including hand, fingers, skin, face, blouse and lighting. Keep the small center diamond and its current scale. Correct the ring's shoulder orientation: REMOVE the two diamond-covered horizontal wings currently sticking out to left and right of the center stone. Those are not part of the design in that orientation. The two tiny rows of shoulder diamonds must be attached ALONG the VERTICAL band seen in the photograph, at the 12-o'clock and 6-o'clock sides of the center stone, following the band's actual curved path around the single finger. The lower shoulder is a short narrow pavé segment on the visible vertical band directly below the center stone, tapering into polished silver. The upper shoulder is very short and mostly occluded behind the center setting as it wraps down the far side of the finger. Absolutely NO horizontal wings or transverse bars extending left or right from the diamond. Six small silver prongs hold the round stone. Ring wraps around exactly this finger naturally with anatomically correct occlusion. Preserve the original small everyday ring scale, do not enlarge it. No other changes, no text.
 ```
+
+## 星环与凝光
+
+两图均以内置 ImageGen 参考各自的实际 3D 原款渲染，输出 4:5 佩戴图。使用人像焦段，让手与脸保持相近的拍摄距离。银色戒圈贴合无名指，主石按日常佩戴比例呈现。
+
+- `ring-starlight-on-model.jpg` 源自 `exec-d02aa80f-6685-4bf9-9a9b-764a73048109.png`。短发模特身着深蓝丝缎，靠窗坐着，戴戒指的手搭在另一侧前臂上，展示环形围钻和单列肩钻。
+- `ring-solstice-on-model.jpg` 源自 `exec-4d0b1b2a-ac36-47bd-8300-fced6eaa1306.png`。模特身着象牙白针织衫，在浅灰摄影棚整理袖口，展示四爪主石和素面戒臂。

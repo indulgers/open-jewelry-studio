@@ -93,7 +93,7 @@
 @media(max-width:360px){.diy-hero-tag>img{display:none}.diy-hero-ctas{gap:8px}.diy-hero-ctas .shop-button{padding-inline:15px}.diy-hero-notes dd{font-size:10px}}
 
 .diy-wearing{padding-block:70px 0}
-.diy-wearing-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
+.diy-wearing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
 .diy-wearing-item{min-width:0;text-decoration:none}
 .diy-wearing-item>img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;border-radius:var(--shop-radius)}
 .diy-wearing-item>div{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:15px}

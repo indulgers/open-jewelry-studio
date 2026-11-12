@@ -17,6 +17,8 @@ export const RING_CATALOG:CatalogRing[]=[{
   {id:'ring-rosette',name:'花冠戒指',collection:'花语系列',subtitle:'圆形主石 · 层叠花冠 · 纤细戒臂',description:'层叠的花瓣镂空托起主石，保留原作细致的金属雕饰。',base:2480,zones:['center','halo'] as const,stoneCount:3},
   {id:'ring-petal',name:'繁花戒指',collection:'花语系列',subtitle:'花瓣镶座 · 环绕配钻 · 密镶戒臂',description:'一圈配钻沿花瓣铺陈，光泽从戒面延续到两侧戒臂。',base:2580,zones:['center','halo','shoulder'] as const,stoneCount:35},
   {id:'ring-crown',name:'冠冕戒指',collection:'相守系列',subtitle:'圆形主石 · 高托镶座 · 双列配钻',description:'圆形主石与立体镶座相衬，戒臂的双列配钻延展银色光线。',base:2180,zones:['center','shoulder'] as const,stoneCount:17},
+  {id:'ring-starlight',name:'星环戒指',collection:'相映系列',subtitle:'圆形主石 · 环形围钻 · 单列铺钻',description:'圆形主石立于四爪镶座，外围配钻与两侧戒臂相接。',base:2680,zones:['center','halo','shoulder'] as const,stoneCount:27},
+  {id:'ring-solstice',name:'凝光戒指',collection:'相守系列',subtitle:'圆形主石 · 四爪高托 · 素面戒臂',description:'四爪高托托起圆形主石，银色素面戒臂衬出戒头的线条。',base:2180,zones:['center'] as const,stoneCount:1},
 ].map(({base,...ring})=>({...ring,kind:'reference' as const,editor:'#/stonefirst/'+ring.id,
   revision:ring.id+'-source-1',listed:true,model:'/models/atelier/'+ring.id+'/ring-v1.glb',
   image:'/media/diy/'+ring.id+'.jpg',campaign:'/media/campaign/'+ring.id+'-on-model.jpg',

@@ -48,7 +48,11 @@ function summarize(rows:{stone:SourceGem;center:Vector3}[][],diameter:number):Pa
   return {count:rows.reduce((total,row)=>total+row.length,0),minGap:gaps.length?Math.min(...gaps):null,maxGap:gaps.length?Math.max(...gaps):null,diameter};
 }
 
-type PaveSource=Pick<ReferenceRing,'id'|'metal'|'stones'>;
+type PaveSource=Pick<ReferenceRing,'id'|'metal'|'stones'|'reflowShank'>;
+
+function shoulderRail(id:string|undefined){
+  return id==='ring-02'?'metal_shank_with_shoulders':id==='ring-starlight'?'metal_97':'metal_1';
+}
 
 function prepareRows(band:PaveSource){
   const rows=new Map<string,ReturnType<typeof measure>[]>();
@@ -85,8 +89,8 @@ export function prepareReferencePave(band:PaveSource){
   let prepared:ReturnType<typeof prepareLayout>;
   function prepareLayout(){
     const paths=rows.map(row=>preparePath(row,diameter));
-    const rail=band.metal.find(part=>part.name===(band.id==='ring-02'?'metal_shank_with_shoulders':'metal_1'))!;
-    const tree=new MeshBVH(rail.geometry,bvhOptions);
+    const rail=band.metal.find(part=>part.name===shoulderRail(band.id))!;
+    const tree=new MeshBVH(band.reflowShank??rail.geometry,bvhOptions);
     const gem=source.stone.geometry.clone().applyMatrix4(frame(source.normal,source.center).invert());
     gem.computeBoundingBox();
     return {paths,tree,gem};
@@ -144,8 +148,10 @@ export function applyReferencePave(ring:RingAssembly,band:ReferenceRing,diameter
   if(!shoulders)return {...ring,pave:null};
   if(diameter===100&&length===100)return {...ring,pave:shoulders.stock};
   const layout=shoulders.layout(diameter,length);
+  const metal=ring.metal.filter(part=>!isShoulderBead(band.id,part.name))
+    .map(part=>band.reflowShank&&part.name===shoulderRail(band.id)?{...part,geometry:band.reflowShank}:part);
   return {...ring,
-    metal:[...ring.metal.filter(part=>!isShoulderBead(band.id,part.name)),{name:'metal_pave_seats',geometry:layout.geometry}],
+    metal:[...metal,{name:'metal_pave_seats',geometry:layout.geometry}],
     stones:[...ring.stones.filter(stone=>stone.zone!=='shoulder'),...layout.stones],
     pave:layout.pave,
   };

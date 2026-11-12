@@ -29,8 +29,8 @@ it('adds an original product without replacing the saved design or an earlier ca
 it('keeps each catalog product and its original quote distinct in the cart',()=>{
   for(const template of RING_CATALOG)purchaseOriginal(template);
   const orders=demoOrders();
-  expect(orders).toHaveLength(5);
-  expect(new Set(orders.map(order=>order.templateRevision)).size).toBe(5);
+  expect(orders).toHaveLength(RING_CATALOG.length);
+  expect(new Set(orders.map(order=>order.templateRevision)).size).toBe(RING_CATALOG.length);
   for(const template of RING_CATALOG){
     expect(orders.find(order=>order.templateRevision===template.revision)?.quote.amount).toBe(template.price.base);
   }

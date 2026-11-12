@@ -9,7 +9,7 @@ import {combineReferenceRings,prepareReferenceRing} from './model';
 import {applyReferencePave} from './pave';
 import {PAVE_DIAMETERS,PAVE_LENGTHS} from './pave-options';
 
-it('mounts each of the five heads on every original band finish',async()=>{
+it('mounts every catalog head on each original band finish',async()=>{
   const rings=await Promise.all(RING_CATALOG.map(async template=>{
     const bytes=Uint8Array.from(readFileSync('public'+template.model)).buffer;
     const {scene}=await jewelryModelLoader().parseAsync(bytes,'');

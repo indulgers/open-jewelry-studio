@@ -5,7 +5,7 @@
 .source-part-tabs {display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--line); margin-bottom: 18px}
 .ring02-workspace .source-part-tabs button {background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0}
 .ring02-workspace .source-part-tabs button[aria-pressed=true] {background: transparent; color: var(--ink); border-bottom-color: var(--ink); font-weight: 600}
-.source-part-grid {display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px}
+.source-part-grid {display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 9px}
 .source-finish-options .source-part-grid {grid-template-columns: repeat(2,minmax(0,1fr))}
 .ring02-workspace .source-part-card {display: grid; align-content: start; min-width: 0; padding: 0; overflow: hidden; border-radius: var(--shop-radius); color: var(--ink); background: var(--panel)}
 .ring02-workspace .source-part-card[aria-pressed=true] {border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); color: var(--ink)}
@@ -29,7 +29,7 @@
   .source-ring-entry .source-style-picker {font-size: 0; gap: 0}
   .source-ring-main .stone-first-preview {position: relative; top: auto}
   .source-ring-main .stone-first-canvas {height: clamp(185px,52vw,310px)}
-  .source-head-options .source-part-grid {grid-template-columns: repeat(2,minmax(0,1fr))}
+  .source-head-options .source-part-grid,.source-band-options .source-part-grid {grid-template-columns: repeat(2,minmax(0,1fr))}
 }
 
 @media (max-width: 800px) and (min-height: 700px) {

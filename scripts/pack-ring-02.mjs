@@ -1,6 +1,7 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {Document,NodeIO,VertexLayout} from '@gltf-transform/core';
+import {Box3} from 'three';
 import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {MeshoptEncoder} from 'meshoptimizer';
@@ -9,7 +10,19 @@ const source=process.argv[2]?resolve(process.argv[2]):new URL('../assets/source/
 // Bump the versioned filename, assets.ts and the Vercel cache rule if this asset changes.
 const destination=process.argv[3]?resolve(process.argv[3]):new URL('../public/models/atelier/ring-02/ring-v2.glb',import.meta.url);
 await MeshoptEncoder.ready;
-const ring=new OBJLoader().parse(readFileSync(source,'utf8'));
+const loader=new OBJLoader();
+const ring=loader.parse(readFileSync(source,'utf8'));
+if(process.argv[4]){
+  // Embed the matching plain shank for models whose original pavé beads are fused into the shank.
+  const plain=loader.parse(readFileSync(resolve(process.argv[4]),'utf8'));
+  const shank=plain.getObjectByName('metal_1');
+  if(!shank?.isMesh)throw new Error('Plain source is missing metal_1');
+  const original=new Box3().setFromObject(ring),clean=new Box3().setFromObject(plain);
+  const scale=(original.max.x-original.min.x)/(clean.max.x-clean.min.x);
+  shank.geometry.scale(scale,scale,scale).translate(0,original.min.y-clean.min.y*scale,0);
+  shank.name='metal_reflow_shank';
+  ring.add(shank);
+}
 const document=new Document();
 const buffer=document.createBuffer();
 const scene=document.createScene();
