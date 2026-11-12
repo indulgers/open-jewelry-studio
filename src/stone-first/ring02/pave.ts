@@ -28,7 +28,7 @@ export function packPaveRow(path:Vector3[], width:number, minimumGap:number){
   });
 }
 
-function edgeExtent(stone:FittedStone,direction:Vector3){
+export function edgeExtent(stone:Pick<FittedStone,'geometry'|'matrix'>,direction:Vector3){
   const positions=stone.geometry.getAttribute('position');
   const e=stone.matrix.elements;
   const dx=direction.x*e[0]+direction.y*e[1]+direction.z*e[2];

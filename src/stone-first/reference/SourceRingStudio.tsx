@@ -12,6 +12,8 @@ import {addDemoOrder,formatYuan,hasDemoOrder} from '../ring02/demoOrder';
 import {combineReferenceRings,prepareReferenceRing,type ReferenceRing} from './model';
 import {ORIGINAL_REFERENCE,parseReferenceDesign,referenceDetails,referenceParts,referenceQuote,ZONE_NAMES,type ReferenceDesign} from './design';
 import {BAND_STYLES,bandStyle,headName} from './parts';
+import {PAVE_DIAMETERS,PAVE_LENGTHS,describePaveGap} from './pave-options';
+import {applyReferencePave} from './pave';
 import {SourceLoading,SourceRingStage,type SourceFrame} from './SourceRingStage';
 import '../stone-first.css';
 import '../ring02/ring02.css';
@@ -66,7 +68,13 @@ function Editor({template,original}:{template:CatalogRing;original:ReferenceRing
   const bandModel=useReferenceModel(!compare&&band.id!==template.id&&band.id!==head.id?band:undefined);
   const activeHead=compare||head.id===template.id?original:headModel.ring;
   const activeBand=compare||band.id===template.id?original:band.id===head.id?activeHead:bandModel.ring;
-  const ring=useMemo(()=>activeHead&&activeBand?combineReferenceRings(activeHead,activeBand):null,[activeHead,activeBand]);
+  const paved=zones.includes('shoulder');
+  const diameter=compare||!paved?100:design.paveDiameter??100;
+  const length=compare||!paved?100:design.paveLength??100;
+  const stockRing=useMemo(()=>activeHead&&activeBand?combineReferenceRings(activeHead,activeBand):null,[activeHead,activeBand]);
+  const ring=useMemo(()=>stockRing&&activeBand?applyReferencePave(stockRing,activeBand,diameter,length):null,
+    [stockRing,activeBand,diameter,length]);
+  const pave=ring?.pave;
   const loadingError=headModel.error||bandModel.error;
   const zone=part==='shank'?(zones.includes('shoulder')?'shoulder':null):zones.includes(headZone)?headZone:'center';
   const mixed=head.id!==template.id||band.id!==template.id;
@@ -86,7 +94,7 @@ function Editor({template,original}:{template:CatalogRing;original:ReferenceRing
     if(headModel.error)headModel.retry();
     if(bandModel.error)bandModel.retry();
   };
-  const quote=referenceQuote(template,design),details=referenceDetails(template,design);
+  const quote=referenceQuote(template,design),details=referenceDetails(template,design,compare?null:pave);
   const engravingDirty=engraving!==design.engraving;
   const engravingError=engravingProblem(engraving.trim());
   const added=hasDemoOrder(revision);
@@ -126,7 +134,7 @@ function Editor({template,original}:{template:CatalogRing;original:ReferenceRing
       setReview(false);setMessage('已加入购物车。');
     }catch{setMessage('购物车未能保存，请允许浏览器存储后重试。');}
   }
-  return <><div className="stone-first-main ring02-main source-ring-main">
+  return <><div className="stone-first-main ring02-main source-ring-main" data-editing-pave={part==='shank'&&paved?true:undefined}>
     <section className="stone-first-preview" aria-label="戒指预览">
       <div className="ring02-preview-bar"><div><strong>{visiblePreview?.name??sceneName}</strong><span>{visiblePreview?visiblePreview.ring.stones.length+' 颗宝石':''}</span></div><button aria-pressed={compare} onClick={()=>setCompare(!compare)}>对比原款</button></div>
       {preview?<SourceRingStage ring={preview.ring} template={template} design={preview.design} view={view} reset={reset} captureRef={capture} onCaptureReady={setCaptureFrame}/>
@@ -148,9 +156,26 @@ function Editor({template,original}:{template:CatalogRing;original:ReferenceRing
         </>:<>
           <PartChoices kind="band" label="戒圈结构" choices={bandChoices} selected={style.name} disabled={compare} pending={swapping&&!!previousParts&&bandStyle(previousParts.band.id).name!==style.name} onSelect={selectBand}/>
           <PartChoices kind="finish" label="戒臂铺钻" choices={style.finishes.map(item=>({...item,image:sourceImage(item.id)}))} selected={band.id} disabled={compare} pending={swapping&&previousParts?.band.id!==band.id} onSelect={selectFinish}/>
+          {paved&&<>
+            <fieldset disabled={compare}><legend>配钻石径</legend>
+              <div className="stone-first-options">{PAVE_DIAMETERS.map(value=><button key={value} aria-pressed={diameter===value}
+                onClick={()=>diameter!==value&&change({...design,paveDiameter:value})}>{value===100?'原款基准':value+'%'}</button>)}</div>
+            </fieldset>
+            <fieldset disabled={compare}><legend>铺钻长度</legend>
+              <div className="stone-first-options">{PAVE_LENGTHS.map(value=><button key={value} aria-pressed={length===value}
+                onClick={()=>length!==value&&change({...design,paveLength:value})}>{value===100?'原款长度':value+'%'}</button>)}</div>
+            </fieldset>
+            <div className="ring02-layout-note source-pave-result" role="status" aria-label="排钻结果">
+              <dl>
+                <div><dt>戒臂配钻</dt><dd>{pave?pave.count+' 颗（左右各 '+pave.count/2+' 颗）':'—'}</dd></div>
+                <div><dt>同列配钻间距</dt><dd>{pave?describePaveGap(pave):'—'}</dd></div>
+              </dl>
+              <p>石径以该戒圈原款最小配钻为基准。长度从戒头向两侧计算。</p>
+            </div>
+          </>}
         </>}
         {zone?<fieldset disabled={compare}><legend>{ZONE_NAMES[zone]}搭配</legend><div className="stone-first-options ring02-gems">{STONE_APPEARANCE_IDS.map(id=><button key={id} aria-pressed={design[zone]===id} onClick={()=>color(id)}><i className={'ring02-swatch swatch-'+id} aria-hidden="true"/>{STONE_APPEARANCES[id].name}{id!=='diamond'?' +¥100':''}</button>)}</div></fieldset>:<><h2>素面戒臂</h2><p>这款戒臂采用银色素面。</p></>}
-        <div className="ring02-layout-note"><p>组合沿用所选戒头的切形、大小和戒圈的铺钻布局。</p></div>
+
         {part==='shank'&&<fieldset disabled={compare} className="ring02-engraving"><legend>内圈刻字 <span>选填</span></legend>
           <label className="sr-only" htmlFor="source-engraving">刻字文字</label><input id="source-engraving" value={engraving} autoComplete="off" spellCheck={false} placeholder="例如  A & B" aria-describedby="source-engraving-help source-engraving-error" onChange={event=>setEngraving(event.target.value)}/>
           <p id="source-engraving-help">最多 {ENGRAVING_LIMIT} 个字符，支持英文字母、数字、空格和 . &amp; -</p>

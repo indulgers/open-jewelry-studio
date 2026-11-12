@@ -33,3 +33,10 @@ export function isBandMetal(id:string,name:string) {
     default:return false;
   }
 }
+
+// Source mesh names identify the original beads separately from the shank and collars.
+export function isShoulderBead(id:string|undefined,name:string){
+  if(id==='ring-02')return name.startsWith('metal_shoulder_bead_');
+  const part=Number(name.slice('metal_'.length));
+  return id==='ring-petal'?part>=13944&&part<=14097:id==='ring-crown'&&part>=77&&part<=164;
+}

@@ -18,6 +18,7 @@
 .source-part-name {display: flex; min-height: 36px; align-items: center; justify-content: center; gap: 6px; padding: 5px 4px; font-size: 13px}
 .source-part-name .ring02-spinner {width: 11px; height: 11px; flex: 0 0 auto}
 .source-fixed-finish {margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--shop-radius); font-size: 13px}
+.source-pave-result p {margin-top: 8px}
 .source-ring-main .ring02-preview-bar {min-height: 54px}
 .source-ring-main .ring02-preview-bar button {white-space: nowrap}
 .source-ring-main .stone-first-preview {position: sticky}
@@ -29,4 +30,10 @@
   .source-ring-main .stone-first-preview {position: relative; top: auto}
   .source-ring-main .stone-first-canvas {height: clamp(185px,52vw,310px)}
   .source-head-options .source-part-grid {grid-template-columns: repeat(2,minmax(0,1fr))}
+}
+
+@media (max-width: 800px) and (min-height: 700px) {
+  .source-ring-main[data-editing-pave] .stone-first-preview {position: sticky; top: 68px; z-index: 1}
+  .source-ring-main[data-editing-pave] .source-ring-canvas {height: clamp(150px,23dvh,230px)}
+  .source-ring-main[data-editing-pave] .stone-first-panel :is(button,input,summary) {scroll-margin-top: calc(180px + clamp(150px,23dvh,230px))}
 }

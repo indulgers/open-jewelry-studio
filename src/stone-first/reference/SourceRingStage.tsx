@@ -5,12 +5,12 @@ import {JewelryLighting,clearJewelryLightingCache} from '../../viewer/JewelryLig
 import {StudioFillLights} from '../../viewer/StudioFillLights';
 import {ViewerBoundary} from '../../viewer/ViewerBoundary';
 import {createMetalMaterial} from '../../viewer/materials';
-import {GemBatch,RingCamera,RingThumbnail,preset,type RingView} from '../ring02/Ring02Stage';
+import {GemBatch,RingCamera,RingThumbnail,preset,type PlacedGem,type RingView} from '../ring02/Ring02Stage';
 import type {CatalogRing} from '../catalog';
 import type {ReferenceDesign} from './design';
-import type {combineReferenceRings} from './model';
+import type {applyReferencePave} from './pave';
 
-export type SourceFrame={ring:ReturnType<typeof combineReferenceRings>;design:ReferenceDesign};
+export type SourceFrame={ring:ReturnType<typeof applyReferencePave>;design:ReferenceDesign};
 // Fiber ignores undefined updates, so explicitly retire the previous mesh callback.
 const ignoreRender=()=>{};
 
@@ -21,13 +21,23 @@ export function SourceLoading({template,retry}:{template:CatalogRing;retry?:()=>
     {retry&&<button onClick={retry}>重试加载</button>}
   </div>;
 }
-function SourceScene({ring,design,onReady}:{ring:ReturnType<typeof combineReferenceRings>;design:ReferenceDesign;onReady?:()=>void}){
+function SourceScene({ring,design,onReady}:{ring:ReturnType<typeof applyReferencePave>;design:ReferenceDesign;onReady?:()=>void}){
   const material=useMemo(()=>{const result=createMetalMaterial('white',preset);result.side=DoubleSide;return result;},[]);
   useEffect(()=>()=>material.dispose(),[material]);
+  const batches=useMemo(()=>{
+    const groups=new Map<string,PlacedGem[]>();
+    for(const stone of ring.stones){
+      const appearance=design[stone.zone],key=stone.geometry.uuid+'/'+appearance;
+      const batch=groups.get(key)??[];
+      batch.push({...stone,appearance});
+      groups.set(key,batch);
+    }
+    return [...groups];
+  },[ring,design]);
   return <JewelryLighting preset={preset}>{environment=><group dispose={null}>
     {ring.metal.map((part,index)=><mesh key={part.name} geometry={part.geometry} position-y={part.offsetY??0} material={material} name={part.name}
       frustumCulled={index!==0||!onReady} onAfterRender={index===0&&onReady?onReady:ignoreRender}/>)}
-    {ring.stones.map(stone=><GemBatch key={stone.name} environment={environment} stones={[{...stone,appearance:design[stone.zone]}]}/>)}
+    {batches.map(([key,stones])=><GemBatch key={key} environment={environment} stones={stones}/>)}
   </group>}</JewelryLighting>;
 }
 export function SourceRingStage({ring,design,template,view,reset,captureRef,onCaptureReady}:SourceFrame&{

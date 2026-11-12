@@ -3,10 +3,15 @@ import {toCreasedNormals} from 'three/addons/utils/BufferGeometryUtils.js';
 import type {RingFraming,RingView} from '../ring02/Ring02Stage';
 
 import {isBandMetal,SEAT_Y} from './parts';
+import {prepareReferencePave} from './pave';
 
 type Part={name:string;geometry:BufferGeometry;offsetY?:number};
 export type SourceGem=Part&{zone:'center'|'halo'|'shoulder';matrix:Matrix4};
-export function prepareReferenceRing(scene:Object3D,id?:string){
+export type RingAssembly={metal:Part[];stones:SourceGem[];frames:Record<RingView,RingFraming>};
+export type ReferenceRing=RingAssembly&{
+  id?:string;seatY:number;paveRows:()=>ReturnType<typeof prepareReferencePave>;dispose:()=>void;
+};
+export function prepareReferenceRing(scene:Object3D,id?:string):ReferenceRing{
   const bounds=new Box3().setFromObject(scene);
   const width=bounds.max.x-bounds.min.x;
   if(!Number.isFinite(width)||width<=0)throw new Error('戒指模型为空');
@@ -28,8 +33,12 @@ export function prepareReferenceRing(scene:Object3D,id?:string){
   const center=stones.find(stone=>stone.zone==='center');
   if(!center||!metal.length){[...metal,...stones].forEach(part=>part.geometry.dispose());throw new Error('模型缺少主石或戒托');}
   const frames=ringFrames(metal,stones);
-  return {id,seatY:((id?SEAT_Y[id]:0)-axisY)*scale,metal,stones,frames,
-    dispose:()=>[...metal,...stones].forEach(part=>part.geometry.dispose())};
+  let paved:ReturnType<typeof prepareReferencePave>|undefined;
+  const ring:ReferenceRing={id,seatY:((id?SEAT_Y[id]:0)-axisY)*scale,metal,stones,frames,
+    paveRows:():ReturnType<typeof prepareReferencePave>=>paved===undefined?(paved=prepareReferencePave(ring)):paved,
+    dispose(){paved?.dispose();[...metal,...stones].forEach(part=>part.geometry.dispose());},
+  };
+  return ring;
 }
 
 function ringFrames(metal:Part[],stones:SourceGem[]):Record<RingView,RingFraming>{
@@ -46,7 +55,7 @@ function ringFrames(metal:Part[],stones:SourceGem[]):Record<RingView,RingFraming
   };
 }
 
-export function combineReferenceRings(head:ReferenceRing,band:ReferenceRing){
+export function combineReferenceRings(head:ReferenceRing,band:ReferenceRing):RingAssembly{
   if(head===band)return head;
   // The older halo uses a different neck. Offsets were checked against the actual seat and stone meshes.
   const haloAsHead:Record<string,number>={'ring-floral':.072,'ring-rosette':.056,'ring-petal':.066,'ring-crown':.054};
@@ -64,4 +73,3 @@ export function combineReferenceRings(head:ReferenceRing,band:ReferenceRing){
   ];
   return {metal,stones,frames:ringFrames(metal,stones)};
 }
-export type ReferenceRing=ReturnType<typeof prepareReferenceRing>;
