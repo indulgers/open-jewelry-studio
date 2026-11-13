@@ -7,6 +7,9 @@ export type LibrarySource = {
   revision: string;
   stock: boolean;
   archived?: boolean;
+  filename?: string;
+  partNames?: Partial<Record<'head'|'band'|'headStones'|'pave'|'adapter',string>>;
+  metadataRevision?: string;
   assets: ReferenceAssets;
   model: string;
   source: string;

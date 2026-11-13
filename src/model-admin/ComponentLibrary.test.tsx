@@ -18,3 +18,16 @@ it('confirms removal of the whole uploaded version and offers restoring removed 
  fireEvent.click(screen.getByRole('button',{name:'恢复版本'}));
  await waitFor(()=>expect(onArchive).toHaveBeenLastCalledWith({...source,archived:true},false));
 });
+
+it('names a source without renaming the original file and hands the entire kit to products',async()=>{
+ const onRename=vi.fn(async()=>{}),onUse=vi.fn();
+ render(<ComponentLibrary sources={[source]} prices={prices} onSave={vi.fn()} onRename={onRename} onUse={onUse}/>);
+ fireEvent.click(screen.getByRole('button',{name:'命名'}));
+ fireEvent.change(screen.getByLabelText('整套名称'),{target:{value:'花冠'}});
+ fireEvent.change(screen.getByLabelText('戒头名称'),{target:{value:'花冠装饰钻戒头'}});
+ fireEvent.click(screen.getByRole('button',{name:'保存名称'}));
+ await waitFor(()=>expect(onRename).toHaveBeenCalledWith(source,'花冠',{head:'花冠装饰钻戒头'}));
+ await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
+ fireEvent.click(screen.getByRole('button',{name:'用于商品'}));
+ expect(onUse).toHaveBeenCalledWith(source.id);
+});

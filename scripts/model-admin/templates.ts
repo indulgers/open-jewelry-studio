@@ -45,7 +45,7 @@ export function selectTemplate(draft:TemplateDraft,options:LibrarySource[]):Mana
       [band.id]:{...band.assets,head:'',headStones:''},
     };
     if(head.id===band.id)library[head.id]=head.assets;
-    return {id:draft.id,revision:draft.revision,name:draft.name,headName:head.name,bandName:band.name,
+    return {id:draft.id,revision:draft.revision,name:draft.name,headName:head.partNames?.head??head.name,bandName:band.partNames?.band??band.name,
       headId:head.id,bandId:band.id,library,review:draft.review,pricing:draft.pricing,description:draft.description,cover:draft.cover,order:draft.order,featured:draft.featured,catalogId:draft.catalogId,campaign:draft.campaign,collection:draft.collection};
 }
 

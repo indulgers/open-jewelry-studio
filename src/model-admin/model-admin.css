@@ -235,3 +235,17 @@ summary { cursor: pointer; font-size: 14px; }
 
 .model-review .preview-section,.model-review .parts-section{min-width:0}
 @media(max-width:760px){.model-review .review-grid{grid-template-columns:minmax(0,1fr)}}
+
+.metadata-backdrop{position:fixed;inset:0;z-index:100;background:#0005;display:grid;place-items:center;padding:20px}.metadata-dialog{width:min(560px,100%);max-height:90dvh;overflow:auto;background:#fffdf8;padding:28px;border-radius:12px}.metadata-dialog label{display:grid;gap:6px;margin:12px 0}.review-next{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0}.product-target{padding:16px;background:#f1ecdf;border-radius:8px}
+
+@media(min-width:1200px){
+ .template-detail.has-preview{max-width:none}
+ .template-detail.has-preview>.review{display:grid;grid-template-columns:minmax(320px,420px) minmax(0,1fr);gap:20px 28px;align-items:start}
+ .template-detail.has-preview>.review>.template-form,.template-detail.has-preview>.review>.release-status,.template-detail.has-preview>.review>p{grid-column:1}
+ .template-detail.has-preview .template-preview{grid-column:2;grid-row:1/span 4;position:sticky;top:90px;margin:0;border-top:0;padding:0;min-width:0}
+ .template-detail.has-preview .product-presentation{grid-template-columns:1fr}
+ .template-detail.has-preview .source-ring-main{grid-template-columns:1fr}
+ .template-detail.has-preview .managed-editor{--editor-panel:0px}
+ .template-detail.has-preview .managed-editor .stone-first-panel{display:none}
+ .template-detail.has-preview .source-ring-main .stone-first-canvas{height:clamp(400px,57dvh,680px)}
+}

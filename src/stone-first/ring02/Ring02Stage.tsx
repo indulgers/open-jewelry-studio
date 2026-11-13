@@ -55,8 +55,8 @@ export function RingCamera({view,reset,frames=cameras}:{view:RingView;reset:numb
   return <OrbitControls ref={controls} enablePan={false} minZoom={65} maxZoom={1400}/>;
 }
 
-export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady}:{
-  captureRef:RefObject<(()=>string|undefined)|null>;ready:boolean;frames?:Record<RingView,RingFraming>;onCaptureReady?:(ready:boolean)=>void;
+export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady,size=320}:{
+  captureRef:RefObject<(()=>string|undefined)|null>;ready:boolean;size?:number;frames?:Record<RingView,RingFraming>;onCaptureReady?:(ready:boolean)=>void;
 }){
   const {gl,scene,camera,invalidate}=useThree();
   useEffect(()=>{
@@ -66,7 +66,7 @@ export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady}:{
       const side=Math.min(source.width,source.height);
       if(!side||gl.getContext().isContextLost())return;
       const thumbnail=document.createElement('canvas');
-      thumbnail.width=thumbnail.height=320;
+      thumbnail.width=thumbnail.height=size;
       const context=thumbnail.getContext('2d');
       if(!context)return;
       const {position,target,height}=frames.overall;
@@ -76,7 +76,7 @@ export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady}:{
       photo.lookAt(...target);
       try{
         gl.render(scene,photo);
-        context.drawImage(source,(source.width-side)/2,(source.height-side)/2,side,side,0,0,320,320);
+        context.drawImage(source,(source.width-side)/2,(source.height-side)/2,side,side,0,0,size,size);
         return thumbnail.toDataURL('image/jpeg',.88);
       }finally{
         // Keep the inspection angle visible while the fixed-angle photo is taken.
@@ -86,7 +86,7 @@ export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady}:{
     };
     onCaptureReady?.(true);
     return ()=>{captureRef.current=null;onCaptureReady?.(false);};
-  },[captureRef,ready,gl,scene,camera,invalidate,frames,onCaptureReady]);
+  },[captureRef,ready,gl,scene,camera,invalidate,frames,onCaptureReady,size]);
   return null;
 }
 

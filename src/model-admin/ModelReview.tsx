@@ -4,10 +4,10 @@ import {labels,similarParts,suggestAssignments,suggestSeat,reviewIssues,type Ass
 const PartPreview=lazy(()=>import('./PartPreview'));
 type Revision={archived?:boolean;id:string;createdAt:string;reviewedSeatY:number;assignments:Assignments};
 export type ReviewModel={id:string;filename:string;reference?:string;seatY:number|null;min:number[];max:number[];triangleCount:number;parts:Part[];exports:Revision[]};
-type Props={model:ReviewModel;onExport:(model:ReviewModel)=>void;request:<T>(path:string,init?:RequestInit)=>Promise<T>};
+type Props={onUse?:(id:string)=>void;model:ReviewModel;onExport:(model:ReviewModel)=>void;request:<T>(path:string,init?:RequestInit)=>Promise<T>};
 const num=new Intl.NumberFormat('zh-CN');
 const date=new Intl.DateTimeFormat('zh-CN',{dateStyle:'short',timeStyle:'short'});
-export default function ModelReview({model,onExport,request}:Props){
+export default function ModelReview({model,onExport,request,onUse}:Props){
   const last=model.exports[0];
   const [assignments,setAssignments]=useState<Assignments>(()=>last?.assignments??Object.fromEntries(model.parts.map(part=>[part.id,part.role])));
   const [seat,setSeat]=useState(String(last?.reviewedSeatY??model.seatY??''));
@@ -74,6 +74,7 @@ export default function ModelReview({model,onExport,request}:Props){
       <div className="review-submit"><div><strong>{issues.length?'还有待复核项':'可以生成部件版本'}</strong><p>{issues.length?issues.join(' · '):'请确认分区和接合位置后生成，已有线上商品不会改变。'}</p></div><button className="primary" disabled={busy||!!issues.length}>{busy?'正在生成…':'生成部件版本'}</button></div>
       {error&&<p role="alert" className="error">{error}</p>}{status&&<p role="status" className="review-feedback">{status}</p>}
     </form>
+    {onUse&&model.exports.some(item=>!item.archived)&&<div className="review-next"><p>复核完成后，整套戒头、戒圈和配钻可直接带入商品草稿。</p><button type="button" disabled={busy} onClick={()=>onUse(model.exports.find(item=>!item.archived)!.id)}>下一步：用于商品</button></div>}
     <details className="versions"><summary>复核记录 · {model.exports.filter(item=>!item.archived).length} 个可用版本</summary>{model.exports.map(revision=><p key={revision.id}>{date.format(new Date(revision.createdAt))} · {revision.id.slice(0,8)} · 接合点 Y {revision.reviewedSeatY}{revision.archived?' · 已移出部件库':''}</p>)}</details>
   </article>;
 }

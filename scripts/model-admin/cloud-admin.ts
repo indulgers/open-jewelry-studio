@@ -19,7 +19,7 @@ const cookieName='__Host-xiangyan-admin';
 const sessionSeconds=8*60*60;
 const partFile=/^parts\/(heads|bands|stones)\/ring(?:-(?:head|pave|adapter))?-[a-f0-9]{12}\.glb$/;
 type Job={id:string;filename:string;createdAt:string;size:number};
-type Version={archived?:boolean;id:string;createdAt:string;parts:ReferenceAssets;profileId?:string};
+type Version={name?:string;partNames?:LibrarySource['partNames'];metadataRevision?:string;archived?:boolean;id:string;createdAt:string;parts:ReferenceAssets;profileId?:string};
 type Intent={filename:string;size:number;hash:string;expires:number};
 type Release=ManagedTemplate&{publishedAt:string;files:string[]};
 type Publication={current:PublishedTemplate;revisions:string[];hidden?:boolean;stateRevision?:string};
@@ -97,7 +97,7 @@ function cloudLibrary(store:CloudStore){
       for(const kind of assetKeys){
         if(assets[kind])assets[kind]=base+assets[kind].replace('/models/parts/','parts/');
       }
-      return {id:version.id,name:job.filename,revision:version.id,stock:false,archived:!!version.archived,assets,source:prefix+'/'+job.id+'/source',model:base+'ring.glb'} satisfies LibrarySource;
+      return {id:version.id,name:version.name??job.filename,filename:job.filename,partNames:version.partNames,metadataRevision:version.metadataRevision??version.id,revision:version.id,stock:false,archived:!!version.archived,assets,source:prefix+'/'+job.id+'/source',model:base+'ring.glb'} satisfies LibrarySource;
     }));
     const stock=(await required<LibrarySource[]>(root+'stock/library.json')).value;
     const book=await prices();
@@ -395,6 +395,21 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     if(method==='GET'&&action==='source'&&!revision)return redirect(await store.sign(key+'original.obj','GET'));
     if(method==='GET'&&action==='preview'&&!revision)return redirect(await store.sign(key+'ring.glb','GET'));
     if(action==='export'){
+      if(method==='POST'&&uuid.test(revision??'')&&rest.length===1&&rest[0]==='metadata'){
+        const input=await body(request);
+        if(typeof input?.name!=='string'||!input.name.trim()||input.name.trim().length>60||!input.partNames||typeof input.partNames!=='object'||Array.isArray(input.partNames))fail(422,'请填写 60 字以内的部件套件名称。');
+        const names:NonNullable<LibrarySource['partNames']>={};
+        for(const [kind,value] of Object.entries(input.partNames)){
+          if(!assetKeys.includes(kind as typeof assetKeys[number])||typeof value!=='string'||value.trim().length>60)fail(422,'部件名称无效，最多 60 字。');
+          if((value as string).trim())names[kind as keyof typeof names]=(value as string).trim();
+        }
+        const manifest=key+'versions/'+revision+'/manifest.json';
+        const prior=await library.required<Version>(manifest);
+        if(input.expectedRevision!==(prior.value.metadataRevision??prior.value.id))fail(409,'名称已被修改，请刷新后重试。');
+        const next={...prior.value,name:input.name.trim(),partNames:names,metadataRevision:randomUUID()};
+        if(!await library.putJson(manifest,next,{etag:prior.etag}))fail(409,'版本已改变，请刷新后重试。');
+        return json({name:next.name,partNames:next.partNames,metadataRevision:next.metadataRevision});
+      }
       if(method==='POST'&&uuid.test(revision??'')&&rest.length===1&&rest[0]==='archive'){
         const input=await body(request);
         if(typeof input?.archived!=='boolean')fail(400,'部件状态无效。');

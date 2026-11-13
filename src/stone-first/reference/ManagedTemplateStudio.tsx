@@ -61,7 +61,7 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
   return <div className="stone-first-workspace ring02-workspace source-ring-workspace managed-editor">
     <div className="stone-first-main ring02-main source-ring-main"><section className="stone-first-preview">
       {loaded.ring?<SourceRingStage ring={loaded.ring} design={design} template={template}
-        view={view} reset={reset} captureRef={thumbnailRef??capture} onCaptureReady={captureReady}/>
+        view={view} reset={reset} captureRef={thumbnailRef??capture} captureSize={thumbnailRef?768:320} onCaptureReady={captureReady}/>
         :<div className="stone-first-canvas ring02-canvas"><SourceLoading template={template} retry={loaded.error?()=>{
           setLoaded({});setAttempt(value=>value+1);
         }:undefined}/></div>}

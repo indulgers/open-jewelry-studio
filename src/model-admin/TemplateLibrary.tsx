@@ -16,7 +16,9 @@ type Request=<T>(path:string,init?:RequestInit)=>Promise<T>;
 const errorText=(error:unknown)=>error instanceof Error?error.message:'操作失败，请重试。';
 const post=(data:object)=>({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
 
-export default function TemplateLibrary({request,tab}:{request:Request;tab:'parts'|'templates'}){
+export default function TemplateLibrary({request,tab,initialSourceId,onUse}:{request:Request;tab:'parts'|'templates';initialSourceId?:string;onUse?:(id:string)=>void}){
+  const seeded=useRef(false);
+  const [target,setTarget]=useState('');
   const [editing,setEditing]=useState(false);
   const [query,setQuery]=useState('');
   const [filter,setFilter]=useState('all');
@@ -40,6 +42,16 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
     });
     return ()=>controller.abort();
   },[request]);
+  function useKit(source:LibrarySource,draft?:TemplateDraft){
+    open(draft);
+    setForm({...draft,name:draft?.name??source.name.replace(/\.obj$/i,''),head:source.id,headStones:source.id,band:source.id,pave:source.assets.pave?source.id:'',cover:'',review:pendingReview,pricing:undefined});
+  }
+  useEffect(()=>{
+    if(!library||!initialSourceId||seeded.current)return;
+    seeded.current=true;
+    const source=library.sources.find(item=>item.id===initialSourceId&&!item.archived);
+    if(source)useKit(source);
+  },[library,initialSourceId]);
   function open(draft?:TemplateDraft){
     setEditing(true);setHistory(undefined);setVisibilityConfirm(false);
     setSaved(draft);setForm(draft?{...draft,pricing:undefined}:empty);setPreview(undefined);setConfirm(false);setStatus('');setError('');
@@ -54,7 +66,8 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
       const draft=await request<TemplateDraft>('/templates',post({...form,id:saved?.id,expectedRevision:saved?.revision}));
       open(draft);
       setLibrary(current=>current&&({...current,drafts:[draft,...current.drafts.filter(item=>item.id!==draft.id)]}));
-      setStatus('草稿已保存。');
+      setStatus('草稿已保存，正在打开预览。');setReady(false);
+      setPreview(await request<ManagedTemplate>('/templates/'+draft.id+'/'+draft.revision));setStatus('草稿已保存，请检查三维预览后确认发布。');
     }catch(error){setError(errorText(error));}finally{setBusy(false);}
   }
   function currentPricing(){
@@ -118,7 +131,10 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
   if(!library)return <main>{error?<p role="alert">{error}</p>:<p role="status">正在读取部件库…</p>}</main>;
   const {sources,drafts,published}=library;
   const prices=library.prices??{revision:'initial',components:{},bases:{}};
-  if(tab==='parts')return <ComponentLibrary key={tab} sources={sources} prices={prices} onArchive={library.cloud?async(source,archived)=>{
+  if(tab==='parts')return <ComponentLibrary key={tab} sources={sources} prices={prices} onUse={onUse} onRename={library.cloud?async(source,name,partNames)=>{
+    const metadata=await request<Pick<LibrarySource,'name'|'partNames'|'metadataRevision'>>(source.source.replace('/api/model-admin','').replace(/\/source$/,'')+'/export/'+source.revision+'/metadata',post({name,partNames,expectedRevision:source.metadataRevision??source.revision}));
+    setLibrary(current=>current&&({...current,sources:current.sources.map(item=>item.id===source.id?{...item,...metadata}:item)}));
+  }:undefined} onArchive={library.cloud?async(source,archived)=>{
     await request(source.source.replace('/api/model-admin','').replace(/\/source$/,'')+'/export/'+source.revision+'/archive',post({archived}));
     setLibrary(current=>current&&({...current,sources:current.sources.map(item=>item.id===source.id?{...item,archived}:item)}));
   }:undefined} onSave={async book=>{
@@ -163,7 +179,7 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
       <button disabled={busy} onClick={()=>{if(!dirty||window.confirm('离开后会丢弃尚未保存的修改。继续返回？'))setEditing(false);}}>返回款式列表</button>
     </header>
     {error&&<p role="alert" className="error">{error}</p>}
-    <div className="template-detail">
+    <div className={'template-detail'+(preview?' has-preview':'')}>
       <article className="review">
         {current&&<section className="release-status"><strong>{current.hidden?'已下架':'线上版本'} · {current.name}</strong>
           <p>保存修改会生成新草稿，确认发布后才替换当前版本。</p>
@@ -179,6 +195,7 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
             <small>版本 {item.revision.slice(0,8)}</small></li>)}</ol>}
         </section>}
         <form className="template-form" onSubmit={save}>
+          {initialSourceId&&<label className="product-target">这套部件用于<select aria-label="商品目标" disabled={busy} value={target} onChange={e=>{setTarget(e.target.value);useKit(sources.find(item=>item.id===initialSourceId)!,drafts.find(item=>item.id===e.target.value));}}><option value="">新建商品</option>{drafts.map(item=><option key={item.id} value={item.id}>更新：{item.name}</option>)}</select><small>更新商品会保留原名称、价格和首页位置。保存后仍是草稿，确认发布才替换线上版本。</small></label>}
           <fieldset disabled={busy}>
             <label>款式名称<input value={form.name} required maxLength={60} onChange={event=>update({name:event.target.value})}/></label>
           </fieldset>
@@ -188,7 +205,7 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
             <label className="featured-toggle"><input type="checkbox" checked={form.featured??false} onChange={e=>update({featured:e.target.checked})}/>选为首页精选（最多 5 款）</label>
             <div className="product-cover">
               <div>{(form.cover||(form.cover===undefined&&current?.image))&&<img src={form.cover?(form.cover.startsWith('/media/')?form.cover:'/api/model-admin/covers/'+form.cover):current?.image} alt="商品封面预览"/>}</div>
-              <div><strong>商品封面</strong><p>上传图片，或在发布时采用当前 3D 画面。</p><label className="cover-upload">上传封面<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e=>{void uploadCover(e.target.files?.[0]);e.target.value='';}}/></label>
+              <div><strong>商品封面</strong><p>可上传图片；留空时自动生成标准角度的 3D 商品图。</p><label className="cover-upload">上传封面<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e=>{void uploadCover(e.target.files?.[0]);e.target.value='';}}/></label>
               <button type="button" disabled={busy||!form.cover} onClick={()=>update({cover:''})}>发布时使用 3D 截图</button></div>
             </div>
           </fieldset>
@@ -223,7 +240,7 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
             <p className="selection-note">未确认的尺寸请留空。此处登记允许的制作范围，3D 按原模型展示。</p>
           </details>
           <div className="template-actions">
-            <button className="primary" disabled={busy||!dirty}>保存草稿</button>
+            <button className="primary" disabled={busy||!dirty}>保存草稿并预览</button>
             <button type="button" disabled={busy||dirty||!!preview} onClick={loadPreview}>在编辑器预览</button>
             {current&&!current.hidden&&<a href={'/'+productRoute(current)} target="_blank" rel="noreferrer">查看线上版本</a>}
           </div>

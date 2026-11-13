@@ -135,6 +135,19 @@ it('serves only confirmed template revisions while keeping earlier releases read
   const importedPath=importedDraft.id+'/'+importedDraft.revision;
   const importedPublish=await request('templates/'+importedPath+'/publish',{confirmed:true,image},true);
   expect(importedPublish.status,await importedPublish.text()).toBe(201);
+  const metadataPath=jobId+'/export/'+versionId+'/metadata';
+  const naming={name:'花冠',partNames:{head:'花冠装饰钻戒头',band:'纤细素面戒圈'},expectedRevision:versionId};
+  expect((await request(metadataPath,naming)).status).toBe(401);
+  expect((await request(metadataPath,{...naming,name:' '},true)).status).toBe(422);
+  expect((await request(metadataPath,{...naming,partNames:{unexpected:'x'}},true)).status).toBe(422);
+  expect((await request(metadataPath,naming,true)).status).toBe(200);
+  expect((await request(metadataPath,naming,true)).status).toBe(409);
+  const renamed=(await (await request('library',undefined,true)).json()).sources.find((item:any)=>item.id===versionId);
+  expect(renamed).toMatchObject({name:'花冠',filename:'戒指6.obj',partNames:naming.partNames});
+  expect((await (await request('public/'+importedPath+'/template.json')).json()).headName).toBe('戒指6.obj');
+  const namedDraft=await (await request('templates',{...imported,id:importedDraft.id,expectedRevision:importedDraft.revision},true)).json();
+  expect((await (await request('templates/'+namedDraft.id+'/'+namedDraft.revision,undefined,true)).json()).headName).toBe('花冠装饰钻戒头');
+  importedDraft.revision=namedDraft.revision;
   const archivePath=jobId+'/export/'+versionId+'/archive';
   expect((await request(archivePath,{archived:true})).status).toBe(401);
   expect((await request(archivePath,{archived:'yes'},true)).status).toBe(400);
@@ -143,7 +156,7 @@ it('serves only confirmed template revisions while keeping earlier releases read
   expect(archivedLibrary.sources.find((source:any)=>source.id===versionId).archived).toBe(true);
   expect((await request('public/'+importedPath+'/template.json')).status).toBe(200);
   expect((await request('public/'+importedPath+'/cover.jpg')).status).toBe(302);
-  expect((await request('templates/'+importedPath,undefined,true)).status).toBe(200);
+  expect((await request('templates/'+namedDraft.id+'/'+namedDraft.revision,undefined,true)).status).toBe(200);
   expect((await request('templates',imported,true)).status).toBe(422);
   expect((await request('templates',{...imported,id:importedDraft.id,expectedRevision:importedDraft.revision,name:'保留旧部件改资料'},true)).status).toBe(201);
   expect((await request(archivePath,{archived:false},true)).status).toBe(200);

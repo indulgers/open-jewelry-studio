@@ -41,7 +41,7 @@ async function uploadModel(file: File): Promise<Job> {
   return request('/uploads/' + ticket.id, post({}));
 }
 
-function ModelAssets() {
+function ModelAssets({onUse}:{onUse:(id:string)=>void}) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [model, setModel] = useState<Model>();
   const [selected, setSelected] = useState('');
@@ -104,14 +104,14 @@ function ModelAssets() {
         </label>
       </header>
       <details className="upload-guide"><summary>建模师如何上传新戒指？</summary>
-        <ol><li>点击「上传 OBJ」，选择整枚戒指模型，文件不超过 25 MB。</li><li>查看三维预览，核对戒头、戒圈、主石和配钻的分区，再确认接合点。连在一起的网格需先在建模软件中拆开，尺寸单位也需人工核对。</li><li>点击「生成部件版本」，进入部件管理预览、维护加价。不需要的上传版本可以移出部件库。</li><li>到商品管理新建商品，选部件、填名称介绍和价格、上传封面，保存草稿并预览。确认发布后进入前台目录；勾选首页精选并发布后，才会出现在首页。</li></ol>
+        <ol><li>点击「上传 OBJ」，选择整枚戒指模型，文件不超过 25 MB。</li><li>查看三维预览，核对戒头、戒圈、主石和配钻的分区，再确认接合点。连在一起的网格需先在建模软件中拆开，尺寸单位也需人工核对。</li><li>点击「生成部件版本」，进入部件管理预览、维护加价。不需要的上传版本可以移出部件库。</li><li>点击「下一步：用于商品」自动带入整套部件，选择新建或更新已有商品，填写名称介绍和价格；封面可由 3D 自动生成，保存草稿后直接预览。确认发布后进入前台目录；勾选首页精选并发布后，才会出现在首页。</li></ol>
         <p>上传和生成部件不会自动上架。自动识别的结果需要人工复核。</p>
       </details>
       {listError && <p role="alert" className="error">{listError}</p>}
       <div className="workspace">
         <div className="model-switcher"><label htmlFor="model-select">已导入模型 · {jobs.length}</label><select id="model-select" disabled={loading||uploading} value={selected} onChange={e=>select(e.target.value)}>{!jobs.length&&<option value="">上传后选择模型</option>}{jobs.map(job=><option key={job.id} value={job.id}>{job.filename} · {job.exported?'已有部件版本':'待复核'}</option>)}</select></div>
         {detailError ? <p role="alert" className="error">{detailError}</p> :
-          model && model.id === selected ? <Review key={model.id} model={model} request={request} onExport={updated => {
+          model && model.id === selected ? <Review key={model.id} onUse={onUse} model={model} request={request} onExport={updated => {
             setModel(current => current?.id === updated.id ? updated : current);
             setJobs(items => items.map(item => item.id === updated.id ? {...item, exported: true} : item));
           }} /> : <div className="empty">{selected ? '正在读取模型…' : '导入模型后，在这里查看 3D 和部件分区。'}</div>}
@@ -120,14 +120,16 @@ function ModelAssets() {
 }
 
 function App(){
+  const [sourceId,setSourceId]=useState('');
+  function useSource(id:string){setSourceId(id);setTab('templates');}
   const [tab,setTab]=useState<'models'|'parts'|'templates'>('templates');
   return <>
     <header className="admin-header"><span className="wordmark">相言</span>
       <nav aria-label="配置管理">{([['models','上传复核'],['parts','部件管理'],['templates','商品管理']] as const)
-        .map(([id,label])=><button key={id} aria-current={id===tab?'page':undefined} onClick={()=>setTab(id)}>{label}</button>)}</nav>
+        .map(([id,label])=><button key={id} aria-current={id===tab?'page':undefined} onClick={()=>{setSourceId('');setTab(id);}}>{label}</button>)}</nav>
       <span className="local-label">{hosted ? '管理后台' : '本地工作台'}</span>
     </header>
-    {tab==='models'?<ModelAssets/>:<TemplateLibrary request={request} tab={tab}/>}
+    {tab==='models'?<ModelAssets onUse={useSource}/>:<TemplateLibrary key={tab+sourceId} request={request} tab={tab} initialSourceId={sourceId} onUse={useSource}/>}
   </>;
 }
 
