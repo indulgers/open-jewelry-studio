@@ -1,3 +1,6 @@
+import {Readable} from 'node:stream';
+import {cloudAdmin} from './cloud-admin.ts';
+import {cloudStore} from './cloud-store.ts';
 import {execFile} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {createReadStream} from 'node:fs';
@@ -45,12 +48,17 @@ export function modelAdmin():Plugin{
   return {
     name:'xiangyan-local-model-admin',
     apply:'serve',
-    config(config){
+    config(config,{mode}){
+      const env=loadEnv(mode,config.envDir??process.cwd(),'XIANGYAN_');
+      const cloud=!!env.XIANGYAN_R2_ACCOUNT_ID&&!!env.XIANGYAN_ADMIN_PASSWORD;
       const deny=config.server?.fs?.deny??['.env','.env.*','*.{crt,pem,key,p12,pfx,cer,der}',
         '.npmrc','.yarnrc.yml','**/.git/**'];
-      return {server:{fs:{deny:[...deny,normalizePath(storage),normalizePath(storage)+'/**']}}};
+      return {define:{'import.meta.env.VITE_CLOUD_MODE':JSON.stringify(cloud)},server:{fs:{deny:[...deny,normalizePath(storage),normalizePath(storage)+'/**']}}};
     },
     configureServer(server){
+      Object.assign(process.env,loadEnv(server.config.mode,server.config.envDir,'XIANGYAN_'));
+      const cloud=cloudStore();
+      const cloudEnabled=!!cloud&&!!process.env.XIANGYAN_ADMIN_PASSWORD;
       const {publicDir}=server.config;
       if(publicDir&&(storage===publicDir||storage.startsWith(publicDir+sep))){
         throw new Error('XIANGYAN_MODEL_DIR 必须在网站公共素材目录之外。');
@@ -247,6 +255,16 @@ export function modelAdmin():Plugin{
 
       server.middlewares.use((req,res,next)=>{
         const path=req.url?.split('?',1)[0];
+        if(cloudEnabled&&path&&(/^\/(models|media)\//.test(path)||/^\/api\/model-admin(?:\/|$)/.test(path))){
+          const route=path.startsWith('/api/')?path:'/api/model-admin/assets'+path;
+          const request=new Request('http://'+req.headers.host+route,{method:req.method,headers:req.headers as HeadersInit,
+            ...(req.method==='POST'?{body:Readable.toWeb(req),duplex:'half'}:{})} as RequestInit);
+          void cloudAdmin(request,cloud).then(response=>{
+            res.writeHead(response.status,Object.fromEntries(response.headers));
+            if(response.body)Readable.fromWeb(response.body as any).pipe(res);else res.end();
+          }).catch(()=>json(res,502,{error:'R2 暂不可用，请重试。'}));
+          return;
+        }
         if(!path||!/^\/api\/model-admin(?:\/|$)/.test(path))return next();
         // Do not let dot segments or encoded paths reach the local asset store.
         if(!/^\/api\/model-admin(?:\/[a-zA-Z0-9.-]+)*\/?$/.test(path)||path.split('/').some(segment=>segment==='.'||segment==='..')){

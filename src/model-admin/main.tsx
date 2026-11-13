@@ -26,7 +26,7 @@ const num = new Intl.NumberFormat('zh-CN');
 const date = new Intl.DateTimeFormat('zh-CN', {dateStyle: 'short', timeStyle: 'short'});
 const errorText = (error: unknown) => error instanceof Error ? error.message : '操作失败，请重试。';
 const dimensions = (min: number[], max: number[]) => max.map((v, i) => (v - min[i]).toFixed(2)).join(' × ');
-const hosted = import.meta.env.PROD;
+const hosted = (import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE);
 const post = (data: object): RequestInit => ({
   method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data),
 });
@@ -158,32 +158,9 @@ function Review({model, onExport}: {model: Model; onExport: (model: Model) => vo
       {status && <p role="status">{status}</p>}
     </form>
     <section className="versions" aria-labelledby="version-heading">
-      <h3 id="version-heading">部件版本</h3>
-      <p>预览或下载生成的文件。可以在款式模板中使用这些部件。</p>
-      {model.exports.length === 0 && <p>还没有生成版本。</p>}
-      {model.exports.map(revision => {
-        const path = location + '/export/' + revision.id + '/';
-        const names = {head: '戒头', band: '戒圈', headStones: '戒头宝石', pave: '戒臂铺钻', adapter: '接合件'};
-        return <div className="version" key={revision.id}>
-          <p><strong>{date.format(new Date(revision.createdAt))}</strong> · 接合点 Y {revision.reviewedSeatY}</p>
-          <div className="downloads">
-            <a href={path + 'manifest.json'}>版本清单</a>
-            <span className="part-asset-actions">
-              <button type="button" onClick={() => setAsset({title: model.filename + ' · 整戒', url: path + 'ring.glb'})}>预览整戒</button>
-              <a href={path + 'ring.glb'} download>下载</a>
-            </span>
-            {(Object.keys(names) as (keyof typeof names)[]).map(kind => {
-              const file = revision.parts[kind];
-              if (!file) return null;
-              const url = path + file.replace('/models/parts/', 'parts/');
-              return <span className="part-asset-actions" key={kind}>
-                <button type="button" onClick={() => setAsset({title: model.filename + ' · ' + names[kind], url})}>预览{names[kind]}</button>
-                <a href={url} download aria-label={'下载' + names[kind] + ' GLB'}>下载</a>
-              </span>;
-            })}
-          </div>
-        </div>;
-      })}
+      <h3 id="version-heading">复核记录</h3>
+      <p>{model.exports.length?'已生成 '+model.exports.length+' 个部件版本，可到部件管理预览、定价和复用。':'复核分区和接合点后，生成可入库的部件版本。'}</p>
+      {model.exports.map(revision=><p key={revision.id}>{date.format(new Date(revision.createdAt))} · 接合点 Y {revision.reviewedSeatY}</p>)}
     </section>
     {asset && <AssetPreview asset={asset} onClose={() => setAsset(undefined)} />}
   </article>;
@@ -245,7 +222,7 @@ function ModelAssets() {
 
   return <main>
       <header className="page-heading">
-        <div><h1>模型素材</h1><p>上传整戒 OBJ，复核部件和接合点，生成可入库的模型文件。</p></div>
+        <div><h1>上传复核</h1><p>上传整戒 OBJ，复核部件和接合点，生成可入库的模型文件。</p></div>
         <label className="primary upload">
           <input type="file" accept=".obj" onChange={upload} disabled={uploading || loading} aria-label="上传 OBJ" />
           {uploading ? '正在分析模型…' : '上传 OBJ'}
@@ -276,7 +253,7 @@ function App(){
   const [tab,setTab]=useState<'models'|'parts'|'templates'>('templates');
   return <>
     <header className="admin-header"><span className="wordmark">相言</span>
-      <nav aria-label="配置管理">{([['models','模型素材'],['parts','部件库'],['templates','款式模板']] as const)
+      <nav aria-label="配置管理">{([['models','上传复核'],['parts','部件管理'],['templates','商品管理']] as const)
         .map(([id,label])=><button key={id} aria-current={id===tab?'page':undefined} onClick={()=>setTab(id)}>{label}</button>)}</nav>
       <span className="local-label">{hosted ? '管理后台' : '本地工作台'}</span>
     </header>

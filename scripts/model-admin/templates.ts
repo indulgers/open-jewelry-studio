@@ -1,6 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {copyFile,mkdir,readFile,readdir,rename,rm,stat,writeFile} from 'node:fs/promises';
 import {basename,join} from 'node:path';
+import {isMoney,templateQuote,ZERO_COMPONENT_PRICES} from '../../src/stone-first/pricing.ts';
 import {RING_CATALOG} from '../../src/stone-first/catalog.ts';
 import stockParts from '../../src/stone-first/reference/part-assets.json' with {type:'json'};
 import type {ReferenceAssets} from '../../src/stone-first/reference/part-library.ts';
@@ -45,12 +46,12 @@ export function selectTemplate(draft:TemplateDraft,options:LibrarySource[]):Mana
     };
     if(head.id===band.id)library[head.id]=head.assets;
     return {id:draft.id,revision:draft.revision,name:draft.name,headName:head.name,bandName:band.name,
-      headId:head.id,bandId:band.id,library,review:draft.review};
+      headId:head.id,bandId:band.id,library,review:draft.review,pricing:draft.pricing};
 }
 
 export function validateTemplateInput(input:unknown){
   if(!input||typeof input!=='object')throw new RequestError(400,'模板数据无效。');
-  const {name:label,id,expectedRevision,head,headStones,band,pave,review}=input as Record<string,unknown>;
+  const {name:label,id,expectedRevision,head,headStones,band,pave,review,basePrice}=input as Record<string,unknown>;
   const name=typeof label==='string'?label.trim():'';
   if(!name||name.length>60||typeof head!=='string'||typeof headStones!=='string'||typeof band!=='string'||typeof pave!=='string'){
     throw new RequestError(422,'请填写款式名并选好所需部件。');
@@ -58,6 +59,7 @@ export function validateTemplateInput(input:unknown){
   if(id!==undefined&&(typeof id!=='string'||!uuid.test(id))){
     throw new RequestError(400,'模板编号无效。');
   }
+  if(basePrice!==undefined&&!isMoney(basePrice))throw new RequestError(422,'基础价必须为 0–1000000 元，最多两位小数。');
   let checked:TemplateSelection['review'];
   if(review!==undefined){
     if(!review||typeof review!=='object')throw new RequestError(422,'工艺复核内容无效。');
@@ -74,7 +76,7 @@ export function validateTemplateInput(input:unknown){
     if(status==='approved'&&(empty||!note.trim()))throw new RequestError(422,'通过复核前，请填写尺寸范围和工艺依据。');
     checked={status,minDiameter:minDiameter as number|null,maxDiameter:maxDiameter as number|null,step:step as number|null,note:note.trim()};
   }
-  return {id,expectedRevision,selection:{name,head,headStones,band,pave,review:checked} satisfies TemplateSelection};
+  return {id,expectedRevision,selection:{name,head,headStones,band,pave,review:checked,basePrice} satisfies TemplateSelection};
 }
 
 export function createTemplateLibrary(storage:string,publicDir:string){
@@ -122,7 +124,9 @@ export function createTemplateLibrary(storage:string,publicDir:string){
       throw new RequestError(409,'草稿已更新，请重新打开后再编辑。');
     }
     const next:TemplateDraft={id:id??randomUUID(),revision:randomUUID(),updatedAt:new Date().toISOString(),...selection};
-    await resolveTemplate(next);
+    const options=await sources();
+    next.pricing=priceSelection(next,options);
+    selectTemplate(next,options);
     await mkdir(draftsDir,{recursive:true});
     await replaceJson(draftPath(next.id),next);
     return next;
@@ -142,6 +146,7 @@ export function createTemplateLibrary(storage:string,publicDir:string){
 
   async function publish(id:string,revision:string,image:Buffer){
     const template=await preview(id,revision);
+    requirePrice(template);
     if(template.review?.status==='rejected')throw new RequestError(422,'该组合未通过工艺复核，请修改并重新复核。');
     const dir=join(publishedDir,id);
     const release=join(dir,revision);
@@ -172,10 +177,22 @@ export function createTemplateLibrary(storage:string,publicDir:string){
         await rename(stage,release);
       }finally{await rm(stage,{recursive:true,force:true});}
     }
-    const published={id,revision,name:template.name,headName:template.headName,bandName:template.bandName,url:url+'template.json',image:url+'cover.jpg'};
+    const published={id,revision,name:template.name,headName:template.headName,bandName:template.bandName,pricing:template.pricing,url:url+'template.json',image:url+'cover.jpg'};
     await replaceJson(indexFile,[published,...(await index()).filter(item=>item.id!==id)]);
     return published;
   }
 
   return {list,save,preview,publish,stock};
+}
+
+export function priceSelection(draft:TemplateSelection,sources:LibrarySource[]){
+  if(draft.basePrice===undefined)return undefined;
+  const head=sources.find(source=>source.id===draft.head)?.surcharges??ZERO_COMPONENT_PRICES;
+  const band=sources.find(source=>source.id===draft.band)?.surcharges??ZERO_COMPONENT_PRICES;
+  return {base:draft.basePrice,head:head.head,band:band.band,pave:draft.pave?band.pave:0};
+}
+export function requirePrice(template:ManagedTemplate){
+  if(!template.pricing||!Object.values(template.pricing).every(isMoney)||(!isMoney(templateQuote(template.pricing,template.revision).amount)||templateQuote(template.pricing,template.revision).amount<=0)){
+    throw new RequestError(422,'请先设置基础价和部件加价，合计须大于 0 且不超过 1000000 元。');
+  }
 }

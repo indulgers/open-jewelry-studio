@@ -1,3 +1,5 @@
+import {sumMoney} from './pricing';
+import {templateRoute} from './reference/managed-types';
 import {useEffect,useState} from 'react';
 import {RING_CATALOG} from './catalog';
 import {CART_CHANGED,demoOrders,formatYuan,removeDemoOrder} from './ring02/demoOrder';
@@ -33,7 +35,7 @@ export function DiyCart(){
     try{removeDemoOrder(revision);}
     catch{setError('暂时无法移除该方案，请稍后重试。');}
   }
-  const total=orders?.reduce((sum,order)=>sum+order.quote.amount,0)??0;
+  const total=sumMoney(orders?.map(order=>order.quote.amount)??[]);
   return <main className="diy-home diy-cart-page shop-wrap">
     <header className="diy-home-intro">
       <a className="shop-text-link" href="#/diy/collection">返回款式系列</a>
@@ -52,10 +54,10 @@ export function DiyCart(){
           const design=parseReferenceDesign(order.design);
           const parts=template&&design?referenceParts(template,design):null;
           const mixed=parts&&(parts.head.id!==template?.id||parts.band.id!==template?.id);
-          const name=mixed?headName(parts.head.name)+' × '+bandStyle(parts.band.id).name:template?.name??'戒指定制方案';
-          const editor=template?.kind==='parametric'&&order.pave?.units==='model'?RING02_PRECISION_ROUTE:template?.editor;
+          const name=order.managed?.name??(mixed?headName(parts.head.name)+' × '+bandStyle(parts.band.id).name:template?.name??'戒指定制方案');
+          const editor=order.managed?templateRoute(order.managed.id,order.managed.revision):template?.kind==='parametric'&&order.pave?.units==='model'?RING02_PRECISION_ROUTE:template?.editor;
           return <article key={order.revision} className="diy-cart-order">
-            <CartImage thumbnail={order.thumbnail} image={mixed?undefined:template?.image} name={name}/>
+            <CartImage thumbnail={order.thumbnail} image={order.managed?'/api/model-admin/public/'+order.managed.id+'/'+order.managed.revision+'/cover.jpg':mixed?undefined:template?.image} name={name}/>
             <div className="cart-order-info">
               <div className="cart-order-top"><div><span className="collection-label">{template?.collection??'专属定制'}</span><h2>{name}</h2><p>银色 · 1 件</p></div><button className="cart-remove" aria-label={'移除'+name} onClick={()=>remove(order.revision)}>移除</button></div>
               <p className="cart-order-price"><strong>{formatYuan(order.quote.amount)}</strong><span>参考价</span></p>

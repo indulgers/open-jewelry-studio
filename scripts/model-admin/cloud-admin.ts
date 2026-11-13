@@ -1,12 +1,11 @@
 import {createHash,createHmac,randomUUID,timingSafeEqual} from 'node:crypto';
-import {createReadStream} from 'node:fs';
-import {mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
+import {mkdir,mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {basename,join} from 'node:path';
-import {Readable} from 'node:stream';
 import {cloudStore,type CloudStore} from './cloud-store.ts';
 import {processModel} from './process.mjs';
-import {assetKeys,RequestError,selectTemplate,stockSources,uuid,validateTemplateInput} from './templates.ts';
+import {assetKeys,RequestError,selectTemplate,priceSelection,requirePrice,uuid,validateTemplateInput} from './templates.ts';
+import {isMoney,templateQuote,type PriceBook} from '../../src/stone-first/pricing.ts';
 import {RING_CATALOG} from '../../src/stone-first/catalog.ts';
 import {SEAT_Y,referencePartRole} from '../../src/stone-first/reference/parts.ts';
 import type {ReferenceAssets} from '../../src/stone-first/reference/part-library.ts';
@@ -56,8 +55,18 @@ async function scratch<T>(work:(directory:string)=>Promise<T>){
   const directory=await mkdtemp(join(tmpdir(),'xiangyan-model-'));
   try{return await work(directory);}finally{await rm(directory,{recursive:true,force:true});}
 }
-async function processFile(action:'analyze'|'export',job:string,output?:string){
-  try{await processModel(action,job,output,{catalog:RING_CATALOG,seatHeights:SEAT_Y,referencePartRole,root:process.cwd()});}
+async function processFile(store:CloudStore,action:'analyze'|'export',job:string,output?:string){
+  try{await scratch(async root=>{
+    const files=RING_CATALOG.map(ring=>ring.id+'/'+(ring.id==='ring-02'?'source.obj':'source.json'));
+    if(action==='export')files.push('ring-solstice/source.obj');
+    await Promise.all(files.map(async file=>{
+      const response=await store.get('studio/v1/stock/sources/'+file);
+      if(!response)throw new Error('参考模型资料缺失，请完成 R2 迁移。');
+      await mkdir(join(root,'assets/source',file.split('/')[0]),{recursive:true});
+      await writeFile(join(root,'assets/source',file),new Uint8Array(await response.arrayBuffer()));
+    }));
+    await processModel(action,job,output,{catalog:RING_CATALOG,seatHeights:SEAT_Y,referencePartRole,root});
+  });}
   catch(error){if(error instanceof Error&&(error as NodeJS.ErrnoException).code)throw error;
     fail(422,error instanceof Error?error.message:'模型无法处理。');}
 }
@@ -89,7 +98,10 @@ function cloudLibrary(store:CloudStore){
       }
       return {id:version.id,name:job.filename,revision:version.id,stock:false,assets,source:prefix+'/'+job.id+'/source',model:base+'ring.glb'} satisfies LibrarySource;
     }));
-    return [...stockSources,...uploads.filter((item):item is NonNullable<typeof item>=>!!item)];
+    const stock=(await required<LibrarySource[]>(root+'stock/library.json')).value;
+    const book=await prices();
+    return [...stock,...uploads.filter((item):item is NonNullable<typeof item>=>!!item)]
+      .map(source=>({...source,surcharges:book.components[source.id]}));
   }
   async function records<T>(folder:string){
     const keys=await store.list(root+folder+'/');
@@ -97,6 +109,25 @@ function cloudLibrary(store:CloudStore){
   }
   const published=async(includeHidden=false)=>(await records<Publication>('published'))
     .filter(item=>includeHidden||!item.hidden).map(item=>({...item.current,hidden:!!item.hidden,stateRevision:item.stateRevision??item.current.revision}));
+  const priceKey=root+'pricing.json';
+  async function prices():Promise<PriceBook>{
+    return (await optional<PriceBook>(priceKey))?.value??{revision:'initial',components:{},bases:{}};
+  }
+  async function savePrices(input:any){
+    const prior=await optional<PriceBook>(priceKey);
+    if(input?.expectedRevision!==(prior?.value.revision??'initial'))fail(409,'价格已被修改，请刷新后再保存。');
+    const options=await sources();
+    if(!input.components||typeof input.components!=='object'||Array.isArray(input.components)||!input.bases||typeof input.bases!=='object'||Array.isArray(input.bases))fail(422,'价格数据无效。');
+    for(const [id,rates] of Object.entries(input.components)){
+      if(!options.some(source=>source.id===id)||!rates||typeof rates!=='object'||
+        !['head','band','pave'].every(key=>isMoney((rates as any)[key])))fail(422,'请填写有效的部件加价。');
+    }
+    const catalog=(await required<{id:string}[]>(root+'stock/catalog.json')).value;
+    for(const [id,price] of Object.entries(input.bases))if(!catalog.some(item=>item.id===id)||!isMoney(price))fail(422,'请填写有效的原款基础价。');
+    const next={revision:randomUUID(),components:input.components,bases:input.bases};
+    if(!await putJson(priceKey,next,{etag:prior?.etag??null}))fail(409,'价格已被修改，请刷新后再保存。');
+    return next;
+  }
   const publicationKey=(id:string)=>root+'published/'+id+'.json';
   const draftKey=(id:string)=>root+'drafts/'+id+'.json';
 
@@ -122,7 +153,9 @@ function cloudLibrary(store:CloudStore){
     const prior=id?await required<TemplateDraft>(draftKey(id)):undefined;
     if(prior&&prior.value.revision!==expectedRevision)fail(409,'草稿已更新，请重新打开后再编辑。');
     const draft:TemplateDraft={id:id??randomUUID(),revision:randomUUID(),updatedAt:new Date().toISOString(),...selection};
-    selectTemplate(draft,await sources());
+    const options=await sources();
+    draft.pricing=priceSelection(draft,options);
+    selectTemplate(draft,options);
     if(!await putJson(draftKey(draft.id),draft,{etag:prior?.etag??null}))fail(409,'草稿已更新，请重新打开后再编辑。');
     return draft;
   }
@@ -133,6 +166,7 @@ function cloudLibrary(store:CloudStore){
   }
   async function publish(id:string,revision:string,image:Uint8Array<ArrayBuffer>){
     const template=await preview(id,revision);
+    requirePrice(template);
     if(template.review?.status==='rejected')fail(422,'该组合未通过工艺复核，请修改并重新复核。');
     const release=releaseKey(id,revision);
     const base=publicPath(id,revision);
@@ -162,14 +196,14 @@ function cloudLibrary(store:CloudStore){
     }
     if((await required<TemplateDraft>(draftKey(id))).value.revision!==revision)fail(409,'草稿已更新，请打开最新版本预览。');
     const published={id,revision,name:template.name,headName:template.headName,bandName:template.bandName,
-      url:base+'template.json',image:base+'cover.jpg'};
+      pricing:template.pricing,url:base+'template.json',image:base+'cover.jpg'};
     const record={current:published,revisions:[...(prior?.value.revisions??[]),revision],hidden:!!prior?.value.hidden,stateRevision:randomUUID()};
     if(!await putJson(recordKey,record,{etag:prior?.etag??null})){
       if((await optional<Publication>(recordKey))?.value.current.revision!==revision)fail(409,'已有其他版本发布，请刷新后台。');
     }
     return published;
   }
-  return {optional,required,putJson,sources,records,published,publicationKey,save,preview,publish,visibility,history};
+  return {optional,required,putJson,sources,records,published,publicationKey,save,preview,publish,visibility,history,prices,savePrices};
 }
 
 function redirect(url:string){
@@ -187,15 +221,38 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     const method=request.method;
     const store=storeOverride??cloudStore();
     const password=passwordOverride??process.env.XIANGYAN_ADMIN_PASSWORD;
+    if(id==='assets'&&method==='GET'){
+      if(!store)return json({error:'文件存储未配置。'},503);
+      const path=[action,revision,...rest].filter(Boolean).join('/');
+      const inventory=await store.get(root+'stock/assets.json');
+      if(!inventory||!Object.hasOwn(await inventory.json(),path))fail(404,'文件不存在。');
+      return redirect(await store.sign(root+'assets/'+path,'GET'));
+    }
     if(id==='public'&&method==='GET'){
       if(!store)return json({error:'发布目录未配置。'},503);
       const library=cloudLibrary(store);
+      if(action==='storefront.json'&&!revision){
+        const [{value:catalog},{value:sources},prices]=await Promise.all([
+          library.required<any[]>(root+'stock/catalog.json'),library.required<LibrarySource[]>(root+'stock/library.json'),library.prices(),
+        ]);
+        return json({catalog,parts:Object.fromEntries(sources.map(source=>[source.id,source.assets])),prices});
+      }
+      if(action==='pricing.json'&&!revision){
+        const book=await library.prices();
+        const {value:catalog}=await library.required<any[]>(root+'stock/catalog.json');
+        return json({...book,bases:Object.fromEntries(catalog.map(item=>[item.id,book.bases[item.id]??item.price.base]))});
+      }
       if(action==='index.json'&&!revision)return json(await library.published());
       if(uuid.test(action??'')&&uuid.test(revision??'')&&rest.length===1){
         const {value:publication}=await library.required<Publication>(library.publicationKey(action));
         if(publication.hidden||!publication.revisions.includes(revision))fail(404,'找不到已发布版本。');
         const key=releaseKey(action,revision);
         const {value:release}=await library.required<Release>(key+'template.json');
+        if(rest[0]==='quote'){
+          if(publication.current.revision!==revision)fail(409,'该商品已更新，请从商品目录打开最新版本。');
+          requirePrice(release);
+          return json(templateQuote(release.pricing!,release.revision));
+        }
         if(rest[0]==='template.json'){
           const {files,...template}=release;
           return json(template);
@@ -218,11 +275,11 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     const library=cloudLibrary(store);
     if(id==='library'&&!action&&method==='GET')return json({sources:await library.sources(),
       drafts:(await library.records<TemplateDraft>('drafts')).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)),
-      published:await library.published(true),cloud:true,versionManagement:true});
-    if(id==='stock'&&method==='GET'&&stockSources.some(item=>item.id===action)){
-      const stream=Readable.toWeb(createReadStream(join(process.cwd(),'assets/source',action,'source.obj')));
-      return new Response(stream as unknown as ReadableStream,{headers:{'Content-Type':'application/octet-stream',
-        'Content-Disposition':'attachment; filename="'+action+'.obj"','Cache-Control':'no-store'}});
+      published:await library.published(true),prices:await library.prices(),catalog:(await library.required<unknown>(root+'stock/catalog.json')).value,cloud:true,versionManagement:true});
+    if(id==='prices'&&!action&&method==='POST')return json(await library.savePrices(await body(request)));
+    if(id==='stock'&&method==='GET'){
+      const stock=(await library.required<LibrarySource[]>(root+'stock/library.json')).value;
+      if(stock.some(item=>item.id===action))return redirect(await store.sign(root+'stock/sources/'+action+'/source.obj','GET'));
     }
     if(id==='templates'){
       if(!action&&method==='POST')return json(await library.save(await body(request)),201);
@@ -275,7 +332,7 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
         }
         return await scratch(async directory=>{
           await writeFile(join(directory,'original.obj'),bytes);
-          await processFile('analyze',directory);
+          await processFile(store,'analyze',directory);
           const job={id:action,filename:intent.filename,createdAt:new Date().toISOString(),size:intent.size};
           await store.put(key+'original.obj',bytes,'application/octet-stream');
           await store.put(key+'ring.glb',new Uint8Array(await readFile(join(directory,'ring.glb'))),'model/gltf-binary');
@@ -309,7 +366,7 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
         return await scratch(async directory=>{
           await writeFile(join(directory,'original.obj'),new Uint8Array(await object!.arrayBuffer()));
           await writeFile(join(directory,'review.json'),JSON.stringify(input));
-          await processFile('export',directory,directory);
+          await processFile(store,'export',directory,directory);
           const manifest=JSON.parse(await readFile(join(directory,'manifest.json'),'utf8')) as Version;
           const parts=assetKeys.flatMap(kind=>manifest.parts[kind]?.replace('/models/parts/','parts/')??[]);
           for(const file of ['ring.glb',...parts])await store.put(destination+file,new Uint8Array(await readFile(join(directory,file))),'model/gltf-binary');

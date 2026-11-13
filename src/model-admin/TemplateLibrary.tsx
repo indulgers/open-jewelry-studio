@@ -1,21 +1,23 @@
 import {lazy,Suspense,useCallback,useEffect,useRef,useState,type FormEvent} from 'react';
 import {templateRoute,type LibrarySource,type ManagedTemplate,type PublishedTemplate,type TemplateDraft,type TemplateSelection} from '../stone-first/reference/managed-types';
 
-import AssetPreview from './AssetPreview';
+import ComponentLibrary from './ComponentLibrary';
+import type {CatalogRing} from '../stone-first/catalog';
+import {templateQuote,ZERO_COMPONENT_PRICES,type PriceBook} from '../stone-first/pricing';
+import {formatYuan} from '../stone-first/ring02/demoOrder';
 
 const Preview=lazy(()=>import('../stone-first/reference/ManagedTemplateStudio').then(module=>({default:module.ManagedTemplateStudio})));
 const empty:TemplateSelection={name:'',head:'',headStones:'',band:'',pave:''};
 const pendingReview={status:'pending' as const,minDiameter:null,maxDiameter:null,step:null,note:''};
-const labels={head:'戒头',band:'戒圈',headStones:'主石及戒头配钻',pave:'戒臂铺钻',adapter:'接合件'} as const;
 type Publication=PublishedTemplate&{hidden?:boolean;stateRevision?:string};
 type History={revision:string;name:string;publishedAt:string;current:boolean};
-type Library={sources:LibrarySource[];drafts:TemplateDraft[];published:Publication[];cloud:boolean;versionManagement?:boolean};
+type Library={sources:LibrarySource[];drafts:TemplateDraft[];published:Publication[];cloud:boolean;prices?:PriceBook;catalog?:CatalogRing[];versionManagement?:boolean};
 type Request=<T>(path:string,init?:RequestInit)=>Promise<T>;
 const errorText=(error:unknown)=>error instanceof Error?error.message:'操作失败，请重试。';
 const post=(data:object)=>({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
 
 export default function TemplateLibrary({request,tab}:{request:Request;tab:'parts'|'templates'}){
-  const [asset,setAsset]=useState<{title:string;url:string}>();
+  const [originals,setOriginals]=useState(false);
   const [editing,setEditing]=useState(false);
   const [query,setQuery]=useState('');
   const [filter,setFilter]=useState('all');
@@ -41,7 +43,7 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
   },[request]);
   function open(draft?:TemplateDraft){
     setEditing(true);setHistory(undefined);setVisibilityConfirm(false);
-    setSaved(draft);setForm(draft??empty);setPreview(undefined);setConfirm(false);setStatus('');setError('');
+    setSaved(draft);setForm(draft?{...draft,pricing:undefined}:empty);setPreview(undefined);setConfirm(false);setStatus('');setError('');
   }
   function update(values:Partial<TemplateSelection>){
     setForm(current=>({...current,...values,...(values.head||values.band?{review:{...current.review??pendingReview,status:'pending' as const}}:{})}));setPreview(undefined);setConfirm(false);setStatus('');
@@ -56,7 +58,13 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
       setStatus('草稿已保存。');
     }catch(error){setError(errorText(error));}finally{setBusy(false);}
   }
-  const dirty=!saved||Object.keys(empty).some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||JSON.stringify(form.review)!==JSON.stringify(saved.review);
+  function currentPricing(){
+    if(form.basePrice===undefined)return undefined;
+    const head=library?.sources.find(item=>item.id===form.head)?.surcharges??ZERO_COMPONENT_PRICES;
+    const band=library?.sources.find(item=>item.id===form.band)?.surcharges??ZERO_COMPONENT_PRICES;
+    return {base:form.basePrice,head:head.head,band:band.band,pave:form.pave?band.pave:0};
+  }
+  const dirty=!saved||form.basePrice!==saved.basePrice||(form.basePrice!==undefined&&JSON.stringify(currentPricing())!==JSON.stringify(saved.pricing))||Object.keys(empty).some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||JSON.stringify(form.review)!==JSON.stringify(saved.review);
   async function loadPreview(){
     if(!saved||dirty)return;
     setBusy(true);setError('');setReady(false);
@@ -93,27 +101,11 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
 
   if(!library)return <main>{error?<p role="alert">{error}</p>:<p role="status">正在读取部件库…</p>}</main>;
   const {sources,drafts,published}=library;
-  if(tab==='parts')return <main>
-    <header className="page-heading"><div><h1>部件库</h1><p>原款与已复核的导入版本都可用于组合模板。</p></div>
-      <p>{library.cloud?'Cloudflare R2 私有存储':'本机存储 · R2 未配置'}</p>
-    </header>
-    <div className="part-inventory">{sources.map(item=><article className="review" key={item.id}>
-      <h2>{item.name}</h2><p>{item.stock?'已发布原款':'复核版本 '+item.revision.slice(0,8)}</p>
-      <div className="downloads">
-        <button type="button" onClick={()=>setAsset({title:item.name+' · 整戒',url:item.model})}>预览整戒</button>
-        <a href={item.source}>下载源 OBJ</a><a href={item.model} download>整戒 GLB</a>
-        {item.editor&&<a href={'/'+item.editor} target="_blank" rel="noreferrer">打开原款编辑器</a>}
-      </div>
-      <details><summary>查看部件与下载</summary><div className="downloads">{Object.entries(labels).map(([key,label])=>{
-        const path=item.assets[key as keyof typeof labels];
-        return path&&<span className="part-asset-actions" key={key}>
-          <button type="button" onClick={()=>setAsset({title:item.name+' · '+label,url:path})}>预览{label}</button>
-          <a href={path} download aria-label={'下载'+label+' GLB'}>下载</a>
-        </span>;
-      })}</div></details>
-    </article>)}</div>
-    {asset&&<AssetPreview asset={asset} onClose={()=>setAsset(undefined)}/>}
-  </main>;
+  const prices=library.prices??{revision:'initial',components:{},bases:{}};
+  if(tab==='parts'||originals)return <ComponentLibrary key={tab} sources={sources} catalog={library.catalog??[]} prices={prices} originals={tab==='templates'} onBack={tab==='templates'?()=>setOriginals(false):undefined} onSave={async book=>{
+    const updated=await request<PriceBook>('/prices',post({...book,expectedRevision:prices.revision}));
+    setLibrary(current=>current&&({...current,prices:updated,sources:current.sources.map(source=>({...source,surcharges:updated.components[source.id]}))}));
+  }}/>;
 
   const head=sources.find(item=>item.id===form.head);
   const band=sources.find(item=>item.id===form.band);
@@ -128,8 +120,8 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
       (filter==='draft'&&draft.revision!==release?.revision)||(filter==='published'&&release&&!release.hidden)||(filter==='hidden'&&release?.hidden));
   });
   if(!editing)return <main>
-    <header className="page-heading"><div><h1>款式模板</h1><p>管理线上款式与待发布的修改。</p></div>
-      <button className="primary" onClick={()=>open()}>新建模板</button></header>
+    <header className="page-heading"><div><h1>商品管理</h1><p>组合部件、维护价格，预览后发布为商品。</p></div>
+      <div className="template-actions"><button onClick={()=>setOriginals(true)}>原款定价</button><button className="primary" onClick={()=>open()}>新建商品</button></div></header>
     <div className="library-toolbar"><input aria-label="搜索款式" placeholder="搜索款式名称" value={query} onChange={e=>setQuery(e.target.value)}/>
       <select aria-label="款式状态" value={filter} onChange={e=>setFilter(e.target.value)}>
         <option value="all">全部状态</option><option value="published">已发布</option><option value="draft">有草稿</option><option value="hidden">已下架</option>
@@ -139,7 +131,7 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
       return <button key={draft.id} className="template-row" onClick={()=>open(draft)}>
         {release&&!release.hidden?<img src={release.image} alt="" width="64" height="64"/>:<span className="template-placeholder">戒指</span>}
         <span><strong>{draft.name}</strong><small>{new Date(draft.updatedAt).toLocaleString('zh-CN')}</small></span>
-        <span className="template-state">{state(draft)}</span><span>编辑 →</span>
+        <span className="template-state">{state(draft)}{release?.pricing&&<small>{formatYuan(templateQuote(release.pricing,release.revision).amount)}</small>}</span><span>编辑 →</span>
       </button>;
     })}{!matching.length&&<p className="empty">没有符合条件的款式。</p>}</div>
   </main>;
@@ -147,7 +139,7 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
     {item.name}{item.stock?'':' · '+item.revision.slice(0,8)}
   </option>);
   return <main>
-    <header className="page-heading"><div><h1>款式模板</h1><p>选择部件，保存草稿，在编辑器核对后发布。</p></div>
+    <header className="page-heading"><div><h1>商品管理</h1><p>保存草稿不会改变线上商品，确认发布后价格与款式一起生效。</p></div>
       <button disabled={busy} onClick={()=>{if(!dirty||window.confirm('离开后会丢弃尚未保存的修改。继续返回？'))setEditing(false);}}>返回款式列表</button>
     </header>
     {error&&<p role="alert" className="error">{error}</p>}
@@ -178,6 +170,11 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
             }}><option value="">选择戒圈</option>{sourceOptions}</select></label>
           </fieldset>
           {(head||band)&&<p className="selection-note">主石与戒头配钻随戒头配套。{band?.assets.pave?'戒圈包含配套铺钻。':'当前戒圈为素面。'}</p>}
+          <section className="product-pricing" aria-label="商品定价">
+            <h2>商品定价</h2><label>模板基础价（元）<input type="number" min="0" max="1000000" step="0.01" required disabled={busy} value={form.basePrice??''} onChange={e=>update({basePrice:e.target.value===''?undefined:e.target.valueAsNumber})}/></label>
+            <dl>{(['head','band','pave'] as const).map((key,index)=><div key={key}><dt>{['戒头加价','戒圈加价','铺钻加价'][index]}</dt><dd>{formatYuan(currentPricing()?.[key]??0)}</dd></div>)}</dl>
+            <p>商品参考价 <strong>{currentPricing()?formatYuan(templateQuote(currentPricing()!,'draft').amount):'请填写基础价'}</strong></p><small>部件加价在部件管理中维护，发布时锁定本版价格。</small>
+          </section>
           <details className="review-rules">
             <summary>规则与工艺复核 · {form.review?.status==='approved'?'已通过':form.review?.status==='rejected'?'不通过':'待人工确认'}</summary>
             <p>复核当前戒头、戒圈及配钻组合。更换部件后，需要重新确认。</p>

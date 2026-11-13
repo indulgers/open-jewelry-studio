@@ -1,3 +1,4 @@
+import type {ComponentPrices,TemplatePrice} from '../pricing';
 import type {ReferenceAssets} from './part-library';
 
 export type LibrarySource = {
@@ -9,6 +10,7 @@ export type LibrarySource = {
   model: string;
   source: string;
   editor?: string;
+  surcharges?:ComponentPrices;
 };
 
 export type ManufacturingReview = {
@@ -25,6 +27,8 @@ export type TemplateSelection = {
   band: string;
   pave: string;
   review?:ManufacturingReview;
+  basePrice?:number;
+  pricing?:TemplatePrice;
 };
 export type TemplateDraft = TemplateSelection & {id: string; revision: string; updatedAt: string};
 export type ManagedTemplate = {
@@ -38,17 +42,13 @@ export type ManagedTemplate = {
   library: Record<string, ReferenceAssets>;
   publishedAt?: string;
   review?:ManufacturingReview;
+  basePrice?:number;
+  pricing?:TemplatePrice;
 };
-export type PublishedTemplate = Pick<ManagedTemplate,'id'|'name'|'revision'|'headName'|'bandName'> & {url: string; image: string};
+export type PublishedTemplate = Pick<ManagedTemplate,'id'|'name'|'revision'|'headName'|'bandName'|'pricing'> & {url: string; image: string};
 
 export async function fetchManaged<T>(path:string,signal:AbortSignal):Promise<T>{
-  if(import.meta.env.PROD){
-    try{
-      const response=await fetch('/api/model-admin/public/'+path,{signal});
-      if(response.ok)return await response.json();
-    }catch(error){if(signal.aborted)throw error;}
-  }
-  const response=await fetch('/models/managed/'+path,{signal});
+  const response=await fetch(((import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE)?'/api/model-admin/public/':'/models/managed/')+path,{signal});
   if(!response.ok)throw new Error('款式暂不可用。');
   return response.json();
 }

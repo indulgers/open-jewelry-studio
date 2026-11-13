@@ -1,6 +1,8 @@
 // @vitest-environment node
 import {createHash} from 'node:crypto';
 import {expect,it} from 'vitest';
+import {stockSources} from './templates.ts';
+import {RING_CATALOG} from '../../src/stone-first/catalog.ts';
 import {cloudAdmin} from './cloud-admin.ts';
 import type {CloudStore} from './cloud-store.ts';
 
@@ -21,6 +23,9 @@ it('serves only confirmed template revisions while keeping earlier releases read
     async remove(key){objects.delete(key);},
     async sign(key){return 'https://bucket.invalid/'+key;},
   };
+  await store.put('studio/v1/stock/library.json',JSON.stringify(stockSources),'application/json');
+  await store.put('studio/v1/stock/catalog.json',JSON.stringify(RING_CATALOG),'application/json');
+  await store.put('studio/v1/stock/assets.json',JSON.stringify({'models/parts/heads/test.glb':'verified'}),'application/json');
   const password='test-only-password-with-at-least-32-characters';
   const origin='https://studio.invalid';
   let cookie:string|undefined;
@@ -35,7 +40,15 @@ it('serves only confirmed template revisions while keeping earlier releases read
   const login=await request('session',{password});
   expect(login.status).toBe(204);
   cookie=login.headers.get('Set-Cookie')!.split(';')[0];
-  const selection={name:'新款',head:'ring-02',headStones:'ring-02',band:'ring-solstice',pave:''};
+  expect((await request('assets/models/parts/heads/test.glb')).status).toBe(302);
+  expect((await request('assets/stock/sources/ring-02/source.obj')).status).toBe(404);
+  expect((await request('public/storefront.json')).status).toBe(200);
+  const rates={components:{'ring-02':{head:10.1,band:0,pave:0},'ring-solstice':{head:0,band:20.2,pave:0}},bases:{}};
+  expect((await request('prices',{...rates,expectedRevision:'initial'})).status).toBe(401);
+  const initialRates=await (await request('prices',{...rates,expectedRevision:'initial'},true)).json();
+  expect((await request('prices',{...rates,expectedRevision:'initial'},true)).status).toBe(409);
+  expect((await request('prices',{...rates,components:{'ring-02':{head:-1,band:0,pave:0}},expectedRevision:initialRates.revision},true)).status).toBe(422);
+  const selection={basePrice:2000,name:'新款',head:'ring-02',headStones:'ring-02',band:'ring-solstice',pave:''};
   const save=await request('templates',selection,true);
   expect(save.status).toBe(201);
   const draft=await save.json();
@@ -51,14 +64,20 @@ it('serves only confirmed template revisions while keeping earlier releases read
   expect((await request('templates/'+path+'/publish',{confirmed:true,image},true)).status).toBe(201);
   expect((await request('public/'+path+'/cover.jpg')).status).toBe(302);
   expect((await request('public/'+path+'/original.obj')).status).toBe(404);
+  expect((await (await request('public/'+path+'/quote')).json()).amount).toBe(2030.3);
+  await request('prices',{...rates,components:{...rates.components,'ring-02':{head:20.1,band:0,pave:0}},expectedRevision:initialRates.revision},true);
+  expect((await (await request('public/'+path+'/quote')).json()).amount).toBe(2030.3);
   const update=await request('templates',{...selection,id:draft.id,expectedRevision:draft.revision,name:'新版'},true);
   const next=await update.json();
+  expect(next.pricing).toEqual({base:2000,head:20.1,band:20.2,pave:0});
   expect((await (await request('public/index.json')).json()).map((item:{revision:string})=>item.revision)).toEqual([draft.revision]);
   const nextPath=next.id+'/'+next.revision;
   expect((await request('public/'+nextPath+'/template.json')).status).toBe(404);
   expect((await request('templates/'+nextPath+'/publish',{confirmed:true,image},true)).status).toBe(201);
   expect((await (await request('public/index.json')).json()).map((item:{revision:string})=>item.revision)).toEqual([next.revision]);
   expect((await (await request('public/'+path+'/template.json')).json()).name).toBe('新款');
+  expect((await request('public/'+path+'/quote')).status).toBe(409);
+  expect((await (await request('public/'+nextPath+'/quote')).json()).amount).toBe(2040.3);
   const library=await (await request('library',undefined,true)).json();
   const state=library.published[0].stateRevision;
   const hide={hidden:true,expectedState:state};

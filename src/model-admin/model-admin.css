@@ -145,3 +145,24 @@ summary { cursor: pointer; font-size: 14px; }
   .template-state { grid-column: 2; }
   .template-row>span:last-child { display: none; }
 }
+
+.component-table { overflow-x: auto; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.component-table td, .component-table th { padding: 16px 12px; white-space: normal; }
+.component-table td small { display: block; margin-top: 4px; }
+.component-table td:first-child { width: 50%; }
+.component-table input { width: 120px; min-height: 40px; font-variant-numeric: tabular-nums; }
+.component-table button { border: 1px solid var(--border); border-radius: 5px; padding: 8px 12px; background: var(--paper); margin-right: 12px; }
+.price-save { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; padding: 20px 0; }
+.product-pricing { border-top: 1px solid var(--border); margin-top: 22px; padding-top: 18px; }
+.product-pricing h2 { font-size: 1rem; margin-bottom: 14px; }
+.product-pricing>label { max-width: 280px; }
+.product-pricing dl { display: flex; flex-wrap: wrap; gap: 28px; margin: 16px 0; }
+.product-pricing dt, .product-pricing small { font-size: .8rem; }
+.product-pricing dd { margin-top: 4px; font-variant-numeric: tabular-nums; }
+.product-pricing strong { font-size: 1.3rem; }
+@media(max-width:620px) {
+  .component-table td, .component-table th { padding: 12px 6px; }
+  .component-table input { width: 92px; }
+  .component-table td button { margin: 0 0 8px; }
+  .component-table td a { display: block; }
+}

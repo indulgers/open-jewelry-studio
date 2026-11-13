@@ -1,3 +1,4 @@
+import {componentTotal,sumMoney,templateQuote} from './pricing';
 import {useEffect,useState} from 'react';
 import {formatYuan} from './ring02/demoOrder';
 import {RING_CATALOG,type CatalogRing} from './catalog';
@@ -58,7 +59,7 @@ export function DiyHome({section}:{section?:'collection'|'story'}){
           <div className="diy-hero-tag">
             <img src={featured.image} alt="" width="60" height="60"/>
             <div><strong>{featured.name}</strong><span>银色 · 原款搭配</span></div>
-            <div className="hero-tag-price"><strong>{formatYuan(featured.price.base)}</strong><small>参考价</small></div>
+            <div className="hero-tag-price"><strong>{formatYuan(sumMoney([featured.price.base,componentTotal(featured.id,featured.id,featured.zones.includes('shoulder'))]))}</strong><small>参考价</small></div>
             <button onClick={()=>purchase(featured)}>直接选购</button>
           </div>
         </figure>
@@ -87,7 +88,7 @@ export function DiyHome({section}:{section?:'collection'|'story'}){
             <span className="collection-label">{template.collection}</span>
             <h3>{template.name}</h3><p className="template-subtitle">{template.subtitle}</p>
             <p className="template-description">{template.description}</p>
-            <p className="diy-reference-price"><strong>{formatYuan(template.price.base)}</strong><span>演示参考价</span></p>
+            <p className="diy-reference-price"><strong>{formatYuan(sumMoney([template.price.base,componentTotal(template.id,template.id,template.zones.includes('shoulder'))]))}</strong><span>演示参考价</span></p>
             <div className="product-actions"><a className="shop-button" href={template.editor} onMouseEnter={()=>warmEditor(template)} onFocus={()=>warmEditor(template)}>开始定制 <Arrow/></a><button className="shop-button shop-button-outline" onClick={()=>purchase(template)}>选购原款</button></div>
           </div>
         </article>)}
@@ -96,7 +97,7 @@ export function DiyHome({section}:{section?:'collection'|'story'}){
             <img src={template.image} alt={template.name+'三维模型图'} width={320} height={320} loading="lazy"/>
           </a>
           <div className="diy-template-details">
-            <h3>{template.name}</h3><p className="template-description">戒头 {template.headName} · 戒圈 {template.bandName}</p>
+            <h3>{template.name}</h3>{template.pricing&&<p className="diy-reference-price"><strong>{formatYuan(templateQuote(template.pricing,template.revision).amount)}</strong><span>参考价</span></p>}<p className="template-description">戒头 {template.headName} · 戒圈 {template.bandName}</p>
             <div className="product-actions"><a className="shop-button" href={templateRoute(template.id,template.revision)}>查看定制款式 <Arrow/></a></div>
           </div>
         </article>)}

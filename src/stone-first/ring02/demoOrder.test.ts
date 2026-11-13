@@ -55,4 +55,13 @@ describe('Ring 02 demo order',()=>{
       expect(demoOrders().find(item=>item.revision==='quota')).toMatchObject({thumbnail:undefined,quote:order.quote});
     }finally{storage.mockRestore();}
   });
+  it('preserves a managed product price snapshot with cents and identity',()=>{
+    const id='61398483-7ab5-47b9-9bdf-392e17b85b70';
+    const order:DemoOrder={templateRevision:id,revision:'managed-price-test',confirmedAt:'2026-11-12T12:00:00.000Z',
+      managed:{id,revision:id,name:'星环商品'},design:BASE_DESIGN,quote:{amount:2030.3,currency:'CNY',version:id,leadTime:'7–10 个工作日'},details:[],stones:[]};
+    addDemoOrder(order);
+    expect(demoOrders()[0]).toMatchObject({managed:order.managed,quote:order.quote});
+    expect(()=>addDemoOrder({...order,revision:'invalid',managed:{id:'invalid',revision:id,name:'无效'}})).toThrow('当前款式已停售');
+  });
+
 });

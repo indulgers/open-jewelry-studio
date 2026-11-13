@@ -78,3 +78,9 @@ html:has(.source-library[open]) {overflow: hidden}
   .ring02-main.source-ring-main .stone-first-preview {position: sticky; top: 64px; z-index: 1}
   .source-ring-main .stone-first-panel :is(button,input,summary) {scroll-margin-top: calc(154px + clamp(180px,51vw,310px))}
 }
+
+.managed-price { margin: 24px 0; display: grid; gap: 16px; }
+.managed-price strong { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.managed-price summary { cursor: pointer; }
+.managed-price dl { margin: 12px 0; }
+.managed-price dl>div { display: flex; justify-content: space-between; gap: 16px; padding: 5px 0; }

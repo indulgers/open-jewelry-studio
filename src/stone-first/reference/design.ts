@@ -1,3 +1,4 @@
+import {activePriceBook,componentTotal,sumMoney} from '../pricing';
 import {STONE_APPEARANCES,type StoneAppearance} from '../../viewer/stoneAppearance';
 import {engravingProblem} from '../ring02/engraving';
 import {RING_CATALOG,type CatalogRing} from '../catalog';
@@ -26,9 +27,9 @@ export function referenceParts(template:CatalogRing,design:ReferenceDesign){
 }
 
 export function referenceQuote(template:CatalogRing,design:ReferenceDesign){
-  const {head,zones}=referenceParts(template,design);
-  return {amount:head.price.base+zones.filter(zone=>design[zone]!=='diamond').length*100,
-    currency:'CNY' as const,version:head.price.version,leadTime:head.price.leadTime};
+  const {head,band,zones}=referenceParts(template,design);
+  return {amount:sumMoney([head.price.base,componentTotal(head.id,band.id,band.zones.includes('shoulder')),zones.filter(zone=>design[zone]!=='diamond').length*100]),
+    currency:'CNY' as const,version:activePriceBook?.revision??head.price.version,leadTime:head.price.leadTime};
 }
 export const ZONE_NAMES={center:'主石',halo:'外围配钻',shoulder:'戒臂配钻'};
 export function referenceDetails(template:CatalogRing,design:ReferenceDesign,pave?:PaveSummary|null){

@@ -21,7 +21,7 @@ test('publishes a reviewed part selection as an immutable consumer revision',asy
         await writeFile(file,'test asset');
       }
     }
-    const selection={name:'测试模板',head:head.id,headStones:head.id,band:band.id,pave:band.assets.pave?band.id:''};
+    const selection={basePrice:2000,name:'测试模板',head:head.id,headStones:head.id,band:band.id,pave:band.assets.pave?band.id:''};
     await expect(library.save({...selection,headStones:band.id})).rejects.toMatchObject({status:422});
     const draft=await library.save(selection);
     expect((await library.list()).published).toEqual([]);

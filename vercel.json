@@ -6,26 +6,26 @@
   "outputDirectory": "dist",
   "functions": {
     "api/jewelry-admin.ts": {
-      "includeFiles": "assets/source/ring-*/source.{obj,json}",
       "maxDuration": 60
     }
   },
   "rewrites": [
-    {"source": "/api/model-admin", "destination": "/api/jewelry-admin?path=models"},
-    {"source": "/api/model-admin/:path*", "destination": "/api/jewelry-admin?path=:path*"}
-  ],
-  "headers": [
     {
-      "source": "/models/parts/:kind/:file",
-      "headers": [
-        {"key": "Cache-Control", "value": "public, max-age=31536000, immutable"}
-      ]
+      "source": "/api/model-admin",
+      "destination": "/api/jewelry-admin?path=models"
     },
     {
-      "source": "/models/atelier/:ring/ring-:version.glb",
-      "headers": [
-        {"key": "Cache-Control", "value": "public, max-age=31536000, immutable"}
-      ]
+      "source": "/api/model-admin/:path*",
+      "destination": "/api/jewelry-admin?path=:path*"
+    },
+    {
+      "source": "/models/:path*",
+      "destination": "/api/jewelry-admin?path=assets/models/:path*"
+    },
+    {
+      "source": "/media/:path*",
+      "destination": "/api/jewelry-admin?path=assets/media/:path*"
     }
-  ]
+  ],
+  "headers": []
 }

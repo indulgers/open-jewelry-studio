@@ -54,3 +54,8 @@ input{caret-color:var(--accent)}
   .app-shell .shop-button{padding-inline:20px;font-size:13px;min-height:48px}
 }
 @media(max-width:360px){:root{--shop-gutter:16px}.app-shell .site-header{gap:4px;grid-template-columns:35px 1fr auto}.shop-header-actions{gap:6px}.shop-style select{max-width:105px}.shop-announcement{font-size:9px}}
+
+.storefront-loading { min-height: 55vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: #665e51; }
+.storefront-spinner { width: 24px; height: 24px; border: 2px solid #ddd7cb; border-top-color: #6c5428; border-radius: 50%; animation: storefront-spin .8s linear infinite; }
+@keyframes storefront-spin { to { transform: rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .storefront-spinner { animation: none; } }
