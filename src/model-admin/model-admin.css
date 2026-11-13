@@ -94,7 +94,7 @@ td select { width: 100%; }
 .template-form label:first-child { grid-column: 1 / -1; }
 .template-form input, .template-form select { width: 100%; min-height: 38px; border: 1px solid var(--border); padding: 7px 9px; border-radius: 4px; background: var(--paper); }
 .template-actions, .publish-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 14px; }
-.template-actions button:not(.primary), .publish-confirm button:not(.primary) { border: 1px solid var(--border); padding: 9px 12px; border-radius: 6px; background: var(--paper); }
+.page-heading button:not(.primary), .template-actions button:not(.primary), .publish-confirm button:not(.primary) { border: 1px solid var(--border); padding: 9px 12px; border-radius: 6px; background: var(--paper); }
 .template-preview { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px; }
 .template-preview .managed-editor { margin: 0; width: 100%; padding: 0; --editor-panel: 240px; --ink: #242018; --line: #e2dbcf; --panel: #fffefa; --tint: #f0eadc; }
 .template-preview .source-ring-main .stone-first-canvas { height: clamp(255px,37vw,440px); }
@@ -134,7 +134,9 @@ td select { width: 100%; }
 .part-inventory details { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
 summary { cursor: pointer; font-size: 14px; }
 .review-rules { border-top: 1px solid var(--border); margin-top: 22px; padding-top: 18px; }
-.review-rules p { color: #716b62; font-size: 14px; }
+.review-rules p { color: #716b62; font-size: 14px; margin: 10px 0; }
+.review-rules fieldset { align-items: start; }
+.review-rules label:last-child { grid-column: 1 / -1; }
 .review-rules textarea { width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font: inherit; }
 @media(max-width:620px) {
   .template-row { grid-template-columns: 48px 1fr; gap: 12px; padding: 16px; }
