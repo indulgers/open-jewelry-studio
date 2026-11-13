@@ -48,6 +48,7 @@ it('serves only confirmed template revisions while keeping earlier releases read
   const initialRates=await (await request('prices',{...rates,expectedRevision:'initial'},true)).json();
   expect((await request('prices',{...rates,expectedRevision:'initial'},true)).status).toBe(409);
   expect((await request('prices',{...rates,components:{'ring-02':{head:-1,band:0,pave:0}},expectedRevision:initialRates.revision},true)).status).toBe(422);
+  expect((await request('prices',{components:{},bases:{'ring-02':0},expectedRevision:initialRates.revision},true)).status).toBe(422);
   const selection={basePrice:2000,name:'新款',head:'ring-02',headStones:'ring-02',band:'ring-solstice',pave:''};
   const save=await request('templates',selection,true);
   expect(save.status).toBe(201);

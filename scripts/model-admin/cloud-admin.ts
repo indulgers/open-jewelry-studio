@@ -5,7 +5,7 @@ import {basename,join} from 'node:path';
 import {cloudStore,type CloudStore} from './cloud-store.ts';
 import {processModel} from './process.mjs';
 import {assetKeys,RequestError,selectTemplate,priceSelection,requirePrice,uuid,validateTemplateInput} from './templates.ts';
-import {isMoney,templateQuote,type PriceBook} from '../../src/stone-first/pricing.ts';
+import {isMoney,sumMoney,templateQuote,type PriceBook} from '../../src/stone-first/pricing.ts';
 import {RING_CATALOG} from '../../src/stone-first/catalog.ts';
 import {SEAT_Y,referencePartRole} from '../../src/stone-first/reference/parts.ts';
 import type {ReferenceAssets} from '../../src/stone-first/reference/part-library.ts';
@@ -122,8 +122,13 @@ function cloudLibrary(store:CloudStore){
       if(!options.some(source=>source.id===id)||!rates||typeof rates!=='object'||
         !['head','band','pave'].every(key=>isMoney((rates as any)[key])))fail(422,'请填写有效的部件加价。');
     }
-    const catalog=(await required<{id:string}[]>(root+'stock/catalog.json')).value;
+    const catalog=(await required<typeof RING_CATALOG>(root+'stock/catalog.json')).value;
     for(const [id,price] of Object.entries(input.bases))if(!catalog.some(item=>item.id===id)||!isMoney(price))fail(422,'请填写有效的原款基础价。');
+    for(const item of catalog){
+      const rates=input.components[item.id];
+      const total=sumMoney([input.bases[item.id]??item.price.base,rates?.head??0,rates?.band??0,item.zones.includes('shoulder')?(rates?.pave??0):0]);
+      if(!isMoney(total)||total<=0)fail(422,'原款合计须大于 0 且不超过 1000000 元。');
+    }
     const next={revision:randomUUID(),components:input.components,bases:input.bases};
     if(!await putJson(priceKey,next,{etag:prior?.etag??null}))fail(409,'价格已被修改，请刷新后再保存。');
     return next;
