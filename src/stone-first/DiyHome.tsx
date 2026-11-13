@@ -3,6 +3,7 @@ import {formatYuan} from './ring02/demoOrder';
 import {RING_CATALOG,type CatalogRing} from './catalog';
 import {purchaseOriginal} from './purchase';
 import {loadReferenceRing} from './reference/entry';
+import {fetchManaged,templateRoute,type PublishedTemplate} from './reference/managed-types';
 import './diy-home.css';
 
 function warmEditor(template:CatalogRing){void loadReferenceRing(template).catch(()=>{});}
@@ -14,6 +15,14 @@ export function DiyHome({section}:{section?:'collection'|'story'}){
   const [error,setError]=useState('');
   const featured=RING_CATALOG[0];
   const all=section==='collection';
+  const [published,setPublished]=useState<PublishedTemplate[]>([]);
+  useEffect(()=>{
+    if(!all)return;
+    const controller=new AbortController();
+    fetchManaged<PublishedTemplate[]>('index.json',controller.signal)
+      .then(items=>{if(Array.isArray(items))setPublished(items);}).catch(()=>{});
+    return ()=>controller.abort();
+  },[all]);
   const products=all?RING_CATALOG.filter(template=>template.listed):homeSelection;
   useEffect(()=>{
     if(section!=='story')return;
@@ -67,8 +76,8 @@ export function DiyHome({section}:{section?:'collection'|'story'}){
     </>}
     {all&&purchaseError}
     <section className="diy-collection shop-wrap" id="diy-collection" aria-labelledby="collection-title">
-      <div className="shop-section-heading"><div><h2 id="collection-title">{all?'全部款式':<>找到你的<em>心意之选</em></>}</h2><p>保留原款的美，也为你的想法留出空间。</p></div>{all?<span className="collection-count">{products.length} 款戒指 · 银色系列</span>:<a className="shop-text-link" href="#/diy/collection">查看全部款式 <Arrow/></a>}</div>
-      <div className="diy-template-grid" data-count={products.length}>
+      <div className="shop-section-heading"><div><h2 id="collection-title">{all?'全部款式':<>找到你的<em>心意之选</em></>}</h2><p>保留原款的美，也为你的想法留出空间。</p></div>{all?<span className="collection-count">{products.length+published.length} 款戒指 · 银色系列</span>:<a className="shop-text-link" href="#/diy/collection">查看全部款式 <Arrow/></a>}</div>
+      <div className="diy-template-grid" data-count={products.length+published.length}>
         {products.map(template=><article key={template.id} className="diy-template">
           <a href={template.editor} className="diy-template-image" onMouseEnter={()=>warmEditor(template)} onFocus={()=>warmEditor(template)} aria-label={'定制'+template.name}>
             <img src={template.image} alt={template.name+'三维模型原款图'} width={822} height={598} loading="lazy"/>
@@ -80,6 +89,15 @@ export function DiyHome({section}:{section?:'collection'|'story'}){
             <p className="template-description">{template.description}</p>
             <p className="diy-reference-price"><strong>{formatYuan(template.price.base)}</strong><span>演示参考价</span></p>
             <div className="product-actions"><a className="shop-button" href={template.editor} onMouseEnter={()=>warmEditor(template)} onFocus={()=>warmEditor(template)}>开始定制 <Arrow/></a><button className="shop-button shop-button-outline" onClick={()=>purchase(template)}>选购原款</button></div>
+          </div>
+        </article>)}
+        {all&&published.map(template=><article key={template.id} className="diy-template">
+          <a href={templateRoute(template.id,template.revision)} className="diy-template-image" aria-label={'查看'+template.name}>
+            <img src={template.image} alt={template.name+'三维模型图'} width={320} height={320} loading="lazy"/>
+          </a>
+          <div className="diy-template-details">
+            <h3>{template.name}</h3><p className="template-description">戒头 {template.headName} · 戒圈 {template.bandName}</p>
+            <div className="product-actions"><a className="shop-button" href={templateRoute(template.id,template.revision)}>查看定制款式 <Arrow/></a></div>
           </div>
         </article>)}
       </div>

@@ -8,7 +8,7 @@ import {prepareReferencePave} from './pave';
 type Part={name:string;geometry:BufferGeometry;offsetY?:number;sourceOrder?:number};
 export type SourceGem=Part&{zone:'center'|'halo'|'shoulder';matrix:Matrix4};
 export type RingAssembly={metal:Part[];stones:SourceGem[];frames:Record<RingView,RingFraming>};
-export type ReferenceHead=Pick<RingAssembly,'metal'|'stones'>&{id?:string;seatY:number};
+export type ReferenceHead=Pick<RingAssembly,'metal'|'stones'>&{id?:string;seatY:number;classified?:boolean;profileId?:string};
 export type ReferenceBand=ReferenceHead&{
   reflowShank?:BufferGeometry;paveRows:()=>ReturnType<typeof prepareReferencePave>;disposePave:()=>void;
 };
@@ -74,12 +74,14 @@ function ringFrames(metal:Part[],stones:SourceGem[]):Record<RingView,RingFraming
 }
 
 export function combineReferenceRings(head:ReferenceHead,band:ReferenceBand,adapter?:Part):RingAssembly{
-  const same=head.id===band.id;
-  if(head===band&&head.id!=='ring-starlight'&&'frames' in head)return head as ReferenceRing;
+  const headProfile=head.profileId??head.id;
+  const bandProfile=band.profileId??band.id;
+  const same=headProfile===bandProfile;
+  if(head===band&&headProfile!=='ring-starlight'&&'frames' in head)return head as ReferenceRing;
   // The older halo uses a different neck. Offsets were checked against the actual seat and stone meshes.
   const haloAsHead:Record<string,number>={'ring-floral':.072,'ring-rosette':.056,'ring-petal':.066,'ring-crown':.054,'ring-starlight':.15,'ring-solstice':.01};
   const haloAsBand:Record<string,number>={'ring-floral':-.092,'ring-rosette':-.043,'ring-petal':-.072,'ring-crown':-.17};
-  const adjustment=head.id==='ring-02'?(haloAsHead[band.id!]??0):band.id==='ring-02'?(haloAsBand[head.id!]??0):0;
+  const adjustment=headProfile==='ring-02'?(haloAsHead[bandProfile!]??0):bandProfile==='ring-02'?(haloAsBand[headProfile!]??0):0;
   const seatCorrection:Record<string,number>={
     'ring-starlight:ring-crown':.05,
     'ring-starlight:ring-starlight':.04,
@@ -90,21 +92,21 @@ export function combineReferenceRings(head:ReferenceHead,band:ReferenceBand,adap
     'ring-solstice:ring-crown':.10,
     'ring-solstice:ring-starlight':.10,
   };
-  const offsetY=band.seatY-head.seatY+adjustment+(seatCorrection[head.id+':'+band.id]??0);
-  const legacyCollars=head.id==='ring-02'?LEGACY_HALO_COLLARS[band.id!]:undefined;
+  const offsetY=band.seatY-head.seatY+adjustment+(seatCorrection[headProfile+':'+bandProfile]??0);
+  const legacyCollars=headProfile==='ring-02'?LEGACY_HALO_COLLARS[bandProfile!]:undefined;
   // Starlight brings its own collar. Keep the target band's structural shoulders.
-  const starlightCollars=head.id==='ring-starlight'?({
+  const starlightCollars=headProfile==='ring-starlight'?({
     'ring-floral':['metal_683'],'ring-rosette':['metal_40'],'ring-petal':['metal_14314'],
     'ring-crown':['metal_23','metal_26'],'ring-solstice':['metal_25'],
-  } as Record<string,string[]>)[band.id!]:undefined;
+  } as Record<string,string[]>)[bandProfile!]:undefined;
   const removedCollars=legacyCollars??starlightCollars;
-  const bandMetal=band.metal.filter(part=>isBandMetal(band.id!,part.name)&&!removedCollars?.includes(part.name));
-  const headMetal=head.metal.filter(part=>!isBandMetal(head.id!,part.name));
+  const bandMetal=band.metal.filter(part=>(band.classified||isBandMetal(band.id!,part.name))&&!removedCollars?.includes(part.name));
+  const headMetal=head.metal.filter(part=>head.classified||!isBandMetal(head.id!,part.name));
   if(legacyCollars){
     const shell=adapter??head.metal.find(part=>part.name==='reference_crown_shank_shell');
     if(shell)headMetal.push(shell);
   }
-  if(same&&head.id!=='ring-starlight'){
+  if(same&&headProfile!=='ring-starlight'){
     const order=(a:Part,b:Part)=>(a.sourceOrder??0)-(b.sourceOrder??0);
     const metal=[...headMetal,...bandMetal].sort(order);
     const stones=[...head.stones.filter(stone=>stone.zone!=='shoulder'),...band.stones.filter(stone=>stone.zone==='shoulder')].sort(order);

@@ -1,17 +1,21 @@
+import {modelAdmin} from './scripts/model-admin/server.ts';
 import { defineConfig } from 'vitest/config';
 import {RING02_PRECISION_ROUTE,RING02_TEMPLATE} from './src/stone-first/ring02/assets.ts';
 import {RING_CATALOG} from './src/stone-first/catalog.ts';
 import referenceParts from './src/stone-first/reference/part-assets.json' with {type:'json'};
 import {HALO_COMBINATION_ROUTE} from './src/stone-first/reference/parts.ts';
 import {STUDIO_ENVIRONMENT} from './src/viewer/studioEnvironment.ts';
+import {resolve} from 'node:path';
 
 export default defineConfig({
-  plugins: [{
+  build:{rolldownOptions:{input:{shop:resolve('index.html'),admin:resolve('admin/index.html')}}},
+  plugins: [modelAdmin(),{
     name:'jewelry-direct-entry-preload',
     apply:'build',
     transformIndexHtml:{
       order:'post',
-      handler(_html,{bundle}){
+      handler(_html,{bundle,path}){
+        if(path.includes('/admin/'))return;
         const halo=RING_CATALOG[0];
         const entries=[
           ...RING_CATALOG.map(template=>({...template,parametric:false})),

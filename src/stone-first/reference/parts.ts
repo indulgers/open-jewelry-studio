@@ -47,3 +47,9 @@ export function isShoulderBead(id:string|undefined,name:string){
   const part=Number(name.slice('metal_'.length));
   return id==='ring-petal'?part>=13944&&part<=14097:id==='ring-crown'&&part>=77&&part<=164;
 }
+
+export function referencePartRole(id:string,name:string){
+  return name==='reference_crown_shank_shell'?'adapter':/^gem_(center|halo)/.test(name)?'headStones'
+    :name.startsWith('gem_shoulder')||isShoulderBead(id,name)?'pave'
+    :name==='metal_reflow_shank'||isBandMetal(id,name)?'band':'head';
+}

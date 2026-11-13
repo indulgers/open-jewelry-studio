@@ -17,7 +17,7 @@ export type SourceFrame={ring:ReturnType<typeof applyReferencePave>;design:Refer
 const ignoreRender=()=>{};
 const preset=STUDIO_PRESETS.catalog;
 
-export function SourceLoading({template,retry}:{template:CatalogRing;retry?:()=>void}){
+export function SourceLoading({template,retry}:{template:Pick<CatalogRing,'name'>;retry?:()=>void}){
   return <div className="ring02-stage-loading" role={retry?'alert':'status'}>
     {!retry&&<span className="ring02-spinner" aria-hidden="true"/>}
     <span>{retry?'三维预览暂未加载。':template.name+'正在准备三维预览…'}</span>
@@ -48,7 +48,7 @@ function SourceScene({ring,design,environment,onReady}:SourceFrame&{environment:
   </group>;
 }
 export function SourceRingStage({ring,design,template,view,reset,captureRef,onCaptureReady}:SourceFrame&{
-  template:CatalogRing;view:RingView;reset:number;captureRef:RefObject<(()=>string|undefined)|null>;onCaptureReady:(frame:SourceFrame|null)=>void;
+  template:Pick<CatalogRing,'name'>;view:RingView;reset:number;captureRef:RefObject<(()=>string|undefined)|null>;onCaptureReady:(frame:SourceFrame|null)=>void;
 }){
   const [rendered,setRendered]=useState<SourceFrame|null>(null),[failed,setFailed]=useState(false);
   const ready=rendered?.ring===ring&&rendered.design===design;

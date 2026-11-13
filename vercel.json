@@ -4,6 +4,16 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build:public",
   "outputDirectory": "dist",
+  "functions": {
+    "api/jewelry-admin.ts": {
+      "includeFiles": "assets/source/ring-*/source.{obj,json}",
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {"source": "/api/model-admin", "destination": "/api/jewelry-admin?path=models"},
+    {"source": "/api/model-admin/:path*", "destination": "/api/jewelry-admin?path=:path*"}
+  ],
   "headers": [
     {
       "source": "/models/parts/:kind/:file",

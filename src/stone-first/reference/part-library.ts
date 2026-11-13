@@ -3,8 +3,8 @@ import {combineReferenceRings,prepareReferenceBand,prepareReferenceGeometry,type
 import {LEGACY_HALO_COLLARS} from './parts';
 import assets from './part-assets.json';
 
-type ReferenceAssets={
-  scale:number;axisY:number;seatY:number;head:string;band:string;headStones:string;pave?:string;adapter?:string;
+export type ReferenceAssets={
+  scale:number;axisY:number;seatY:number;head:string;band:string;headStones:string;pave?:string;adapter?:string;classified?:boolean;profileId?:string;
 };
 const library:Record<string,ReferenceAssets>=assets;
 type Geometry=ReturnType<typeof prepareReferenceGeometry>;
@@ -16,7 +16,7 @@ async function readPart(url:string,signal:AbortSignal){
   return response.arrayBuffer();
 }
 
-export function createReferenceLibrary(read:ReadPart=readPart){
+export function createReferenceLibrary(read:ReadPart=readPart, sources:Record<string,ReferenceAssets>=library){
   const controller=new AbortController();
   const geometry=new Map<string,Promise<Geometry>>();
   const heads=new Map<string,Promise<ReferenceHead>>();
@@ -32,7 +32,7 @@ export function createReferenceLibrary(read:ReadPart=readPart){
   }
 
   function part(source:ReferenceAssets,url:string):Promise<Geometry>{
-    return cached(geometry,url,async()=>{
+    return cached(geometry,JSON.stringify([url,source.scale,source.axisY]),async()=>{
       const data=await read(url,controller.signal);
       controller.signal.throwIfAborted();
       const {scene}=await jewelryModelLoader().parseAsync(data,'');
@@ -45,16 +45,16 @@ export function createReferenceLibrary(read:ReadPart=readPart){
 
   function head(id:string){
     return cached(heads,id,async()=>{
-      const source=library[id];
+      const source=sources[id];
       const [metal,stones]=await Promise.all([part(source,source.head),part(source,source.headStones)]);
       if(!metal.metal.length||!stones.stones.some(stone=>stone.zone==='center'))throw new Error('戒头缺少主石或镶座');
-      return {id,seatY:source.seatY,metal:metal.metal,stones:stones.stones};
+      return {id,classified:source.classified,profileId:source.profileId,seatY:source.seatY,metal:metal.metal,stones:stones.stones};
     });
   }
 
   function band(id:string){
     return cached(bands,id,async()=>{
-      const source=library[id];
+      const source=sources[id];
       const [base,pave,adapter]=await Promise.all([
         part(source,source.band),
         source.pave&&part(source,source.pave),
@@ -62,14 +62,15 @@ export function createReferenceLibrary(read:ReadPart=readPart){
       ]);
       const metal=[...base.metal,...(pave?pave.metal:[]),...(adapter?adapter.metal:[])].sort(order);
       if(!metal.length)throw new Error('戒圈缺少金属结构');
-      return prepareReferenceBand({id,seatY:source.seatY,metal,stones:pave?pave.stones:[],reflowShank:base.reflowShank});
+      return prepareReferenceBand({id,classified:source.classified,profileId:source.profileId,seatY:source.seatY,metal,stones:pave?pave.stones:[],reflowShank:base.reflowShank});
     });
   }
 
   return {
     async load(headId:string,bandId:string){
-      const needsAdapter=headId==='ring-02'&&Object.hasOwn(LEGACY_HALO_COLLARS,bandId);
-      const source=library[headId];
+      const source=sources[headId];
+      const needsAdapter=(source.profileId??headId)==='ring-02'&&
+        Object.hasOwn(LEGACY_HALO_COLLARS,sources[bandId].profileId??bandId);
       const [selectedHead,selectedBand,adapter]=await Promise.all([
         head(headId),band(bandId),
         needsAdapter&&source.adapter?part(source,source.adapter):undefined,

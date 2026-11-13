@@ -1,11 +1,10 @@
 import {createHash} from 'node:crypto';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {MeshoptDecoder,MeshoptEncoder} from 'meshoptimizer';
-import {RING_CATALOG} from '../src/stone-first/catalog.ts';
-import {isBandMetal,isShoulderBead,SEAT_Y} from '../src/stone-first/reference/parts.ts';
 
 const codec='EXT_meshopt_compression';
-const output='public/models/parts';
 await Promise.all([MeshoptDecoder.ready,MeshoptEncoder.ready]);
 
 function chunk(type,bytes,fill=0){
@@ -16,7 +15,7 @@ function chunk(type,bytes,fill=0){
   return Buffer.concat([header,padded]);
 }
 
-function writePart(kind,id,source,bin,selected,decodedViews){
+function writePart(output,kind,id,source,bin,selected,decodedViews){
   if(!selected.length)return undefined;
   const data=[],bufferViews=[],accessors=[],meshes=[],nodes=[];
   let compressed=0,decoded=0;
@@ -72,9 +71,7 @@ function writePart(kind,id,source,bin,selected,decodedViews){
   return '/models/parts/'+path;
 }
 
-const library={};
-for(const {id,model} of RING_CATALOG){
-  const bytes=readFileSync('public'+model);
+export function splitPackedRing(bytes,{id,seatY,classify,output}){
   const jsonSize=bytes.readUInt32LE(12);
   const source=JSON.parse(bytes.toString('utf8',20,20+jsonSize));
   const bin=bytes.subarray(28+jsonSize);
@@ -85,19 +82,24 @@ for(const {id,model} of RING_CATALOG){
       const {min,max}=source.accessors[primitive.attributes.POSITION];
       minX=Math.min(minX,min[0]);maxX=Math.max(maxX,max[0]);minY=Math.min(minY,min[1]);
     }
-    const name=node.name;
-    const role=name==='reference_crown_shank_shell'?'adapter':/^gem_(center|halo)/.test(name)?'headStones'
-      :name.startsWith('gem_shoulder')||isShoulderBead(id,name)?'pave'
-      :name==='metal_reflow_shank'||isBandMetal(id,name)?'band':'head';
-    groups[role].push([order,node]);
+    groups[classify(node.name)].push([order,node]);
   });
   const width=maxX-minX,scale=2/width,axisY=minY+width/2,decodedViews=new Map();
-  library[id]={scale,axisY,seatY:(SEAT_Y[id]-axisY)*scale,
-    head:writePart('heads',id,source,bin,groups.head,decodedViews),
-    band:writePart('bands',id,source,bin,groups.band,decodedViews),
-    headStones:writePart('stones',id+'-head',source,bin,groups.headStones,decodedViews),
-    pave:writePart('stones',id+'-pave',source,bin,groups.pave,decodedViews),
-    adapter:writePart('bands',id+'-adapter',source,bin,groups.adapter,decodedViews),
+  if(!Number.isFinite(scale)||scale<=0)throw new Error('戒圈宽度无效。');
+  return {scale,axisY,seatY:(seatY-axisY)*scale,
+    head:writePart(output,'heads',id,source,bin,groups.head,decodedViews),
+    band:writePart(output,'bands',id,source,bin,groups.band,decodedViews),
+    headStones:writePart(output,'stones',id+'-head',source,bin,groups.headStones,decodedViews),
+    pave:writePart(output,'stones',id+'-pave',source,bin,groups.pave,decodedViews),
+    adapter:writePart(output,'bands',id+'-adapter',source,bin,groups.adapter,decodedViews),
   };
 }
-writeFileSync('src/stone-first/reference/part-assets.json',JSON.stringify(library,null,2)+'\n');
+
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+  const {RING_CATALOG}=await import('../src/stone-first/catalog.ts');
+  const {SEAT_Y,referencePartRole}=await import('../src/stone-first/reference/parts.ts');
+  const library=Object.fromEntries(RING_CATALOG.map(({id,model})=>[id,splitPackedRing(readFileSync('public'+model),{
+    id,seatY:SEAT_Y[id],output:'public/models/parts',classify:name=>referencePartRole(id,name),
+  })]));
+  writeFileSync('src/stone-first/reference/part-assets.json',JSON.stringify(library,null,2)+'\n');
+}
