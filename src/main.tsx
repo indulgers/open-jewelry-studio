@@ -1,3 +1,5 @@
+import type {PublishedTemplate} from './stone-first/reference/managed-types';
+import {RING02_TEMPLATE} from './stone-first/ring02/assets';
 import {createRoot} from 'react-dom/client';
 import {RING_CATALOG,type CatalogRing} from './stone-first/catalog';
 import parts from './stone-first/reference/part-assets.json';
@@ -12,16 +14,18 @@ async function start(){
     if((import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE)){
       const response=await fetch('/api/model-admin/public/storefront.json');
       if(!response.ok)throw new Error('款式暂不可用');
-      const data=await response.json() as {catalog:CatalogRing[];parts:typeof parts;prices:PriceBook};
+      const data=await response.json() as {catalog:CatalogRing[];parts:typeof parts;prices:PriceBook;products:PublishedTemplate[]};
       for(const current of RING_CATALOG){
         const next=data.catalog.find(item=>item.id===current.id);
         if(!next||!data.parts[current.id as keyof typeof parts])throw new Error('款式资料不完整');
         const {price,listed,...fields}=next;
-        Object.assign(current,fields);
-        Object.assign(current.price,price,{base:data.prices.bases[current.id]??price.base,version:data.prices.revision});
+        const product=data.products.find(item=>item.catalogId===current.id);
+        Object.assign(current,fields,product?{name:product.name,description:product.description??'',image:product.image}:{});
+        if(current.id==='ring-02')Object.assign(RING02_TEMPLATE,{listed:!!product});else current.listed=!!product;
+        Object.assign(current.price,price,{base:product?.pricing?.base??price.base,version:product?.revision??price.version});
       }
       Object.assign(parts,data.parts);
-      setPriceBook(data.prices);
+      setPriceBook({...data.prices,components:Object.fromEntries(data.products.filter(item=>item.catalogId&&item.pricing).map(item=>[item.catalogId!,{head:item.pricing!.head,band:item.pricing!.band,pave:item.pricing!.pave}]))});
     }
     const {default:App}=await import('./App');
     root.render(<App/>);

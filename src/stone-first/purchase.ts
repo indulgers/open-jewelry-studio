@@ -1,3 +1,6 @@
+import {fetchManaged,type PublishedTemplate} from './reference/managed-types';
+import {templateQuote} from './pricing';
+import type {DemoOrder} from './ring02/demoOrder';
 import type {CatalogRing} from './catalog';
 import {RING02_TEMPLATE} from './ring02/assets';
 import {addDemoOrder,estimateRing02} from './ring02/demoOrder';
@@ -19,4 +22,13 @@ export function purchaseOriginal(template:CatalogRing){
     ]:referenceDetails(template,ORIGINAL_REFERENCE),
     stones:[],
   });
+}
+
+export async function purchasePublished(product:PublishedTemplate){
+  if(!product.pricing)throw new Error('此款暂未报价。');
+  const quote=await fetchManaged<DemoOrder['quote']>(product.id+'/'+product.revision+'/quote',new AbortController().signal);
+  if(quote.amount!==templateQuote(product.pricing,product.revision).amount||quote.version!==product.revision)throw new Error('商品价格已更新，请刷新后重新选购。');
+  addDemoOrder({templateRevision:product.revision,revision:crypto.randomUUID(),confirmedAt:new Date().toISOString(),
+    managed:{id:product.id,revision:product.revision,name:product.name},design:ORIGINAL_REFERENCE,quote,stones:[],
+    details:[{label:'款式',value:product.name},{label:'搭配',value:'原款搭配'},{label:'金属外观',value:'银色'}]});
 }

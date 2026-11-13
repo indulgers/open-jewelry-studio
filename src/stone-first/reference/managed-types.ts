@@ -20,7 +20,8 @@ export type ManufacturingReview = {
   step:number|null;
   note:string;
 };
-export type TemplateSelection = {
+export type ProductPresentation={description?:string;cover?:string;order?:number;featured?:boolean;catalogId?:string;campaign?:string;collection?:string};
+export type TemplateSelection = ProductPresentation&{
   name: string;
   head: string;
   headStones: string;
@@ -31,7 +32,7 @@ export type TemplateSelection = {
   pricing?:TemplatePrice;
 };
 export type TemplateDraft = TemplateSelection & {id: string; revision: string; updatedAt: string};
-export type ManagedTemplate = {
+export type ManagedTemplate = ProductPresentation&{
   id: string;
   revision: string;
   name: string;
@@ -45,7 +46,7 @@ export type ManagedTemplate = {
   basePrice?:number;
   pricing?:TemplatePrice;
 };
-export type PublishedTemplate = Pick<ManagedTemplate,'id'|'name'|'revision'|'headName'|'bandName'|'pricing'> & {url: string; image: string};
+export type PublishedTemplate = Pick<ManagedTemplate,'id'|'name'|'revision'|'headName'|'bandName'|'pricing'|'description'|'order'|'featured'|'catalogId'|'campaign'|'collection'> & {url: string; image: string};
 
 export async function fetchManaged<T>(path:string,signal:AbortSignal):Promise<T>{
   const response=await fetch(((import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE)?'/api/model-admin/public/':'/models/managed/')+path,{signal});
@@ -54,3 +55,7 @@ export async function fetchManaged<T>(path:string,signal:AbortSignal):Promise<T>
 }
 
 export const templateRoute = (id: string, revision: string) => '#/stonefirst/template/'+id+'/'+revision;
+
+export const productRoute=(product:PublishedTemplate)=>product.catalogId?'#/stonefirst/'+product.catalogId:templateRoute(product.id,product.revision);
+export function orderedProducts(products:PublishedTemplate[]){return [...products].sort((a,b)=>(a.order??100)-(b.order??100)||a.id.localeCompare(b.id));}
+export const featuredProducts=(products:PublishedTemplate[])=>orderedProducts(products).filter(product=>product.featured).slice(0,5);

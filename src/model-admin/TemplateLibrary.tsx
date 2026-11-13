@@ -1,5 +1,5 @@
 import {lazy,Suspense,useCallback,useEffect,useRef,useState,type FormEvent} from 'react';
-import {templateRoute,type LibrarySource,type ManagedTemplate,type PublishedTemplate,type TemplateDraft,type TemplateSelection} from '../stone-first/reference/managed-types';
+import {productRoute,type LibrarySource,type ManagedTemplate,type PublishedTemplate,type TemplateDraft,type TemplateSelection} from '../stone-first/reference/managed-types';
 
 import ComponentLibrary from './ComponentLibrary';
 import type {CatalogRing} from '../stone-first/catalog';
@@ -17,7 +17,6 @@ const errorText=(error:unknown)=>error instanceof Error?error.message:'操作失
 const post=(data:object)=>({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
 
 export default function TemplateLibrary({request,tab}:{request:Request;tab:'parts'|'templates'}){
-  const [originals,setOriginals]=useState(false);
   const [editing,setEditing]=useState(false);
   const [query,setQuery]=useState('');
   const [filter,setFilter]=useState('all');
@@ -64,7 +63,24 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
     const band=library?.sources.find(item=>item.id===form.band)?.surcharges??ZERO_COMPONENT_PRICES;
     return {base:form.basePrice,head:head.head,band:band.band,pave:form.pave?band.pave:0};
   }
-  const dirty=!saved||form.basePrice!==saved.basePrice||(form.basePrice!==undefined&&JSON.stringify(currentPricing())!==JSON.stringify(saved.pricing))||Object.keys(empty).some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||JSON.stringify(form.review)!==JSON.stringify(saved.review);
+  const dirty=!saved||['description','cover','order','featured'].some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||form.basePrice!==saved.basePrice||(form.basePrice!==undefined&&JSON.stringify(currentPricing())!==JSON.stringify(saved.pricing))||Object.keys(empty).some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||JSON.stringify(form.review)!==JSON.stringify(saved.review);
+  async function uploadCover(file?:File){
+    if(!file)return;
+    setBusy(true);setError('');
+    try{
+      if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10*1024*1024)throw new Error('请选择 10 MB 以内的 JPG、PNG 或 WebP 图片。');
+      const bitmap=await createImageBitmap(file);
+      const canvas=document.createElement('canvas');
+      const scale=Math.min(1,1600/Math.max(bitmap.width,bitmap.height));
+      canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);
+      const context=canvas.getContext('2d');
+      if(!context){bitmap.close();throw new Error('无法处理图片，请重试。');}
+      context.fillStyle='#ffffff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();
+      const image=canvas.toDataURL('image/jpeg',.85);
+      const uploaded=await request<{id:string}>('/covers',post({image}));
+      update({cover:uploaded.id});setStatus('封面已上传，保存草稿并发布后才会更新前台。');
+    }catch(error){setError(errorText(error));}finally{setBusy(false);}
+  }
   async function loadPreview(){
     if(!saved||dirty)return;
     setBusy(true);setError('');setReady(false);
@@ -102,7 +118,7 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
   if(!library)return <main>{error?<p role="alert">{error}</p>:<p role="status">正在读取部件库…</p>}</main>;
   const {sources,drafts,published}=library;
   const prices=library.prices??{revision:'initial',components:{},bases:{}};
-  if(tab==='parts'||originals)return <ComponentLibrary key={tab} sources={sources} catalog={library.catalog??[]} prices={prices} originals={tab==='templates'} onBack={tab==='templates'?()=>setOriginals(false):undefined} onSave={async book=>{
+  if(tab==='parts')return <ComponentLibrary key={tab} sources={sources} prices={prices} onSave={async book=>{
     const updated=await request<PriceBook>('/prices',post({...book,expectedRevision:prices.revision}));
     setLibrary(current=>current&&({...current,prices:updated,sources:current.sources.map(source=>({...source,surcharges:updated.components[source.id]}))}));
   }}/>;
@@ -121,17 +137,18 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
   });
   if(!editing)return <main>
     <header className="page-heading"><div><h1>商品管理</h1><p>组合部件、维护价格，预览后发布为商品。</p></div>
-      <div className="template-actions"><button onClick={()=>setOriginals(true)}>原款定价</button><button className="primary" onClick={()=>open()}>新建商品</button></div></header>
+      <div className="template-actions"><button className="primary" onClick={()=>open()}>新建商品</button></div></header>
     <div className="library-toolbar"><input aria-label="搜索款式" placeholder="搜索款式名称" value={query} onChange={e=>setQuery(e.target.value)}/>
       <select aria-label="款式状态" value={filter} onChange={e=>setFilter(e.target.value)}>
         <option value="all">全部状态</option><option value="published">已发布</option><option value="draft">有草稿</option><option value="hidden">已下架</option>
       </select></div>
+    <p className="selection-note">首页精选 {published.filter(item=>!item.hidden&&item.featured).length} 款，建议保持 4–5 款。数字越小，展示越靠前。</p>
     <div className="template-list">{matching.map(draft=>{
       const release=published.find(item=>item.id===draft.id);
       return <button key={draft.id} className="template-row" onClick={()=>open(draft)}>
         {release&&!release.hidden?<img src={release.image} alt="" width="64" height="64"/>:<span className="template-placeholder">戒指</span>}
         <span><strong>{draft.name}</strong><small>{new Date(draft.updatedAt).toLocaleString('zh-CN')}</small></span>
-        <span className="template-state">{state(draft)}{release?.pricing&&<small>{formatYuan(templateQuote(release.pricing,release.revision).amount)}</small>}</span><span>编辑 →</span>
+        <span className="template-state">{state(draft)}{release?.featured&&!release.hidden?' · 首页精选':''}{release?.pricing&&<small>{formatYuan(templateQuote(release.pricing,release.revision).amount)}</small>}</span><span>编辑 →</span>
       </button>;
     })}{!matching.length&&<p className="empty">没有符合条件的款式。</p>}</div>
   </main>;
@@ -161,6 +178,18 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
         <form className="template-form" onSubmit={save}>
           <fieldset disabled={busy}>
             <label>款式名称<input value={form.name} required maxLength={60} onChange={event=>update({name:event.target.value})}/></label>
+          </fieldset>
+          <fieldset className="product-presentation" disabled={busy}>
+            <label>商品介绍<textarea rows={3} maxLength={1000} value={form.description??''} onChange={e=>update({description:e.target.value})} placeholder="介绍款式轮廓、细节和佩戴感受"/></label>
+            <label>展示排序<input type="number" min="0" max="9999" step="1" value={form.order??100} onChange={e=>update({order:e.target.valueAsNumber})}/><small>数字越小越靠前，相同数字按商品编号排序。</small></label>
+            <label className="featured-toggle"><input type="checkbox" checked={form.featured??false} onChange={e=>update({featured:e.target.checked})}/>选为首页精选（最多 5 款）</label>
+            <div className="product-cover">
+              <div>{(form.cover||(form.cover===undefined&&current?.image))&&<img src={form.cover?(form.cover.startsWith('/media/')?form.cover:'/api/model-admin/covers/'+form.cover):current?.image} alt="商品封面预览"/>}</div>
+              <div><strong>商品封面</strong><p>上传图片，或在发布时采用当前 3D 画面。</p><label className="cover-upload">上传封面<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e=>{void uploadCover(e.target.files?.[0]);e.target.value='';}}/></label>
+              <button type="button" disabled={busy||!form.cover} onClick={()=>update({cover:''})}>发布时使用 3D 截图</button></div>
+            </div>
+          </fieldset>
+          <fieldset disabled={busy}>
             <label>戒头<select required value={form.head} onChange={event=>update({head:event.target.value,headStones:event.target.value})}>
               <option value="">选择戒头</option>{sourceOptions}
             </select></label>
@@ -193,11 +222,12 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
           <div className="template-actions">
             <button className="primary" disabled={busy||!dirty}>保存草稿</button>
             <button type="button" disabled={busy||dirty||!!preview} onClick={loadPreview}>在编辑器预览</button>
-            {current&&!current.hidden&&<a href={'/'+templateRoute(current.id,current.revision)} target="_blank" rel="noreferrer">查看线上版本</a>}
+            {current&&!current.hidden&&<a href={'/'+productRoute(current)} target="_blank" rel="noreferrer">查看线上版本</a>}
           </div>
         </form>
         {status&&<p role="status">{status}</p>}
         {preview&&<div className="template-preview">
+          <section className="product-card-preview" aria-label="商品展示预览"><h2>{preview.name}</h2><p>{preview.description||'尚未填写商品介绍'}</p><p>{preview.featured?'首页精选 · ':''}排序 {preview.order??100}</p></section>
           <Suspense fallback={<p role="status">正在打开编辑器…</p>}>
             <Preview key={preview.revision} template={preview} onReady={onReady} thumbnailRef={thumbnail}/>
           </Suspense>

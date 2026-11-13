@@ -1,4 +1,4 @@
-import {activePriceBook,componentTotal,isMoney,sumMoney} from '../pricing';
+import {componentTotal,isMoney,sumMoney} from '../pricing';
 import type {FittedStone,RingDesign,paveSpacing} from './model';
 import {RING02_TEMPLATE} from './assets';
 import {RING_CATALOG} from '../catalog';
@@ -16,7 +16,7 @@ export function estimateRing02(design:RingDesign){
     +(spec.appearance==='diamond'?0:price.coloredAccent);
   const amount=price.base+price.head[design.head]+(design.center.size>1?price.centerLarge:0)
     +(design.head==='halo'?accent(design.halo):0)+accent(design.shoulder)+(design.reach>1?price.longShoulder:0);
-  return {amount:sumMoney([amount,componentTotal('ring-02','ring-02',true)]),currency:'CNY' as const,version:activePriceBook?.revision??price.version,leadTime:price.leadTime};
+  return {amount:sumMoney([amount,componentTotal('ring-02','ring-02',true)]),currency:'CNY' as const,version:price.version,leadTime:price.leadTime};
 }
 
 export type Detail={label:string;value:string};

@@ -49,7 +49,13 @@ it('serves only confirmed template revisions while keeping earlier releases read
   expect((await request('prices',{...rates,expectedRevision:'initial'},true)).status).toBe(409);
   expect((await request('prices',{...rates,components:{'ring-02':{head:-1,band:0,pave:0}},expectedRevision:initialRates.revision},true)).status).toBe(422);
   expect((await request('prices',{components:{},bases:{'ring-02':0},expectedRevision:initialRates.revision},true)).status).toBe(422);
-  const selection={basePrice:2000,name:'新款',head:'ring-02',headStones:'ring-02',band:'ring-solstice',pave:''};
+  const image='data:image/jpeg;base64,'+Buffer.from([0xff,0xd8,0xff,0xd9]).toString('base64');
+  const coverImage='data:image/jpeg;base64,'+Buffer.from([0xff,0xd8,0,0xff,0xd9]).toString('base64');
+  expect((await request('covers',{image:coverImage})).status).toBe(401);
+  const uploaded=await (await request('covers',{image:coverImage},true)).json();
+  expect((await request('covers/'+uploaded.id)).status).toBe(401);
+  expect((await request('covers/'+uploaded.id,undefined,true)).status).toBe(302);
+  const selection={description:'初版介绍',cover:uploaded.id,order:20,featured:true,basePrice:2000,name:'新款',head:'ring-02',headStones:'ring-02',band:'ring-solstice',pave:''};
   const save=await request('templates',selection,true);
   expect(save.status).toBe(201);
   const draft=await save.json();
@@ -60,7 +66,6 @@ it('serves only confirmed template revisions while keeping earlier releases read
   expect((await request('public/'+path+'/template.json')).status).toBe(404);
   await store.remove('studio/v1/releases/'+path+'/template.json');
   expect(await (await request('public/index.json')).json()).toEqual([]);
-  const image='data:image/jpeg;base64,'+Buffer.from([0xff,0xd8,0xff,0xd9]).toString('base64');
   expect((await request('templates/'+path+'/publish',{image},true)).status).toBe(400);
   expect((await request('templates/'+path+'/publish',{confirmed:true,image},true)).status).toBe(201);
   expect((await request('public/'+path+'/cover.jpg')).status).toBe(302);
@@ -68,15 +73,20 @@ it('serves only confirmed template revisions while keeping earlier releases read
   expect((await (await request('public/'+path+'/quote')).json()).amount).toBe(2030.3);
   await request('prices',{...rates,components:{...rates.components,'ring-02':{head:20.1,band:0,pave:0}},expectedRevision:initialRates.revision},true);
   expect((await (await request('public/'+path+'/quote')).json()).amount).toBe(2030.3);
-  const update=await request('templates',{...selection,id:draft.id,expectedRevision:draft.revision,name:'新版'},true);
+  const update=await request('templates',{...selection,id:draft.id,expectedRevision:draft.revision,name:'新版',description:'新版介绍',order:10,featured:false,cover:''},true);
   const next=await update.json();
   expect(next.pricing).toEqual({base:2000,head:20.1,band:20.2,pave:0});
   expect((await (await request('public/index.json')).json()).map((item:{revision:string})=>item.revision)).toEqual([draft.revision]);
+  const oldListing=(await (await request('public/index.json')).json())[0];
+  expect(oldListing).toMatchObject({description:'初版介绍',order:20,featured:true});
+  expect(Buffer.from(objects.get('studio/v1/releases/'+path+'/cover.jpg')!.bytes)).toEqual(Buffer.from([0xff,0xd8,0,0xff,0xd9]));
   const nextPath=next.id+'/'+next.revision;
   expect((await request('public/'+nextPath+'/template.json')).status).toBe(404);
   expect((await request('templates/'+nextPath+'/publish',{confirmed:true,image},true)).status).toBe(201);
   expect((await (await request('public/index.json')).json()).map((item:{revision:string})=>item.revision)).toEqual([next.revision]);
   expect((await (await request('public/'+path+'/template.json')).json()).name).toBe('新款');
+  expect((await (await request('public/index.json')).json())[0]).toMatchObject({description:'新版介绍',order:10,featured:false});
+  expect(Buffer.from(objects.get('studio/v1/releases/'+nextPath+'/cover.jpg')!.bytes)).toEqual(Buffer.from([0xff,0xd8,0xff,0xd9]));
   expect((await request('public/'+path+'/quote')).status).toBe(409);
   expect((await (await request('public/'+nextPath+'/quote')).json()).amount).toBe(2040.3);
   const library=await (await request('library',undefined,true)).json();
@@ -100,9 +110,17 @@ it('serves only confirmed template revisions while keeping earlier releases read
   expect((await request('templates/'+rejected.id+'/'+rejected.revision+'/publish',{confirmed:true,image},true)).status).toBe(422);
   expect((await (await request('public/index.json')).json())[0].revision).toBe(next.revision);
   expect((await (await request('public/'+nextPath+'/template.json')).json()).review).toBeUndefined();
-  const pending=await (await request('templates',{...selection,id:draft.id,expectedRevision:rejected.revision,review:{...review,status:'pending'}},true)).json();
+  const pending=await (await request('templates',{...selection,id:draft.id,expectedRevision:rejected.revision,featured:false,review:{...review,status:'pending'}},true)).json();
   const pendingPath=pending.id+'/'+pending.revision;
   expect((await request('templates/'+pendingPath+'/publish',{confirmed:true,image},true)).status).toBe(201);
   expect((await (await request('public/'+pendingPath+'/template.json')).json()).review.status).toBe('pending');
+
+  for(let index=0;index<6;index++){
+    const candidate=await (await request('templates',{...selection,name:'精选'+index,order:5-index},true)).json();
+    expect((await request('templates/'+candidate.id+'/'+candidate.revision+'/publish',{confirmed:true,image},true)).status).toBe(index<5?201:422);
+  }
+  const products=await (await request('public/index.json')).json();
+  expect(products.filter((item:any)=>item.featured)).toHaveLength(5);
+  expect(products.map((item:any)=>item.order)).toEqual([1,2,3,4,5,20]);
 
 });

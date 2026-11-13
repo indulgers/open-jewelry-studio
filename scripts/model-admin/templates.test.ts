@@ -50,3 +50,12 @@ test('requires a complete size range and evidence before approving a combination
   const approved={status:'approved',minDiameter:16,maxDiameter:18,step:0.5,note:'测试夹具确认'};
   expect(validateTemplateInput({...selection,review:approved}).selection.review).toEqual(approved);
 });
+
+
+test('validates product display fields without accepting external cover URLs',()=>{
+  const selection={name:'商品',head:'ring-02',headStones:'ring-02',band:'ring-02',pave:'ring-02'};
+  for(const extra of [{description:'字'.repeat(1001)},{cover:'https://example.com/file.jpg'},{order:-1},{order:1.5},{featured:'yes'}]){
+    expect(()=>validateTemplateInput({...selection,...extra})).toThrow();
+  }
+  expect(validateTemplateInput({...selection,description:'款式介绍',cover:'/media/diy/ring-02.jpg',order:0,featured:true}).selection).toMatchObject({description:'款式介绍',order:0,featured:true});
+});

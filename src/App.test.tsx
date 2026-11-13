@@ -1,3 +1,4 @@
+import {RING_CATALOG} from './stone-first/catalog';
 import {useEffect} from 'react';
 import {act,fireEvent,render,screen} from '@testing-library/react';
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
@@ -18,6 +19,11 @@ vi.mock('./stone-first/reference/SourceRingStudio',()=>({SourceRingStudio:({temp
   <main><h1>组合编辑器 {templateId}</h1></main>}));
 
 beforeEach(()=>{
+  vi.stubGlobal('fetch',vi.fn(async()=>Response.json(RING_CATALOG.map((ring,index)=>({
+    id:'product-'+ring.id,revision:'published',catalogId:ring.id,name:ring.name,description:ring.description,image:ring.image,campaign:ring.campaign,
+    featured:['ring-starlight','ring-solstice','ring-petal','ring-rosette'].includes(ring.id),order:index,
+    pricing:{base:ring.price.base,head:0,band:0,pave:0},
+  })))));
   window.history.replaceState(null,'','/#/showroom');
   vi.stubGlobal('matchMedia',()=>({matches:false,addEventListener:()=>{},removeEventListener:()=>{}}));
 });
@@ -73,10 +79,10 @@ describe('stone-first finished ring studies',()=>{
 });
 
 describe('shared studio navigation',()=>{
-  it('opens DIY at the root and offers the showroom as a secondary link',()=>{
+  it('opens DIY at the root and offers the showroom as a secondary link',async()=>{
     window.history.replaceState(null,'','/');
     render(<App/>);
-    expect(screen.getByRole('heading',{name:/让心意/})).toBeInTheDocument();
+    expect(await screen.findByRole('heading',{name:/让心意/})).toBeInTheDocument();
     expect(screen.getByRole('link',{name:'珠宝展台'})).toHaveAttribute('href','#/showroom');
     expect(screen.queryByRole('tab',{name:'珠宝展台'})).toBeNull();
   });
@@ -84,9 +90,9 @@ describe('shared studio navigation',()=>{
     await loaded();
     act(()=>{window.history.replaceState(null,'','/#/diy');window.dispatchEvent(new HashChangeEvent('hashchange'));});
     expect(window.location.hash).toBe('#/diy');
-    expect(screen.getByRole('heading',{name:/让心意/})).toBeInTheDocument();
+    expect(await screen.findByRole('heading',{name:/让心意/})).toBeInTheDocument();
     expect(screen.getAllByRole('link',{name:'开始定制'})).toHaveLength(4);
-    expect(screen.getAllByRole('img',{name:/近景佩戴示意/})).toHaveLength(4);
+    expect(document.querySelectorAll('.diy-wearing img')).toHaveLength(4);
     fireEvent.click(screen.getAllByRole('link',{name:'查看全部款式'})[0]);
     expect(await screen.findByRole('heading',{name:'全部款式'})).toBeInTheDocument();
     const start=screen.getAllByRole('link',{name:'开始定制'}).find(link=>link.getAttribute('href')==='#/stonefirst/ring-02')!;
@@ -95,6 +101,15 @@ describe('shared studio navigation',()=>{
     fireEvent.click(start);
     expect(await screen.findByRole('heading',{name:'组合编辑器 ring-02'})).toBeInTheDocument();
     expect(window.location.hash).toBe('#/stonefirst/ring-02');
+  });
+  it('shows only the published backend selection without appending built-in originals',async()=>{
+    vi.stubGlobal('fetch',vi.fn(async()=>Response.json([{id:'new-product',revision:'v1',name:'后台新名称',description:'已发布介绍',image:'/cover.jpg',featured:true,order:1}])));
+    window.history.replaceState(null,'','/');
+    render(<App/>);
+    await screen.findByRole('heading',{name:/让心意/});
+    expect(document.querySelectorAll('.diy-template')).toHaveLength(1);
+    expect(document.querySelector('.diy-template')).toHaveTextContent('后台新名称');
+    expect(screen.queryByRole('heading',{name:'围钻戒指'})).toBeNull();
   });
   it('unmounts the ring editor when browser navigation leaves DIY',async()=>{
     window.history.replaceState(null,'','/#/stonefirst/ring-02');

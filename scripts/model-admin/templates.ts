@@ -46,12 +46,12 @@ export function selectTemplate(draft:TemplateDraft,options:LibrarySource[]):Mana
     };
     if(head.id===band.id)library[head.id]=head.assets;
     return {id:draft.id,revision:draft.revision,name:draft.name,headName:head.name,bandName:band.name,
-      headId:head.id,bandId:band.id,library,review:draft.review,pricing:draft.pricing};
+      headId:head.id,bandId:band.id,library,review:draft.review,pricing:draft.pricing,description:draft.description,cover:draft.cover,order:draft.order,featured:draft.featured,catalogId:draft.catalogId,campaign:draft.campaign,collection:draft.collection};
 }
 
 export function validateTemplateInput(input:unknown){
   if(!input||typeof input!=='object')throw new RequestError(400,'模板数据无效。');
-  const {name:label,id,expectedRevision,head,headStones,band,pave,review,basePrice}=input as Record<string,unknown>;
+  const {name:label,id,expectedRevision,head,headStones,band,pave,review,basePrice,description,cover,order,featured}=input as Record<string,unknown>;
   const name=typeof label==='string'?label.trim():'';
   if(!name||name.length>60||typeof head!=='string'||typeof headStones!=='string'||typeof band!=='string'||typeof pave!=='string'){
     throw new RequestError(422,'请填写款式名并选好所需部件。');
@@ -60,6 +60,10 @@ export function validateTemplateInput(input:unknown){
     throw new RequestError(400,'模板编号无效。');
   }
   if(basePrice!==undefined&&!isMoney(basePrice))throw new RequestError(422,'基础价必须为 0–1000000 元，最多两位小数。');
+  if(description!==undefined&&(typeof description!=='string'||description.length>1000))throw new RequestError(422,'商品介绍最多 1000 字。');
+  if(cover!==undefined&&(typeof cover!=='string'||(cover!==''&&!uuid.test(cover)&&!/^\/media\/(?:diy|campaign)\/[a-z0-9-]+\.jpg$/.test(cover))))throw new RequestError(422,'请选择或上传有效的封面。');
+  if(order!==undefined&&(!Number.isInteger(order)||(order as number)<0||(order as number)>9999))throw new RequestError(422,'排序请填写 0–9999 的整数，数字越小越靠前。');
+  if(featured!==undefined&&typeof featured!=='boolean')throw new RequestError(422,'首页精选设置无效。');
   let checked:TemplateSelection['review'];
   if(review!==undefined){
     if(!review||typeof review!=='object')throw new RequestError(422,'工艺复核内容无效。');
@@ -76,7 +80,7 @@ export function validateTemplateInput(input:unknown){
     if(status==='approved'&&(empty||!note.trim()))throw new RequestError(422,'通过复核前，请填写尺寸范围和工艺依据。');
     checked={status,minDiameter:minDiameter as number|null,maxDiameter:maxDiameter as number|null,step:step as number|null,note:note.trim()};
   }
-  return {id,expectedRevision,selection:{name,head,headStones,band,pave,review:checked,basePrice} satisfies TemplateSelection};
+  return {id,expectedRevision,selection:{name,head,headStones,band,pave,review:checked,basePrice,description:description as string|undefined,cover:cover as string|undefined,order:order as number|undefined,featured:featured as boolean|undefined} satisfies TemplateSelection};
 }
 
 export function createTemplateLibrary(storage:string,publicDir:string){
