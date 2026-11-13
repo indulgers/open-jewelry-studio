@@ -180,3 +180,9 @@ summary { cursor: pointer; font-size: 14px; }
 .product-cover button { padding: 8px 12px; border: 0; background: transparent; text-decoration: underline; text-underline-offset: 3px; }
 .product-card-preview { margin-bottom: 16px; }
 @media(max-width:620px) { .product-cover { align-items: start; flex-direction: column; } .template-form .featured-toggle { margin-top: 4px; } }
+
+.library-toolbar{flex-wrap:wrap}
+.upload-guide{margin:0 0 24px;padding:16px 20px;border:1px solid var(--border);border-radius:8px}
+.upload-guide summary{cursor:pointer;font-weight:600}
+.upload-guide li{margin:10px 0;line-height:1.7}
+.component-table td:last-child button{margin-block:4px}

@@ -19,7 +19,7 @@ const cookieName='__Host-xiangyan-admin';
 const sessionSeconds=8*60*60;
 const partFile=/^parts\/(heads|bands|stones)\/ring(?:-(?:head|pave|adapter))?-[a-f0-9]{12}\.glb$/;
 type Job={id:string;filename:string;createdAt:string;size:number};
-type Version={id:string;createdAt:string;parts:ReferenceAssets;profileId?:string};
+type Version={archived?:boolean;id:string;createdAt:string;parts:ReferenceAssets;profileId?:string};
 type Intent={filename:string;size:number;hash:string;expires:number};
 type Release=ManagedTemplate&{publishedAt:string;files:string[]};
 type Publication={current:PublishedTemplate;revisions:string[];hidden?:boolean;stateRevision?:string};
@@ -97,7 +97,7 @@ function cloudLibrary(store:CloudStore){
       for(const kind of assetKeys){
         if(assets[kind])assets[kind]=base+assets[kind].replace('/models/parts/','parts/');
       }
-      return {id:version.id,name:job.filename,revision:version.id,stock:false,assets,source:prefix+'/'+job.id+'/source',model:base+'ring.glb'} satisfies LibrarySource;
+      return {id:version.id,name:job.filename,revision:version.id,stock:false,archived:!!version.archived,assets,source:prefix+'/'+job.id+'/source',model:base+'ring.glb'} satisfies LibrarySource;
     }));
     const stock=(await required<LibrarySource[]>(root+'stock/library.json')).value;
     const book=await prices();
@@ -168,6 +168,9 @@ function cloudLibrary(store:CloudStore){
       else if(!Object.hasOwn((await required<object>(root+'stock/assets.json')).value,draft.cover.slice(1)))fail(422,'封面文件不存在。');
     }
     const options=await sources();
+    for(const key of ['head','headStones','band','pave'] as const){
+      if(options.find(source=>source.id===draft[key])?.archived&&prior?.value[key]!==draft[key])fail(422,'该部件版本已移出部件库，请选择其他版本或先恢复。');
+    }
     draft.pricing=priceSelection(draft,options);
     selectTemplate(draft,options);
     if(!await putJson(draftKey(draft.id),draft,{etag:prior?.etag??null}))fail(409,'草稿已更新，请重新打开后再编辑。');
@@ -392,6 +395,15 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     if(method==='GET'&&action==='source'&&!revision)return redirect(await store.sign(key+'original.obj','GET'));
     if(method==='GET'&&action==='preview'&&!revision)return redirect(await store.sign(key+'ring.glb','GET'));
     if(action==='export'){
+      if(method==='POST'&&uuid.test(revision??'')&&rest.length===1&&rest[0]==='archive'){
+        const input=await body(request);
+        if(typeof input?.archived!=='boolean')fail(400,'部件状态无效。');
+        const manifest=key+'versions/'+revision+'/manifest.json';
+        const prior=await library.required<Version>(manifest);
+        const next={...prior.value,archived:input.archived};
+        if(!await library.putJson(manifest,next,{etag:prior.etag}))fail(409,'版本状态已改变，请刷新后重试。');
+        return json({id:revision,archived:next.archived});
+      }
       if(method==='POST'&&!revision){
         const input=await body(request,160*1024);
         const object=await store.get(key+'original.obj');

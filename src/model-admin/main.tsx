@@ -14,7 +14,7 @@ type Role = keyof typeof labels;
 type Job = {id: string; filename: string; createdAt: string; size: number; exported?: boolean};
 type Part = {id: number; triangles: number; min: number[]; max: number[]; role: Role};
 type Revision = {
-  id: string; createdAt: string; reviewedSeatY: number; assignments: Record<string, Role>;
+  archived?:boolean; id: string; createdAt: string; reviewedSeatY: number; assignments: Record<string, Role>;
   parts: Partial<Record<'head' | 'band' | 'headStones' | 'pave' | 'adapter', string>>;
 };
 type Model = Job & {
@@ -159,8 +159,8 @@ function Review({model, onExport}: {model: Model; onExport: (model: Model) => vo
     </form>
     <section className="versions" aria-labelledby="version-heading">
       <h3 id="version-heading">复核记录</h3>
-      <p>{model.exports.length?'已生成 '+model.exports.length+' 个部件版本，可到部件管理预览、定价和复用。':'复核分区和接合点后，生成可入库的部件版本。'}</p>
-      {model.exports.map(revision=><p key={revision.id}>{date.format(new Date(revision.createdAt))} · 接合点 Y {revision.reviewedSeatY}</p>)}
+      <p>{model.exports.length?'已生成 '+model.exports.length+' 个版本，其中 '+model.exports.filter(item=>!item.archived).length+' 个可用。到部件管理预览、定价和复用。':'复核分区和接合点后，生成可入库的部件版本。'}</p>
+      {model.exports.map(revision=><p key={revision.id}>{date.format(new Date(revision.createdAt))} · 版本 {revision.id.slice(0,8)} · 接合点 Y {revision.reviewedSeatY}{revision.archived?' · 已移出部件库':''}</p>)}
     </section>
     {asset && <AssetPreview asset={asset} onClose={() => setAsset(undefined)} />}
   </article>;
@@ -228,6 +228,10 @@ function ModelAssets() {
           {uploading ? '正在分析模型…' : '上传 OBJ'}
         </label>
       </header>
+      <details className="upload-guide"><summary>建模师如何上传新戒指？</summary>
+        <ol><li>点击「上传 OBJ」，选择整枚戒指模型，文件不超过 25 MB。</li><li>查看三维预览，核对戒头、戒圈、主石和配钻的分区，再确认接合点。连在一起的网格需先在建模软件中拆开，尺寸单位也需人工核对。</li><li>点击「生成部件版本」，进入部件管理预览、维护加价。不需要的上传版本可以移出部件库。</li><li>到商品管理新建商品，选部件、填名称介绍和价格、上传封面，保存草稿并预览。确认发布后进入前台目录；勾选首页精选并发布后，才会出现在首页。</li></ol>
+        <p>上传和生成部件不会自动上架。自动识别的结果需要人工复核。</p>
+      </details>
       {listError && <p role="alert" className="error">{listError}</p>}
       <div className="workspace">
         <aside aria-labelledby="model-list">

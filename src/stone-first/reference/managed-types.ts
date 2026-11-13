@@ -6,6 +6,7 @@ export type LibrarySource = {
   name: string;
   revision: string;
   stock: boolean;
+  archived?: boolean;
   assets: ReferenceAssets;
   model: string;
   source: string;

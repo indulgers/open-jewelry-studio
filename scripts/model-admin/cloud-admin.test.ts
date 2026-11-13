@@ -1,7 +1,7 @@
 // @vitest-environment node
 import {createHash} from 'node:crypto';
 import {expect,it} from 'vitest';
-import {stockSources} from './templates.ts';
+import {stockSources,assetKeys} from './templates.ts';
 import {RING_CATALOG} from '../../src/stone-first/catalog.ts';
 import {cloudAdmin} from './cloud-admin.ts';
 import type {CloudStore} from './cloud-store.ts';
@@ -122,5 +122,31 @@ it('serves only confirmed template revisions while keeping earlier releases read
   const products=await (await request('public/index.json')).json();
   expect(products.filter((item:any)=>item.featured)).toHaveLength(5);
   expect(products.map((item:any)=>item.order)).toEqual([1,2,3,4,5,20]);
+
+  const jobId='11111111-1111-1111-1111-111111111111';
+  const versionId='22222222-2222-2222-2222-222222222222';
+  const modelRoot='studio/v1/models/'+jobId+'/';
+  await store.put(modelRoot+'job.json',JSON.stringify({id:jobId,filename:'戒指6.obj',createdAt:new Date().toISOString(),size:12}),'application/json');
+  const partAssets={...stockSources[0].assets,head:'/models/parts/heads/ring-aaaaaaaaaaaa.glb',band:'/models/parts/bands/ring-bbbbbbbbbbbb.glb',headStones:'/models/parts/stones/ring-head-cccccccccccc.glb',pave:'/models/parts/stones/ring-pave-dddddddddddd.glb',adapter:undefined};
+  await store.put(modelRoot+'versions/'+versionId+'/manifest.json',JSON.stringify({id:versionId,createdAt:new Date().toISOString(),parts:partAssets}),'application/json');
+  for(const kind of assetKeys){const path=partAssets[kind];if(path)await store.put(modelRoot+'versions/'+versionId+'/'+path.replace('/models/parts/','parts/'),'mesh','model/gltf-binary');}
+  const imported={name:'上传版',head:versionId,headStones:versionId,band:versionId,pave:versionId,basePrice:2000};
+  const importedDraft=await (await request('templates',imported,true)).json();
+  const importedPath=importedDraft.id+'/'+importedDraft.revision;
+  const importedPublish=await request('templates/'+importedPath+'/publish',{confirmed:true,image},true);
+  expect(importedPublish.status,await importedPublish.text()).toBe(201);
+  const archivePath=jobId+'/export/'+versionId+'/archive';
+  expect((await request(archivePath,{archived:true})).status).toBe(401);
+  expect((await request(archivePath,{archived:'yes'},true)).status).toBe(400);
+  expect((await request(archivePath,{archived:true},true)).status).toBe(200);
+  const archivedLibrary=await (await request('library',undefined,true)).json();
+  expect(archivedLibrary.sources.find((source:any)=>source.id===versionId).archived).toBe(true);
+  expect((await request('public/'+importedPath+'/template.json')).status).toBe(200);
+  expect((await request('public/'+importedPath+'/cover.jpg')).status).toBe(302);
+  expect((await request('templates/'+importedPath,undefined,true)).status).toBe(200);
+  expect((await request('templates',imported,true)).status).toBe(422);
+  expect((await request('templates',{...imported,id:importedDraft.id,expectedRevision:importedDraft.revision,name:'保留旧部件改资料'},true)).status).toBe(201);
+  expect((await request(archivePath,{archived:false},true)).status).toBe(200);
+  expect((await request('templates',imported,true)).status).toBe(201);
 
 });

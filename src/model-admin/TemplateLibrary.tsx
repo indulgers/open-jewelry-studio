@@ -118,7 +118,10 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
   if(!library)return <main>{error?<p role="alert">{error}</p>:<p role="status">正在读取部件库…</p>}</main>;
   const {sources,drafts,published}=library;
   const prices=library.prices??{revision:'initial',components:{},bases:{}};
-  if(tab==='parts')return <ComponentLibrary key={tab} sources={sources} prices={prices} onSave={async book=>{
+  if(tab==='parts')return <ComponentLibrary key={tab} sources={sources} prices={prices} onArchive={library.cloud?async(source,archived)=>{
+    await request(source.source.replace('/api/model-admin','').replace(/\/source$/,'')+'/export/'+source.revision+'/archive',post({archived}));
+    setLibrary(current=>current&&({...current,sources:current.sources.map(item=>item.id===source.id?{...item,archived}:item)}));
+  }:undefined} onSave={async book=>{
     const updated=await request<PriceBook>('/prices',post({...book,expectedRevision:prices.revision}));
     setLibrary(current=>current&&({...current,prices:updated,sources:current.sources.map(source=>({...source,surcharges:updated.components[source.id]}))}));
   }}/>;
@@ -152,8 +155,8 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
       </button>;
     })}{!matching.length&&<p className="empty">没有符合条件的款式。</p>}</div>
   </main>;
-  const sourceOptions=sources.map(item=><option key={item.id} value={item.id}>
-    {item.name}{item.stock?'':' · '+item.revision.slice(0,8)}
+  const sourceOptions=sources.filter(item=>!item.archived||item.id===form.head||item.id===form.band).map(item=><option key={item.id} value={item.id} disabled={item.archived}>
+    {item.name}{item.stock?'':' · '+item.revision.slice(0,8)}{item.archived?'（已移除 · 保留当前引用）':''}
   </option>);
   return <main>
     <header className="page-heading"><div><h1>商品管理</h1><p>保存草稿不会改变线上商品，确认发布后价格与款式一起生效。</p></div>
