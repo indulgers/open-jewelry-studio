@@ -6,13 +6,20 @@ import AssetPreview from './AssetPreview';
 const Preview=lazy(()=>import('../stone-first/reference/ManagedTemplateStudio').then(module=>({default:module.ManagedTemplateStudio})));
 const empty:TemplateSelection={name:'',head:'',headStones:'',band:'',pave:''};
 const labels={head:'戒头',band:'戒圈',headStones:'主石及戒头配钻',pave:'戒臂铺钻',adapter:'接合件'} as const;
-type Library={sources:LibrarySource[];drafts:TemplateDraft[];published:PublishedTemplate[];cloud:boolean};
+type Publication=PublishedTemplate&{hidden?:boolean;stateRevision?:string};
+type History={revision:string;name:string;publishedAt:string;current:boolean};
+type Library={sources:LibrarySource[];drafts:TemplateDraft[];published:Publication[];cloud:boolean;versionManagement?:boolean};
 type Request=<T>(path:string,init?:RequestInit)=>Promise<T>;
 const errorText=(error:unknown)=>error instanceof Error?error.message:'操作失败，请重试。';
 const post=(data:object)=>({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
 
 export default function TemplateLibrary({request,tab}:{request:Request;tab:'parts'|'templates'}){
   const [asset,setAsset]=useState<{title:string;url:string}>();
+  const [editing,setEditing]=useState(false);
+  const [query,setQuery]=useState('');
+  const [filter,setFilter]=useState('all');
+  const [history,setHistory]=useState<History[]>();
+  const [visibilityConfirm,setVisibilityConfirm]=useState(false);
   const [library,setLibrary]=useState<Library>();
   const [saved,setSaved]=useState<TemplateDraft>();
   const [form,setForm]=useState(empty);
@@ -32,6 +39,7 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
     return ()=>controller.abort();
   },[request]);
   function open(draft?:TemplateDraft){
+    setEditing(true);setHistory(undefined);setVisibilityConfirm(false);
     setSaved(draft);setForm(draft??empty);setPreview(undefined);setConfirm(false);setStatus('');setError('');
   }
   function update(values:Partial<TemplateSelection>){
@@ -62,9 +70,24 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
       const image=thumbnail.current?.();
       if(!image)throw new Error('暂时无法生成款式图，请重新预览。');
       const published=await request<PublishedTemplate>('/templates/'+saved.id+'/'+saved.revision+'/publish',post({confirmed:true,image}));
-      setLibrary(current=>current&&({...current,published:[published,...current.published.filter(item=>item.id!==published.id)]}));
-      setConfirm(false);setStatus('已发布，可以在「全部款式」中查看。');
+      setLibrary(await request<Library>('/library'));
+      setHistory(undefined);setConfirm(false);setStatus('版本已发布。款式的上下架状态保持当前设置。');
     }catch(error){setError(errorText(error));}finally{setBusy(false);}
+  }
+
+  async function changeVisibility(current:Publication){
+    setBusy(true);setError('');
+    try{
+      await request('/templates/'+current.id+'/visibility',post({hidden:!current.hidden,expectedState:current.stateRevision??current.revision}));
+      setLibrary(await request<Library>('/library'));
+      setVisibilityConfirm(false);setStatus(current.hidden?'已恢复上架。':'已下架。');
+    }catch(error){setError(errorText(error));}finally{setBusy(false);}
+  }
+  async function loadHistory(){
+    if(!saved)return;
+    setBusy(true);setError('');
+    try{setHistory(await request<History[]>('/templates/'+saved.id+'/history'));}
+    catch(error){setError(errorText(error));}finally{setBusy(false);}
   }
 
   if(!library)return <main>{error?<p role="alert">{error}</p>:<p role="status">正在读取部件库…</p>}</main>;
@@ -80,13 +103,13 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
         <a href={item.source}>下载源 OBJ</a><a href={item.model} download>整戒 GLB</a>
         {item.editor&&<a href={'/'+item.editor} target="_blank" rel="noreferrer">打开原款编辑器</a>}
       </div>
-      <div className="downloads">{Object.entries(labels).map(([key,label])=>{
+      <details><summary>查看部件与下载</summary><div className="downloads">{Object.entries(labels).map(([key,label])=>{
         const path=item.assets[key as keyof typeof labels];
         return path&&<span className="part-asset-actions" key={key}>
           <button type="button" onClick={()=>setAsset({title:item.name+' · '+label,url:path})}>预览{label}</button>
           <a href={path} download aria-label={'下载'+label+' GLB'}>下载</a>
         </span>;
-      })}</div>
+      })}</div></details>
     </article>)}</div>
     {asset&&<AssetPreview asset={asset} onClose={()=>setAsset(undefined)}/>}
   </main>;
@@ -94,41 +117,70 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
   const head=sources.find(item=>item.id===form.head);
   const band=sources.find(item=>item.id===form.band);
   const current=published.find(item=>item.id===saved?.id);
+  const state=(draft:TemplateDraft)=>{
+    const release=published.find(item=>item.id===draft.id);
+    return release?.hidden?'已下架':release?draft.revision===release.revision?'已发布':'已发布 · 有新草稿':'草稿';
+  };
+  const matching=drafts.filter(draft=>{
+    const release=published.find(item=>item.id===draft.id);
+    return draft.name.toLowerCase().includes(query.toLowerCase())&&(filter==='all'||
+      (filter==='draft'&&draft.revision!==release?.revision)||(filter==='published'&&release&&!release.hidden)||(filter==='hidden'&&release?.hidden));
+  });
+  if(!editing)return <main>
+    <header className="page-heading"><div><h1>款式模板</h1><p>管理线上款式与待发布的修改。</p></div>
+      <button className="primary" onClick={()=>open()}>新建模板</button></header>
+    <div className="library-toolbar"><input aria-label="搜索款式" placeholder="搜索款式名称" value={query} onChange={e=>setQuery(e.target.value)}/>
+      <select aria-label="款式状态" value={filter} onChange={e=>setFilter(e.target.value)}>
+        <option value="all">全部状态</option><option value="published">已发布</option><option value="draft">有草稿</option><option value="hidden">已下架</option>
+      </select></div>
+    <div className="template-list">{matching.map(draft=>{
+      const release=published.find(item=>item.id===draft.id);
+      return <button key={draft.id} className="template-row" onClick={()=>open(draft)}>
+        {release&&!release.hidden?<img src={release.image} alt="" width="64" height="64"/>:<span className="template-placeholder">戒指</span>}
+        <span><strong>{draft.name}</strong><small>{new Date(draft.updatedAt).toLocaleString('zh-CN')}</small></span>
+        <span className="template-state">{state(draft)}</span><span>编辑 →</span>
+      </button>;
+    })}{!matching.length&&<p className="empty">没有符合条件的款式。</p>}</div>
+  </main>;
   const sourceOptions=sources.map(item=><option key={item.id} value={item.id}>
     {item.name}{item.stock?'':' · '+item.revision.slice(0,8)}
   </option>);
   return <main>
     <header className="page-heading"><div><h1>款式模板</h1><p>选择部件，保存草稿，在编辑器核对后发布。</p></div>
-      <button className="primary" disabled={busy} onClick={()=>open()}>新建模板</button>
+      <button disabled={busy} onClick={()=>{if(!dirty||window.confirm('离开后会丢弃尚未保存的修改。继续返回？'))setEditing(false);}}>返回款式列表</button>
     </header>
     {error&&<p role="alert" className="error">{error}</p>}
-    <div className="workspace">
-      <aside aria-label="已保存模板"><h2>已保存模板 <span>{drafts.length}</span></h2>
-        {drafts.map(draft=><button type="button" key={draft.id} disabled={busy} aria-current={draft.id===saved?.id?'true':undefined}
-          onClick={()=>open(draft)}><strong>{draft.name}</strong><small>{published.some(item=>item.revision===draft.revision)?'已发布':'草稿'}</small></button>)}
-      </aside>
+    <div className="template-detail">
       <article className="review">
+        {current&&<section className="release-status"><strong>{current.hidden?'已下架':'线上版本'} · {current.name}</strong>
+          <p>保存修改会生成新草稿，确认发布后才替换当前版本。</p>
+          {library.versionManagement&&<div className="template-actions">
+            <button disabled={busy} onClick={()=>setVisibilityConfirm(true)}>{current.hidden?'恢复上架':'下架款式'}</button>
+            <button disabled={busy} onClick={loadHistory}>版本记录</button>
+          </div>}
+          {visibilityConfirm&&<div className="publish-confirm"><p>{current.hidden?'恢复最后确认发布的版本，草稿继续保留。':'下架后，公开目录和款式链接将不可访问。已保存的版本继续保留。'}</p>
+            <button disabled={busy} onClick={()=>changeVisibility(current)}>{current.hidden?'确认恢复':'确认下架'}</button>
+            <button disabled={busy} onClick={()=>setVisibilityConfirm(false)}>取消</button></div>}
+          {history&&<ol className="version-history">{history.map(item=><li key={item.revision}>
+            <strong>{item.name}</strong> · {item.current?'当前发布版本':'历史发布版本'} · {new Date(item.publishedAt).toLocaleString('zh-CN')}
+            <small>版本 {item.revision.slice(0,8)}</small></li>)}</ol>}
+        </section>}
         <form className="template-form" onSubmit={save}>
           <fieldset disabled={busy}>
             <label>款式名称<input value={form.name} required maxLength={60} onChange={event=>update({name:event.target.value})}/></label>
-            <label>戒头<select required value={form.head} onChange={event=>update({head:event.target.value,headStones:''})}>
+            <label>戒头<select required value={form.head} onChange={event=>update({head:event.target.value,headStones:event.target.value})}>
               <option value="">选择戒头</option>{sourceOptions}
-            </select></label>
-            <label>主石及戒头配钻<select required value={form.headStones} onChange={event=>update({headStones:event.target.value})}>
-              <option value="">选择配套宝石</option>{head&&<option value={head.id}>{head.name} · 配套宝石</option>}
             </select></label>
             <label>戒圈<select required value={form.band} onChange={event=>{
               const id=event.target.value;
               update({band:id,pave:sources.some(item=>item.id===id&&item.assets.pave)?id:''});
             }}><option value="">选择戒圈</option>{sourceOptions}</select></label>
-            <label>戒臂铺钻<select value={form.pave} disabled={!band?.assets.pave} onChange={event=>update({pave:event.target.value})}>
-              {band?.assets.pave?<option value={band.id}>{band.name} · 配套铺钻</option>:<option value="">无铺钻</option>}
-            </select></label>
           </fieldset>
+          {(head||band)&&<p className="selection-note">主石与戒头配钻随戒头配套。{band?.assets.pave?'戒圈包含配套铺钻。':'当前戒圈为素面。'}</p>}
           <div className="template-actions">
             <button className="primary" disabled={busy||!dirty}>保存草稿</button>
             <button type="button" disabled={busy||dirty||!!preview} onClick={loadPreview}>在编辑器预览</button>
-            {current&&<a href={'/'+templateRoute(current.id,current.revision)} target="_blank" rel="noreferrer">查看已发布版本</a>}
+            {current&&!current.hidden&&<a href={'/'+templateRoute(current.id,current.revision)} target="_blank" rel="noreferrer">查看线上版本</a>}
           </div>
         </form>
         {status&&<p role="status">{status}</p>}
@@ -137,8 +189,8 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
             <Preview key={preview.revision} template={preview} onReady={onReady} thumbnailRef={thumbnail}/>
           </Suspense>
           {!confirm?<button type="button" className="primary" disabled={!ready||busy||current?.revision===preview.revision}
-            onClick={()=>setConfirm(true)}>发布模板</button>:<div className="publish-confirm">
-            <p>确认发布「{preview.name}」的当前预览版本？发布后会显示在全部款式。</p>
+            onClick={()=>setConfirm(true)}>{current?'发布新版本':'发布模板'}</button>:<div className="publish-confirm">
+            <p>确认发布「{preview.name}」的当前预览版本？{current?.hidden?'款式会保持下架，恢复上架后展示此版本。':current?'线上款式将替换为此版本，历史版本仍会保留。':'发布后会显示在全部款式。'}</p>
             <button type="button" className="primary" disabled={busy} onClick={publish}>确认发布</button>
             <button type="button" disabled={busy} onClick={()=>setConfirm(false)}>继续复核</button>
           </div>}

@@ -273,7 +273,7 @@ function ModelAssets() {
 }
 
 function App(){
-  const [tab,setTab]=useState<'models'|'parts'|'templates'>('models');
+  const [tab,setTab]=useState<'models'|'parts'|'templates'>('templates');
   return <>
     <header className="admin-header"><span className="wordmark">相言</span>
       <nav aria-label="配置管理">{([['models','模型素材'],['parts','部件库'],['templates','款式模板']] as const)

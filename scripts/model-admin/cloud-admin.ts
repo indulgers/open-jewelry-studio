@@ -22,7 +22,7 @@ type Job={id:string;filename:string;createdAt:string;size:number};
 type Version={id:string;createdAt:string;parts:ReferenceAssets;profileId?:string};
 type Intent={filename:string;size:number;hash:string;expires:number};
 type Release=ManagedTemplate&{publishedAt:string;files:string[]};
-type Publication={current:PublishedTemplate;revisions:string[]};
+type Publication={current:PublishedTemplate;revisions:string[];hidden?:boolean;stateRevision?:string};
 
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 const fail=(status:number,message:string):never=>{throw new RequestError(status,message);};
@@ -95,9 +95,27 @@ function cloudLibrary(store:CloudStore){
     const keys=await store.list(root+folder+'/');
     return Promise.all(keys.filter(key=>key.endsWith('.json')).map(async key=>(await required<T>(key)).value));
   }
-  const published=async()=>(await records<Publication>('published')).map(item=>item.current);
+  const published=async(includeHidden=false)=>(await records<Publication>('published'))
+    .filter(item=>includeHidden||!item.hidden).map(item=>({...item.current,hidden:!!item.hidden,stateRevision:item.stateRevision??item.current.revision}));
   const publicationKey=(id:string)=>root+'published/'+id+'.json';
   const draftKey=(id:string)=>root+'drafts/'+id+'.json';
+
+  async function visibility(id:string,input:any){
+    if(typeof input?.hidden!=='boolean'||typeof input?.expectedState!=='string')fail(400,'状态操作无效。');
+    const prior=await required<Publication>(publicationKey(id));
+    if((prior.value.stateRevision??prior.value.current.revision)!==input.expectedState)fail(409,'款式状态已改变，请刷新后重试。');
+    const next={...prior.value,hidden:input.hidden,stateRevision:randomUUID()};
+    if(!await putJson(publicationKey(id),next,{etag:prior.etag}))fail(409,'款式状态已改变，请刷新后重试。');
+    return {...next.current,hidden:next.hidden,stateRevision:next.stateRevision};
+  }
+  async function history(id:string){
+    const record=await optional<Publication>(publicationKey(id));
+    if(!record)return [];
+    return Promise.all([...record.value.revisions].reverse().map(async revision=>{
+      const {value}=await required<Release>(releaseKey(id,revision)+'template.json');
+      return {revision,name:value.name,publishedAt:value.publishedAt,current:revision===record.value.current.revision};
+    }));
+  }
 
   async function save(input:unknown){
     const {id,expectedRevision,selection}=validateTemplateInput(input);
@@ -144,13 +162,13 @@ function cloudLibrary(store:CloudStore){
     if((await required<TemplateDraft>(draftKey(id))).value.revision!==revision)fail(409,'草稿已更新，请打开最新版本预览。');
     const published={id,revision,name:template.name,headName:template.headName,bandName:template.bandName,
       url:base+'template.json',image:base+'cover.jpg'};
-    const record={current:published,revisions:[...(prior?.value.revisions??[]),revision]};
+    const record={current:published,revisions:[...(prior?.value.revisions??[]),revision],hidden:!!prior?.value.hidden,stateRevision:randomUUID()};
     if(!await putJson(recordKey,record,{etag:prior?.etag??null})){
       if((await optional<Publication>(recordKey))?.value.current.revision!==revision)fail(409,'已有其他版本发布，请刷新后台。');
     }
     return published;
   }
-  return {optional,required,putJson,sources,records,published,publicationKey,save,preview,publish};
+  return {optional,required,putJson,sources,records,published,publicationKey,save,preview,publish,visibility,history};
 }
 
 function redirect(url:string){
@@ -174,7 +192,7 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
       if(action==='index.json'&&!revision)return json(await library.published());
       if(uuid.test(action??'')&&uuid.test(revision??'')&&rest.length===1){
         const {value:publication}=await library.required<Publication>(library.publicationKey(action));
-        if(!publication.revisions.includes(revision))fail(404,'找不到已发布版本。');
+        if(publication.hidden||!publication.revisions.includes(revision))fail(404,'找不到已发布版本。');
         const key=releaseKey(action,revision);
         const {value:release}=await library.required<Release>(key+'template.json');
         if(rest[0]==='template.json'){
@@ -199,7 +217,7 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     const library=cloudLibrary(store);
     if(id==='library'&&!action&&method==='GET')return json({sources:await library.sources(),
       drafts:(await library.records<TemplateDraft>('drafts')).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)),
-      published:await library.published(),cloud:true});
+      published:await library.published(true),cloud:true,versionManagement:true});
     if(id==='stock'&&method==='GET'&&stockSources.some(item=>item.id===action)){
       const stream=Readable.toWeb(createReadStream(join(process.cwd(),'assets/source',action,'source.obj')));
       return new Response(stream as unknown as ReadableStream,{headers:{'Content-Type':'application/octet-stream',
@@ -207,6 +225,12 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     }
     if(id==='templates'){
       if(!action&&method==='POST')return json(await library.save(await body(request)),201);
+      if(uuid.test(action??'')&&revision==='visibility'&&!rest.length&&method==='POST'){
+        return json(await library.visibility(action,await body(request)));
+      }
+      if(uuid.test(action??'')&&revision==='history'&&!rest.length&&method==='GET'){
+        return json(await library.history(action));
+      }
       if(uuid.test(action??'')&&uuid.test(revision??'')){
         if(!rest.length&&method==='GET')return json(await library.preview(action,revision));
         if(rest[0]==='publish'&&rest.length===1&&method==='POST'){
