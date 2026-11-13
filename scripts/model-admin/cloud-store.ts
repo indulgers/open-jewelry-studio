@@ -10,7 +10,8 @@ export function cloudStore(){
   const bucketUrl='https://'+account+'.r2.cloudflarestorage.com/'+bucket;
   const url=(key:string)=>bucketUrl+'/'+key.split('/').map(encodeURIComponent).join('/');
   async function get(key:string,method='GET'){
-    const response=await aws.fetch(url(key),{method});
+    // Keep the strong object ETag for conditional writes; compression can weaken it.
+    const response=await aws.fetch(url(key),{method,headers:{'Accept-Encoding':'identity'}});
     if(response.status===404)return undefined;
     if(!response.ok)throw new Error('R2 read failed');
     return response;

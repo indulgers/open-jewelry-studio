@@ -45,12 +45,12 @@ export function selectTemplate(draft:TemplateDraft,options:LibrarySource[]):Mana
     };
     if(head.id===band.id)library[head.id]=head.assets;
     return {id:draft.id,revision:draft.revision,name:draft.name,headName:head.name,bandName:band.name,
-      headId:head.id,bandId:band.id,library};
+      headId:head.id,bandId:band.id,library,review:draft.review};
 }
 
 export function validateTemplateInput(input:unknown){
   if(!input||typeof input!=='object')throw new RequestError(400,'模板数据无效。');
-  const {name:label,id,expectedRevision,head,headStones,band,pave}=input as Record<string,unknown>;
+  const {name:label,id,expectedRevision,head,headStones,band,pave,review}=input as Record<string,unknown>;
   const name=typeof label==='string'?label.trim():'';
   if(!name||name.length>60||typeof head!=='string'||typeof headStones!=='string'||typeof band!=='string'||typeof pave!=='string'){
     throw new RequestError(422,'请填写款式名并选好所需部件。');
@@ -58,7 +58,23 @@ export function validateTemplateInput(input:unknown){
   if(id!==undefined&&(typeof id!=='string'||!uuid.test(id))){
     throw new RequestError(400,'模板编号无效。');
   }
-  return {id,expectedRevision,selection:{name,head,headStones,band,pave} satisfies TemplateSelection};
+  let checked:TemplateSelection['review'];
+  if(review!==undefined){
+    if(!review||typeof review!=='object')throw new RequestError(422,'工艺复核内容无效。');
+    const {status,minDiameter,maxDiameter,step,note}=review as Record<string,unknown>;
+    if((status!=='pending'&&status!=='approved'&&status!=='rejected')||typeof note!=='string'||note.length>2000){
+      throw new RequestError(422,'请选择复核状态，备注最多 2000 字。');
+    }
+    const range=[minDiameter,maxDiameter,step];
+    const empty=range.every(value=>value===null);
+    if(!empty&&(!range.every(value=>typeof value==='number'&&Number.isFinite(value)&&value>0)||
+      (minDiameter as number)>(maxDiameter as number))){
+      throw new RequestError(422,'请完整填写有效的内径上下限和档位步长，或全部留空。');
+    }
+    if(status==='approved'&&(empty||!note.trim()))throw new RequestError(422,'通过复核前，请填写尺寸范围和工艺依据。');
+    checked={status,minDiameter:minDiameter as number|null,maxDiameter:maxDiameter as number|null,step:step as number|null,note:note.trim()};
+  }
+  return {id,expectedRevision,selection:{name,head,headStones,band,pave,review:checked} satisfies TemplateSelection};
 }
 
 export function createTemplateLibrary(storage:string,publicDir:string){
@@ -126,6 +142,7 @@ export function createTemplateLibrary(storage:string,publicDir:string){
 
   async function publish(id:string,revision:string,image:Buffer){
     const template=await preview(id,revision);
+    if(template.review?.status==='rejected')throw new RequestError(422,'该组合未通过工艺复核，请修改并重新复核。');
     const dir=join(publishedDir,id);
     const release=join(dir,revision);
     const url='/models/managed/'+id+'/'+revision+'/';

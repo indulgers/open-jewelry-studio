@@ -52,7 +52,8 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
       {!thumbnailRef&&<label>主石外观 <select value={center} onChange={event=>setCenter(event.target.value as StoneAppearance)}>
         {STONE_APPEARANCE_IDS.map(id=><option key={id} value={id}>{STONE_APPEARANCES[id].name}</option>)}
       </select></label>}
-      <p>银色金属外观 · 实物尺寸与制作工艺待确认</p>
+      <p>银色金属外观 · {template.review?.status==='approved'?'组合已完成工艺复核':'需人工确认制作要求'}</p>
+      {template.review?.minDiameter!=null&&<p>登记戒圈内径 {template.review.minDiameter}–{template.review.maxDiameter} mm，档位步长 {template.review.step} mm。</p>}
     </section></div>
   </div>;
 }

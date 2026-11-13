@@ -133,6 +133,9 @@ td select { width: 100%; }
 .version-history li { padding: 10px 0; font-size: 14px; }
 .part-inventory details { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
 summary { cursor: pointer; font-size: 14px; }
+.review-rules { border-top: 1px solid var(--border); margin-top: 22px; padding-top: 18px; }
+.review-rules p { color: #716b62; font-size: 14px; }
+.review-rules textarea { width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font: inherit; }
 @media(max-width:620px) {
   .template-row { grid-template-columns: 48px 1fr; gap: 12px; padding: 16px; }
   .template-row img { width: 48px; height: 48px; }

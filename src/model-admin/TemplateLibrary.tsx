@@ -5,6 +5,7 @@ import AssetPreview from './AssetPreview';
 
 const Preview=lazy(()=>import('../stone-first/reference/ManagedTemplateStudio').then(module=>({default:module.ManagedTemplateStudio})));
 const empty:TemplateSelection={name:'',head:'',headStones:'',band:'',pave:''};
+const pendingReview={status:'pending' as const,minDiameter:null,maxDiameter:null,step:null,note:''};
 const labels={head:'戒头',band:'戒圈',headStones:'主石及戒头配钻',pave:'戒臂铺钻',adapter:'接合件'} as const;
 type Publication=PublishedTemplate&{hidden?:boolean;stateRevision?:string};
 type History={revision:string;name:string;publishedAt:string;current:boolean};
@@ -43,7 +44,7 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
     setSaved(draft);setForm(draft??empty);setPreview(undefined);setConfirm(false);setStatus('');setError('');
   }
   function update(values:Partial<TemplateSelection>){
-    setForm(current=>({...current,...values}));setPreview(undefined);setConfirm(false);setStatus('');
+    setForm(current=>({...current,...values,...(values.head||values.band?{review:{...current.review??pendingReview,status:'pending' as const}}:{})}));setPreview(undefined);setConfirm(false);setStatus('');
   }
   async function save(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
@@ -55,7 +56,7 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
       setStatus('草稿已保存。');
     }catch(error){setError(errorText(error));}finally{setBusy(false);}
   }
-  const dirty=!saved||Object.keys(empty).some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection]);
+  const dirty=!saved||Object.keys(empty).some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||JSON.stringify(form.review)!==JSON.stringify(saved.review);
   async function loadPreview(){
     if(!saved||dirty)return;
     setBusy(true);setError('');setReady(false);
@@ -177,6 +178,21 @@ export default function TemplateLibrary({request,tab}:{request:Request;tab:'part
             }}><option value="">选择戒圈</option>{sourceOptions}</select></label>
           </fieldset>
           {(head||band)&&<p className="selection-note">主石与戒头配钻随戒头配套。{band?.assets.pave?'戒圈包含配套铺钻。':'当前戒圈为素面。'}</p>}
+          <details className="review-rules">
+            <summary>规则与工艺复核 · {form.review?.status==='approved'?'已通过':form.review?.status==='rejected'?'不通过':'待人工确认'}</summary>
+            <p>复核当前戒头、戒圈及配钻组合。更换部件后，需要重新确认。</p>
+            <fieldset disabled={busy}>
+              <label>组合复核状态<select value={form.review?.status??'pending'} onChange={e=>update({review:{...form.review??pendingReview,status:e.target.value as 'pending'|'approved'|'rejected'}})}>
+                <option value="pending">待人工确认</option><option value="approved">工艺复核通过</option><option value="rejected">组合不通过</option>
+              </select></label>
+              {([['minDiameter','最小内径（mm）'],['maxDiameter','最大内径（mm）'],['step','档位步长（mm）']] as const).map(([key,label])=><label key={key}>{label}
+                <input type="number" step="any" min="0.001" value={form.review?.[key]??''} onChange={e=>update({review:{...form.review??pendingReview,[key]:e.target.value===''?null:Number(e.target.value)}})}/>
+              </label>)}
+              <label>工艺依据与备注<textarea maxLength={2000} rows={3} value={form.review?.note??''} placeholder="填写验证样品、尺寸依据、接合限制或需要人工确认的事项"
+                onChange={e=>update({review:{...form.review??pendingReview,note:e.target.value}})}/></label>
+            </fieldset>
+            <p className="selection-note">未确认的尺寸请留空。此处登记允许的制作范围，3D 按原模型展示。</p>
+          </details>
           <div className="template-actions">
             <button className="primary" disabled={busy||!dirty}>保存草稿</button>
             <button type="button" disabled={busy||dirty||!!preview} onClick={loadPreview}>在编辑器预览</button>

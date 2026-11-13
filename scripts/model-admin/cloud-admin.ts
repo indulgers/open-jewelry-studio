@@ -133,6 +133,7 @@ function cloudLibrary(store:CloudStore){
   }
   async function publish(id:string,revision:string,image:Uint8Array<ArrayBuffer>){
     const template=await preview(id,revision);
+    if(template.review?.status==='rejected')fail(422,'该组合未通过工艺复核，请修改并重新复核。');
     const release=releaseKey(id,revision);
     const base=publicPath(id,revision);
     const recordKey=publicationKey(id);

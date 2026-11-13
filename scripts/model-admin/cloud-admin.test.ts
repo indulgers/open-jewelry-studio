@@ -75,4 +75,14 @@ it('serves only confirmed template revisions while keeping earlier releases read
   const history=await (await request('templates/'+draft.id+'/history',undefined,true)).json();
   expect(history.map((item:{revision:string})=>item.revision)).toEqual([next.revision,draft.revision]);
   expect(history[0].current).toBe(true);
+  const review={status:'rejected',minDiameter:null,maxDiameter:null,step:null,note:'接合处需要重新调整'};
+  const rejected=await (await request('templates',{...selection,id:draft.id,expectedRevision:next.revision,review},true)).json();
+  expect((await request('templates/'+rejected.id+'/'+rejected.revision+'/publish',{confirmed:true,image},true)).status).toBe(422);
+  expect((await (await request('public/index.json')).json())[0].revision).toBe(next.revision);
+  expect((await (await request('public/'+nextPath+'/template.json')).json()).review).toBeUndefined();
+  const pending=await (await request('templates',{...selection,id:draft.id,expectedRevision:rejected.revision,review:{...review,status:'pending'}},true)).json();
+  const pendingPath=pending.id+'/'+pending.revision;
+  expect((await request('templates/'+pendingPath+'/publish',{confirmed:true,image},true)).status).toBe(201);
+  expect((await (await request('public/'+pendingPath+'/template.json')).json()).review.status).toBe('pending');
+
 });

@@ -3,7 +3,7 @@ import {mkdtemp,mkdir,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname,join} from 'node:path';
 import {expect,test} from 'vitest';
-import {createTemplateLibrary} from './templates';
+import {createTemplateLibrary,validateTemplateInput} from './templates';
 
 test('publishes a reviewed part selection as an immutable consumer revision',async()=>{
   const directory=await mkdtemp(join(tmpdir(),'template-library-test-'));
@@ -37,4 +37,16 @@ test('publishes a reviewed part selection as an immutable consumer revision',asy
     await expect(library.save({...draft,expectedRevision:draft.revision})).rejects.toMatchObject({status:409});
     expect(JSON.parse(await readFile(join(publicDir,release.url.slice(1)),'utf8')).name).toBe('测试模板');
   }finally{await rm(directory,{recursive:true,force:true});}
+});
+
+
+test('requires a complete size range and evidence before approving a combination',()=>{
+  const selection={name:'规则测试',head:'ring-02',headStones:'ring-02',band:'ring-02',pave:'ring-02'};
+  const review={status:'pending',minDiameter:null,maxDiameter:null,step:null,note:''};
+  expect(validateTemplateInput({...selection,review}).selection.review).toEqual(review);
+  expect(()=>validateTemplateInput({...selection,review:{...review,status:'approved'}})).toThrow('通过复核前');
+  expect(()=>validateTemplateInput({...selection,review:{...review,minDiameter:16}})).toThrow('完整填写');
+  expect(()=>validateTemplateInput({...selection,review:{...review,minDiameter:18,maxDiameter:16,step:0.5}})).toThrow('完整填写');
+  const approved={status:'approved',minDiameter:16,maxDiameter:18,step:0.5,note:'测试夹具确认'};
+  expect(validateTemplateInput({...selection,review:approved}).selection.review).toEqual(approved);
 });

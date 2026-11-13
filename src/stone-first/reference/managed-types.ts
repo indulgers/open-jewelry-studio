@@ -11,12 +11,20 @@ export type LibrarySource = {
   editor?: string;
 };
 
+export type ManufacturingReview = {
+  status:'pending'|'approved'|'rejected';
+  minDiameter:number|null;
+  maxDiameter:number|null;
+  step:number|null;
+  note:string;
+};
 export type TemplateSelection = {
   name: string;
   head: string;
   headStones: string;
   band: string;
   pave: string;
+  review?:ManufacturingReview;
 };
 export type TemplateDraft = TemplateSelection & {id: string; revision: string; updatedAt: string};
 export type ManagedTemplate = {
@@ -29,6 +37,7 @@ export type ManagedTemplate = {
   bandId: string;
   library: Record<string, ReferenceAssets>;
   publishedAt?: string;
+  review?:ManufacturingReview;
 };
 export type PublishedTemplate = Pick<ManagedTemplate,'id'|'name'|'revision'|'headName'|'bandName'> & {url: string; image: string};
 
