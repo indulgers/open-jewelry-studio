@@ -186,3 +186,52 @@ summary { cursor: pointer; font-size: 14px; }
 .upload-guide summary{cursor:pointer;font-weight:600}
 .upload-guide li{margin:10px 0;line-height:1.7}
 .component-table td:last-child button{margin-block:4px}
+
+/* Upload review prioritizes the model, with a compact task panel beside it. */
+.model-assets-page{max-width:1920px;padding:20px clamp(16px,2.5vw,40px) 36px}
+.model-assets-page .page-heading{margin-bottom:12px}
+.model-assets-page .page-heading h1{font-size:1.45rem}
+.model-assets-page .upload-guide{margin-bottom:12px;padding:10px 14px}
+.model-assets-page .workspace{display:block}
+.model-switcher{display:flex;align-items:center;gap:12px;margin:0 0 12px;font-size:.85rem}
+.model-switcher select{max-width:100%;min-width:240px}
+.model-review{padding:16px}
+.model-metadata{font-size:.78rem;color:var(--muted);margin:8px 0 12px}
+.model-metadata summary,.versions summary{cursor:pointer}
+.model-review .review-grid{grid-template-columns:minmax(0,1fr) 360px;gap:20px}
+.model-review .preview{height:clamp(420px,61dvh,760px)}
+.review-view-tools,.review-part-tools,.review-section-title,.seat-assist>div:first-child{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.review-view-tools{padding-bottom:8px}
+.review-view-tools span{margin-left:auto;font-size:.8rem;color:var(--muted)}
+.model-review button:not(.primary):not(.part-button){padding:7px 10px;border:1px solid var(--border);border-radius:5px;background:var(--paper);font-size:.8rem}
+.review-view-tools button[aria-pressed=true]{background:#eee5d2!important;border-color:#ac8c4f!important}
+.review-section-title{justify-content:space-between;font-size:.8rem;margin-bottom:10px}
+.review-section-title span{color:var(--accent)}
+.review-part-tools{margin:8px 0}
+.review-filter{display:flex;align-items:center;gap:8px;font-size:.8rem;margin:12px 0}
+.review-filter select{flex:1;min-width:0}
+.review-bulk{display:flex;align-items:end;gap:8px;background:#f5f1e8;padding:10px;border-radius:6px;margin:8px 0}
+.review-bulk label{display:grid;gap:5px;flex:1;font-size:.8rem}
+.model-review .parts-scroll{max-height:clamp(240px,40dvh,500px)}
+.model-review .parts-scroll th{z-index:1}
+.model-review .parts-scroll td{padding:6px}
+.model-review .parts-scroll td small{display:block;font-size:.68rem}
+.model-review .parts-scroll input[type=checkbox]{width:17px;height:17px;accent-color:#6c5428}
+.model-review .parts-scroll td select{font-size:.78rem;max-width:180px}
+.review-list-empty{padding:20px}
+.seat-assist{border-top:1px solid var(--border);padding-top:12px;margin-top:12px}
+.seat-assist strong{font-size:.85rem;margin-right:auto}
+.seat-assist p{font-size:.75rem}
+.seat-slider{display:flex;gap:16px;align-items:center;margin:12px 0}
+.seat-slider>input{flex:1;min-width:0;accent-color:#8b6c37}
+.seat-slider label{display:flex;align-items:center;gap:6px;font-size:.8rem}
+.seat-slider input[type=number]{width:100px}
+.review-submit{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-top:1px solid var(--border);margin-top:14px}
+.review-submit strong{font-size:.9rem}
+.review-feedback{padding:10px 12px;background:#f0eadc;border-radius:5px}
+.model-review .versions{margin-top:12px;font-size:.8rem}
+@media(max-width:1000px){.model-review .review-grid{grid-template-columns:minmax(0,1fr) 300px;gap:12px}.model-review .preview{height:480px}}
+@media(max-width:760px){.model-review .review-grid{grid-template-columns:1fr}.model-review .preview{height:clamp(320px,55dvh,520px)}.model-switcher{align-items:start;flex-direction:column;gap:6px}.model-switcher select{width:100%}.review-submit{align-items:stretch;flex-direction:column}.review-view-tools span{width:100%;margin:0}.model-review{padding:12px}.seat-assist>div:first-child{align-items:start}.model-review .parts-scroll{max-height:320px}.seat-assist strong{width:100%}}
+
+.model-review .preview-section,.model-review .parts-section{min-width:0}
+@media(max-width:760px){.model-review .review-grid{grid-template-columns:minmax(0,1fr)}}

@@ -17,7 +17,7 @@ export default function AssetPreview({asset,onClose}:{asset:{title:string;url:st
       <ViewerBoundary onRetry={()=>setAttempt(value=>value+1)}>
         <Suspense fallback={<p className="preview-message" role="status">正在加载预览…</p>}>
           <PartPreview url={asset.url+(attempt?(asset.url.includes('?')?'&':'?')+'attempt='+attempt:'')}
-            highlight={null} assignments={noAssignments} anchor={null} centerX={0} radius={0}/>
+            assignments={noAssignments} anchor={null} centerX={0} radius={0}/>
         </Suspense>
       </ViewerBoundary>
     </div>
