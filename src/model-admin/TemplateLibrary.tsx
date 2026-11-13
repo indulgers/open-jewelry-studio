@@ -76,7 +76,8 @@ export default function TemplateLibrary({request,tab,initialSourceId,onUse}:{req
     const band=library?.sources.find(item=>item.id===form.band)?.surcharges??ZERO_COMPONENT_PRICES;
     return {base:form.basePrice,head:head.head,band:band.band,pave:form.pave?band.pave:0};
   }
-  const dirty=!saved||['description','cover','order','featured'].some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||form.basePrice!==saved.basePrice||(form.basePrice!==undefined&&JSON.stringify(currentPricing())!==JSON.stringify(saved.pricing))||Object.keys(empty).some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||JSON.stringify(form.review)!==JSON.stringify(saved.review);
+  const partsChanged=!!saved&&(['head','band'] as const).some(kind=>saved.componentMetadata?.[kind]!==((library?.sources.find(source=>source.id===form[kind])?.metadataRevision)??form[kind]));
+  const dirty=!saved||partsChanged||['description','cover','order','featured'].some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||form.basePrice!==saved.basePrice||(form.basePrice!==undefined&&JSON.stringify(currentPricing())!==JSON.stringify(saved.pricing))||Object.keys(empty).some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||JSON.stringify(form.review)!==JSON.stringify(saved.review);
   async function uploadCover(file?:File){
     if(!file)return;
     setBusy(true);setError('');
@@ -131,8 +132,8 @@ export default function TemplateLibrary({request,tab,initialSourceId,onUse}:{req
   if(!library)return <main>{error?<p role="alert">{error}</p>:<p role="status">正在读取部件库…</p>}</main>;
   const {sources,drafts,published}=library;
   const prices=library.prices??{revision:'initial',components:{},bases:{}};
-  if(tab==='parts')return <ComponentLibrary key={tab} sources={sources} prices={prices} onUse={onUse} onRename={library.cloud?async(source,name,partNames)=>{
-    const metadata=await request<Pick<LibrarySource,'name'|'partNames'|'metadataRevision'>>(source.source.replace('/api/model-admin','').replace(/\/source$/,'')+'/export/'+source.revision+'/metadata',post({name,partNames,expectedRevision:source.metadataRevision??source.revision}));
+  if(tab==='parts')return <ComponentLibrary key={tab} sources={sources} prices={prices} onUse={onUse} onRename={library.cloud?async(source,name,partNames,settings)=>{
+    const metadata=await request<Pick<LibrarySource,'name'|'partNames'|'settings'|'metadataRevision'>>(source.source.replace('/api/model-admin','').replace(/\/source$/,'')+'/export/'+source.revision+'/metadata',post({name,partNames,settings,expectedRevision:source.metadataRevision??source.revision}));
     setLibrary(current=>current&&({...current,sources:current.sources.map(item=>item.id===source.id?{...item,...metadata}:item)}));
   }:undefined} onArchive={library.cloud?async(source,archived)=>{
     await request(source.source.replace('/api/model-admin','').replace(/\/source$/,'')+'/export/'+source.revision+'/archive',post({archived}));
@@ -239,6 +240,7 @@ export default function TemplateLibrary({request,tab,initialSourceId,onUse}:{req
             </fieldset>
             <p className="selection-note">未确认的尺寸请留空。此处登记允许的制作范围，3D 按原模型展示。</p>
           </details>
+          {partsChanged&&<p className="selection-note">部件名称或编辑器配置有更新，保存新草稿后可预览并发布。</p>}
           <div className="template-actions">
             <button className="primary" disabled={busy||!dirty}>保存草稿并预览</button>
             <button type="button" disabled={busy||dirty||!!preview} onClick={loadPreview}>在编辑器预览</button>

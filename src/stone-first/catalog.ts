@@ -1,6 +1,7 @@
 import {RING02_TEMPLATE} from './ring02/assets.ts';
 
 export type CatalogRing={
+  legacyRevision?:string;headSourceId?:string;bandSourceId?:string;headLabel?:string;bandLabel?:string;headStructures?:string[];bandStructure?:string;bandFinish?:string;automaticPave?:boolean;publication?:{id:string;revision:string};
   id:string;kind:'parametric'|'reference';name:string;collection:string;subtitle:string;description:string;
   editor:string;revision:string;listed:boolean;model:string;image:string;campaign:string;
   price:{base:number;version:string;leadTime:string};

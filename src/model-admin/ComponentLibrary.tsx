@@ -3,11 +3,12 @@ import type {LibrarySource} from '../stone-first/reference/managed-types';
 import {ZERO_COMPONENT_PRICES,type PriceBook} from '../stone-first/pricing';
 import AssetPreview from './AssetPreview';
 
-type Props={sources:LibrarySource[];prices:PriceBook;onSave:(book:PriceBook)=>Promise<void>;onUse?:(id:string)=>void;onRename?:(source:LibrarySource,name:string,partNames:NonNullable<LibrarySource['partNames']>)=>Promise<void>;onArchive?:(source:LibrarySource,archived:boolean)=>Promise<void>};
+type Props={sources:LibrarySource[];prices:PriceBook;onSave:(book:PriceBook)=>Promise<void>;onUse?:(id:string)=>void;onRename?:(source:LibrarySource,name:string,partNames:NonNullable<LibrarySource['partNames']>,settings:NonNullable<LibrarySource['settings']>)=>Promise<void>;onArchive?:(source:LibrarySource,archived:boolean)=>Promise<void>};
 const parts=[['head','戒头'],['band','戒圈'],['headStones','戒头配钻'],['pave','戒臂铺钻'],['adapter','接合件']] as const;
 export default function ComponentLibrary({sources,prices,onSave,onArchive,onRename,onUse}:Props){
   const [renaming,setRenaming]=useState<LibrarySource>();
   const [name,setName]=useState('');
+  const [settings,setSettings]=useState<NonNullable<LibrarySource['settings']>>({});
   const [names,setNames]=useState<NonNullable<LibrarySource['partNames']>>({});
   const [query,setQuery]=useState('');
   const [removed,setRemoved]=useState(false);
@@ -48,16 +49,23 @@ export default function ComponentLibrary({sources,prices,onSave,onArchive,onRena
           const charge=key==='head'||key==='band'||key==='pave';
           return <tr key={item.id+key}><td><strong>{item.partNames?.[key]||item.name}</strong><small>{item.filename&&item.filename+' · '}{label} · {item.stock?'参考原款':item.revision.slice(0,8)}</small></td>
             <td>{charge?<input aria-label={item.name+label+'加价'} type="number" min="0" max="1000000" step="0.01" required disabled={busy||removed} value={rates[key]} onChange={e=>setBook({...book,components:{...book.components,[item.id]:{...rates,[key]:e.target.valueAsNumber}}})}/>:<span>{key==='headStones'?'含在戒头加价中':'含在戒圈加价中'}</span>}</td>
-            <td>{onRename&&!item.stock&&<button type="button" disabled={busy||changed} onClick={()=>{setRenaming(item);setName(item.name);setNames(item.partNames??{});}}>命名</button>}{onUse&&!item.archived&&<button type="button" disabled={busy||changed} onClick={()=>onUse(item.id)}>用于商品</button>}<button type="button" onClick={()=>setAsset({title:item.name+' · '+label,url:item.assets[key]!})}>预览</button><a href={item.assets[key]} download>下载</a>{onArchive&&!item.stock&&<button type="button" disabled={busy||changed} onClick={()=>archive(item)}>{item.archived?'恢复版本':'移出部件库'}</button>}</td></tr>;
+            <td>{onRename&&!item.stock&&<button type="button" disabled={busy||changed} onClick={()=>{setRenaming(item);setName(item.name);setNames(item.partNames??{});setSettings(item.settings??{});}}>命名</button>}{onUse&&!item.archived&&<button type="button" disabled={busy||changed} onClick={()=>onUse(item.id)}>用于商品</button>}<button type="button" onClick={()=>setAsset({title:item.name+' · '+label,url:item.assets[key]!})}>预览</button><a href={item.assets[key]} download>下载</a>{onArchive&&!item.stock&&<button type="button" disabled={busy||changed} onClick={()=>archive(item)}>{item.archived?'恢复版本':'移出部件库'}</button>}</td></tr>;
         }))}</tbody></table></div>
       <div className="price-save"><button className="primary" disabled={busy||!changed}>{busy?'正在保存…':'保存部件加价'}</button><p>商品需要重新保存草稿并发布，才会应用新的部件加价。</p></div>
       {message&&<p role="status">{message}</p>}
     </form>
     {renaming&&<div className="metadata-backdrop"><section role="dialog" aria-modal="true" aria-labelledby="rename-title" className="metadata-dialog">
       <h2 id="rename-title">命名部件</h2><p>原文件 {renaming.filename??renaming.name} 保留，已发布商品不变。</p>
-      <form className="template-form" onSubmit={async e=>{e.preventDefault();setBusy(true);setError('');try{await onRename?.(renaming,name,names);setRenaming(undefined);setMessage('名称已保存。');}catch(error){setError(error instanceof Error?error.message:'保存失败');}finally{setBusy(false);}}}>
+      <form className="template-form" onSubmit={async e=>{e.preventDefault();setBusy(true);setError('');try{await onRename?.(renaming,name,names,settings);setRenaming(undefined);setMessage('名称已保存。');}catch(error){setError(error instanceof Error?error.message:'保存失败');}finally{setBusy(false);}}}>
         <label>整套名称<input autoFocus required maxLength={60} value={name} onChange={e=>setName(e.target.value)}/></label>
         <details><summary>单独命名戒头、戒圈和配钻（可选）</summary>{parts.filter(([key])=>renaming.assets[key]).map(([key,label])=><label key={key}>{label}名称<input maxLength={60} value={names[key]??''} placeholder={name+' · '+label} onChange={e=>setNames({...names,[key]:e.target.value})}/></label>)}</details>
+        <details><summary>编辑器分类与铺钻</summary>
+          <label>戒头结构<select value={settings.headStructure??'其他'} onChange={e=>setSettings({...settings,headStructure:e.target.value})}>{['围镶','花形','高托','其他'].map(value=><option key={value}>{value}</option>)}</select></label>
+          <label>戒圈结构名称<input maxLength={60} value={settings.bandStructure??''} placeholder={names.band||name+'戒圈'} onChange={e=>setSettings({...settings,bandStructure:e.target.value})}/></label>
+          <label>戒臂样式<select value={settings.bandFinish??(renaming.assets.pave?'单列铺钻':'素面')} onChange={e=>setSettings({...settings,bandFinish:e.target.value})}>{['素面','单列铺钻','双列铺钻'].map(value=><option key={value}>{value}</option>)}</select></label>
+          {renaming.assets.pave&&<label className="featured-toggle"><input type="checkbox" checked={settings.automaticPave!==false} onChange={e=>setSettings({...settings,automaticPave:e.target.checked})}/>允许自动排钻</label>}
+          <p>排钻沿复核后的戒臂配钻位置生成；镶座须标为“铺钻镶座”，与戒圈主体分开。改变设置后需重新保存并发布商品。</p>
+        </details>
         {error&&<p role="alert">{error}</p>}<div className="template-actions"><button className="primary" disabled={busy}>保存名称</button><button type="button" disabled={busy} onClick={()=>setRenaming(undefined)}>取消</button></div>
       </form></section></div>}
     {asset&&<AssetPreview asset={asset} onClose={()=>setAsset(undefined)}/>}

@@ -1,9 +1,18 @@
-export const BAND_STYLES = [
+import {RING_CATALOG} from '../catalog.ts';
+export const BAND_STYLES:{name:string;finishes:{id:string;name:string}[]}[] = [
   {name:'分段式戒圈', finishes:[{id:'ring-floral',name:'素面'},{id:'ring-02',name:'单列铺钻'}]},
   {name:'纤细戒圈', finishes:[{id:'ring-rosette',name:'素面'},{id:'ring-petal',name:'单列铺钻'}]},
   {name:'收腰戒圈', finishes:[{id:'ring-solstice',name:'素面'},{id:'ring-starlight',name:'单列铺钻'}]},
   {name:'宽肩戒圈', finishes:[{id:'ring-crown',name:'双列铺钻'}]},
-] as const;
+];
+
+for(const ring of RING_CATALOG){
+  if(BAND_STYLES.some(style=>style.finishes.some(finish=>finish.id===ring.id)))continue;
+  const name=ring.bandStructure||ring.bandLabel||ring.name.replace(/戒指$/,'戒圈');
+  let style=BAND_STYLES.find(item=>item.name===name);
+  if(!style){style={name,finishes:[]};BAND_STYLES.push(style);}
+  style.finishes.push({id:ring.id,name:ring.bandFinish||(ring.zones.includes('shoulder')?'单列铺钻':'素面')});
+}
 
 export function bandStyle(id:string) {
   return BAND_STYLES.find(style=>style.finishes.some(finish=>finish.id===id))!;

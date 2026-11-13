@@ -15,17 +15,13 @@ async function start(){
       const response=await fetch('/api/model-admin/public/storefront.json');
       if(!response.ok)throw new Error('款式暂不可用');
       const data=await response.json() as {catalog:CatalogRing[];parts:typeof parts;prices:PriceBook;products:PublishedTemplate[]};
-      for(const current of RING_CATALOG){
-        const next=data.catalog.find(item=>item.id===current.id);
-        if(!next||!data.parts[current.id as keyof typeof parts])throw new Error('款式资料不完整');
-        const {price,listed,...fields}=next;
-        const product=data.products.find(item=>item.catalogId===current.id);
-        Object.assign(current,fields,product?{name:product.name,description:product.description??'',image:product.image}:{});
-        if(current.id==='ring-02')Object.assign(RING02_TEMPLATE,{listed:!!product});else current.listed=!!product;
-        Object.assign(current.price,price,{base:product?.pricing?.base??price.base,version:product?.revision??price.version});
+      for(const next of data.catalog){
+        const current=RING_CATALOG.find(item=>item.id===next.id);
+        if(current){const {listed,price,...fields}=next;Object.assign(current,fields);Object.assign(current.price,price);if(current.id==='ring-02'){Object.assign(RING02_TEMPLATE,{listed});Object.assign(RING02_TEMPLATE.price,price);}else current.listed=listed;}
+        else RING_CATALOG.push(next);
       }
       Object.assign(parts,data.parts);
-      setPriceBook({...data.prices,components:Object.fromEntries(data.products.filter(item=>item.catalogId&&item.pricing).map(item=>[item.catalogId!,{head:item.pricing!.head,band:item.pricing!.band,pave:item.pricing!.pave}]))});
+      setPriceBook(data.prices);
     }
     const {default:App}=await import('./App');
     root.render(<App/>);

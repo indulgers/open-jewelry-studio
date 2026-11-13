@@ -25,8 +25,10 @@ it('names a source without renaming the original file and hands the entire kit t
  fireEvent.click(screen.getByRole('button',{name:'命名'}));
  fireEvent.change(screen.getByLabelText('整套名称'),{target:{value:'花冠'}});
  fireEvent.change(screen.getByLabelText('戒头名称'),{target:{value:'花冠装饰钻戒头'}});
+ fireEvent.change(screen.getByLabelText('戒头结构'),{target:{value:'花形'}});
+ fireEvent.change(screen.getByLabelText('戒圈结构名称'),{target:{value:'纤细戒圈'}});
  fireEvent.click(screen.getByRole('button',{name:'保存名称'}));
- await waitFor(()=>expect(onRename).toHaveBeenCalledWith(source,'花冠',{head:'花冠装饰钻戒头'}));
+ await waitFor(()=>expect(onRename).toHaveBeenCalledWith(source,'花冠',{head:'花冠装饰钻戒头'},{headStructure:'花形',bandStructure:'纤细戒圈'}));
  await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
  fireEvent.click(screen.getByRole('button',{name:'用于商品'}));
  expect(onUse).toHaveBeenCalledWith(source.id);

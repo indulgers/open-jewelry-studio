@@ -16,3 +16,11 @@ export function componentTotal(headId:string,bandId:string,hasPave:boolean){
   const band=activePriceBook?.components[bandId]??ZERO_COMPONENT_PRICES;
   return sumMoney([head.head,band.band,hasPave?band.pave:0]);
 }
+
+export function combinationQuote(head:{id:string;price:{base:number;version:string;leadTime:string};zones:readonly string[]},band:{id:string;price:{version:string};zones:readonly string[]},appearance:Record<string,unknown>,book=activePriceBook){
+  const headRates=book?.components[head.id]??ZERO_COMPONENT_PRICES;
+  const bandRates=book?.components[band.id]??ZERO_COMPONENT_PRICES;
+  const zones=[...head.zones.filter(zone=>zone!=='shoulder'),...band.zones.filter(zone=>zone==='shoulder')];
+  return {amount:sumMoney([head.price.base,headRates.head,bandRates.band,band.zones.includes('shoulder')?bandRates.pave:0,zones.filter(zone=>appearance[zone]!=='diamond').length*100]),currency:'CNY' as const,
+    version:head.price.version===band.price.version?head.price.version:head.price.version+':'+band.price.version,leadTime:head.price.leadTime};
+}

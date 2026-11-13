@@ -5,7 +5,8 @@ import {basename,join} from 'node:path';
 import {cloudStore,type CloudStore} from './cloud-store.ts';
 import {processModel} from './process.mjs';
 import {assetKeys,RequestError,selectTemplate,priceSelection,requirePrice,uuid,validateTemplateInput} from './templates.ts';
-import {isMoney,sumMoney,templateQuote,type PriceBook} from '../../src/stone-first/pricing.ts';
+import {STONE_APPEARANCES} from '../../src/viewer/stoneAppearance.ts';
+import {combinationQuote,isMoney,sumMoney,templateQuote,type PriceBook} from '../../src/stone-first/pricing.ts';
 import {RING_CATALOG} from '../../src/stone-first/catalog.ts';
 import {orderedProducts} from '../../src/stone-first/reference/managed-types.ts';
 import {SEAT_Y,referencePartRole} from '../../src/stone-first/reference/parts.ts';
@@ -19,7 +20,7 @@ const cookieName='__Host-xiangyan-admin';
 const sessionSeconds=8*60*60;
 const partFile=/^parts\/(heads|bands|stones)\/ring(?:-(?:head|pave|adapter))?-[a-f0-9]{12}\.glb$/;
 type Job={id:string;filename:string;createdAt:string;size:number};
-type Version={name?:string;partNames?:LibrarySource['partNames'];metadataRevision?:string;archived?:boolean;id:string;createdAt:string;parts:ReferenceAssets;profileId?:string};
+type Version={assignments?:Record<string,string>;settings?:LibrarySource['settings'];name?:string;partNames?:LibrarySource['partNames'];metadataRevision?:string;archived?:boolean;id:string;createdAt:string;parts:ReferenceAssets;profileId?:string};
 type Intent={filename:string;size:number;hash:string;expires:number};
 type Release=ManagedTemplate&{publishedAt:string;files:string[]};
 type Publication={current:PublishedTemplate;revisions:string[];hidden?:boolean;stateRevision?:string};
@@ -93,11 +94,13 @@ function cloudLibrary(store:CloudStore){
       if(!job)return;
       const {value:version}=await required<Version>(key);
       const base=prefix+'/'+job.id+'/export/'+version.id+'/';
-      const assets={...version.parts,classified:true,profileId:version.profileId};
+      const roles=Object.values(version.assignments??{});
+      const zones=(['center','halo','shoulder'] as const).filter(zone=>roles.includes(zone));
+      const assets={...version.parts,classified:true,profileId:version.profileId,...(roles.length?{zones}:{})};
       for(const kind of assetKeys){
         if(assets[kind])assets[kind]=base+assets[kind].replace('/models/parts/','parts/');
       }
-      return {id:version.id,name:version.name??job.filename,filename:job.filename,partNames:version.partNames,metadataRevision:version.metadataRevision??version.id,revision:version.id,stock:false,archived:!!version.archived,assets,source:prefix+'/'+job.id+'/source',model:base+'ring.glb'} satisfies LibrarySource;
+      return {id:version.id,name:version.name??job.filename,filename:job.filename,partNames:version.partNames,settings:version.settings,metadataRevision:version.metadataRevision??version.id,revision:version.id,stock:false,archived:!!version.archived,assets,source:prefix+'/'+job.id+'/source',model:base+'ring.glb'} satisfies LibrarySource;
     }));
     const stock=(await required<LibrarySource[]>(root+'stock/library.json')).value;
     const book=await prices();
@@ -171,6 +174,7 @@ function cloudLibrary(store:CloudStore){
     for(const key of ['head','headStones','band','pave'] as const){
       if(options.find(source=>source.id===draft[key])?.archived&&prior?.value[key]!==draft[key])fail(422,'该部件版本已移出部件库，请选择其他版本或先恢复。');
     }
+    draft.componentMetadata={head:options.find(source=>source.id===draft.head)?.metadataRevision??draft.head,band:options.find(source=>source.id===draft.band)?.metadataRevision??draft.band};
     draft.pricing=priceSelection(draft,options);
     selectTemplate(draft,options);
     if(!await putJson(draftKey(draft.id),draft,{etag:prior?.etag??null}))fail(409,'草稿已更新，请重新打开后再编辑。');
@@ -179,7 +183,9 @@ function cloudLibrary(store:CloudStore){
   async function preview(id:string,revision:string){
     const {value:draft}=await required<TemplateDraft>(draftKey(id));
     if(draft.revision!==revision)fail(409,'草稿已更新，请打开最新版本预览。');
-    return selectTemplate(draft,await sources());
+    const options=await sources();
+    if(draft.componentMetadata&&(['head','band'] as const).some(kind=>draft.componentMetadata![kind]!==((options.find(source=>source.id===draft[kind])?.metadataRevision)??draft[kind])))fail(409,'部件资料已更新，请重新保存商品草稿并检查预览。');
+    return selectTemplate(draft,options);
   }
   async function publish(id:string,revision:string,image:Uint8Array<ArrayBuffer>){
     const template=await preview(id,revision);
@@ -227,7 +233,41 @@ function cloudLibrary(store:CloudStore){
     }
     return product;
   }
-  return {optional,required,putJson,sources,records,published,publicationKey,save,preview,publish,visibility,history,prices,savePrices};
+  async function storefront(){
+    const [{value:stockCatalog},{value:stockSources},book,products]=await Promise.all([
+      required<any[]>(root+'stock/catalog.json'),required<LibrarySource[]>(root+'stock/library.json'),prices(),published(),
+    ]);
+    const catalog=stockCatalog.map(item=>({...item,listed:false}));
+    const parts:Record<string,ReferenceAssets>=Object.fromEntries(stockSources.map(source=>[source.id,source.assets]));
+    const components:PriceBook['components']={};
+    const entries=await Promise.all(products.map(async product=>{
+      const {value:release}=await required<Release>(releaseKey(product.id,product.revision)+'template.json');
+      const original=stockCatalog.find(item=>item.id===product.catalogId);
+      const id=product.catalogId??product.id;
+      // Namespaced release keys prevent a later product reusing a part from replacing another release's assets.
+      const headSourceId=id+':head',bandSourceId=id+':band';
+      parts[headSourceId]={...release.library[release.headId],sourceId:release.headId};parts[bandSourceId]={...release.library[release.bandId],sourceId:release.bandId};
+      const head=parts[headSourceId],band=parts[bandSourceId];
+      if(!head.head||!head.headStones||!band.band)fail(422,'已发布款式缺少部件信息。');
+      const entry={...original,id,kind:original?.kind??'reference',listed:true,name:product.name,
+        collection:product.collection??original?.collection??'相言定制',subtitle:product.headName+' · '+product.bandName,description:product.description??'',
+        editor:product.catalogId?'#/stonefirst/'+id:'#/stonefirst/template/'+product.id+'/'+product.revision,
+        legacyRevision:original?.revision,revision:product.revision,model:'',image:product.image,campaign:product.campaign??'',
+        price:{base:release.pricing?.base??original?.price.base??0,version:product.revision,leadTime:'7–10 个工作日'},
+        headSourceId,bandSourceId,headLabel:product.headName,bandLabel:product.bandName,
+        headStructures:release.headSettings?.headStructure?[release.headSettings.headStructure]:original?.headStructures??[],
+        bandStructure:release.bandSettings?.bandStructure,bandFinish:release.bandSettings?.bandFinish,
+        automaticPave:release.bandSettings?.automaticPave!==false,
+        publication:{id:product.id,revision:product.revision},
+        zones:original?.zones??['center',...(!head.zones||head.zones.includes('halo')?['halo']:[]),...(band.pave?['shoulder']:[])],stoneCount:original?.stoneCount??0,
+      };
+      if(release.pricing)components[id]={head:release.pricing.head,band:release.pricing.band,pave:release.pricing.pave};
+      return entry;
+    }));
+    for(const entry of entries){const index=catalog.findIndex(item=>item.id===entry.id);if(index<0)catalog.push(entry);else catalog[index]=entry;}
+    return {catalog,parts,prices:{...book,components},products};
+  }
+  return {optional,required,putJson,sources,records,published,publicationKey,save,preview,publish,visibility,history,prices,savePrices,storefront};
 }
 
 function redirect(url:string){
@@ -256,10 +296,17 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
       if(!store)return json({error:'发布目录未配置。'},503);
       const library=cloudLibrary(store);
       if(action==='storefront.json'&&!revision){
-        const [{value:catalog},{value:sources},prices]=await Promise.all([
-          library.required<any[]>(root+'stock/catalog.json'),library.required<LibrarySource[]>(root+'stock/library.json'),library.prices(),
-        ]);
-        return json({catalog,parts:Object.fromEntries(sources.map(source=>[source.id,source.assets])),prices,products:await library.published()});
+        return json(await library.storefront());
+      }
+      if(action==='combination-quote'&&!revision){
+        const {catalog,prices}=await library.storefront();
+        const head=catalog.find(item=>item.listed&&item.id===url.searchParams.get('head'));
+        const band=catalog.find(item=>item.listed&&item.id===url.searchParams.get('band'));
+        if(!head||!band)fail(409,'所选部件已下架，请重新选择款式。');
+        if(head!.revision!==url.searchParams.get('headRevision')||band!.revision!==url.searchParams.get('bandRevision'))fail(409,'款式已更新，请刷新后确认新的配置与报价。');
+        const appearance=Object.fromEntries(['center','halo','shoulder'].map(zone=>[zone,url.searchParams.get(zone)??'diamond']));
+        if(Object.values(appearance).some(value=>!Object.hasOwn(STONE_APPEARANCES,value)))fail(422,'宝石外观无效。');
+        return json(combinationQuote(head!,band!,appearance,prices));
       }
       if(action==='pricing.json'&&!revision){
         const book=await library.prices();
@@ -406,9 +453,18 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
         const manifest=key+'versions/'+revision+'/manifest.json';
         const prior=await library.required<Version>(manifest);
         if(input.expectedRevision!==(prior.value.metadataRevision??prior.value.id))fail(409,'名称已被修改，请刷新后重试。');
-        const next={...prior.value,name:input.name.trim(),partNames:names,metadataRevision:randomUUID()};
+        const settings:NonNullable<LibrarySource['settings']>={};
+        if(input.settings!==undefined){
+          if(!input.settings||typeof input.settings!=='object'||Array.isArray(input.settings))fail(422,'部件使用设置无效。');
+          for(const [field,value] of Object.entries(input.settings)){
+            if(field==='automaticPave'){if(typeof value!=='boolean')fail(422,'自动排钻设置无效。');settings.automaticPave=value as boolean;}
+            else if(['headStructure','bandStructure','bandFinish'].includes(field)&&typeof value==='string'&&value.trim().length<=60){settings[field as 'headStructure'|'bandStructure'|'bandFinish']=value.trim();}
+            else fail(422,'部件使用设置无效。');
+          }
+        }
+        const next={...prior.value,name:input.name.trim(),partNames:names,settings:input.settings===undefined?prior.value.settings:settings,metadataRevision:randomUUID()};
         if(!await library.putJson(manifest,next,{etag:prior.etag}))fail(409,'版本已改变，请刷新后重试。');
-        return json({name:next.name,partNames:next.partNames,metadataRevision:next.metadataRevision});
+        return json({name:next.name,partNames:next.partNames,settings:next.settings,metadataRevision:next.metadataRevision});
       }
       if(method==='POST'&&uuid.test(revision??'')&&rest.length===1&&rest[0]==='archive'){
         const input=await body(request);

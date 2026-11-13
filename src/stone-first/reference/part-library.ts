@@ -4,7 +4,7 @@ import {LEGACY_HALO_COLLARS} from './parts';
 import assets from './part-assets.json';
 
 export type ReferenceAssets={
-  scale:number;axisY:number;seatY:number;head:string;band:string;headStones:string;pave?:string;adapter?:string;classified?:boolean;profileId?:string;
+  zones?:readonly ('center'|'halo'|'shoulder')[];sourceId?:string;scale:number;axisY:number;seatY:number;head:string;band:string;headStones:string;pave?:string;adapter?:string;classified?:boolean;profileId?:string;
 };
 const library:Record<string,ReferenceAssets>=assets;
 type Geometry=ReturnType<typeof prepareReferenceGeometry>;
@@ -19,6 +19,7 @@ async function readPart(url:string,signal:AbortSignal){
 export function createReferenceLibrary(read:ReadPart=readPart, sources:Record<string,ReferenceAssets>=library){
   const controller=new AbortController();
   const geometry=new Map<string,Promise<Geometry>>();
+  const combinations=new Map<string,Promise<{stock:ReturnType<typeof combineReferenceRings>;band:ReferenceBand}>>();
   const heads=new Map<string,Promise<ReferenceHead>>();
   const bands=new Map<string,Promise<ReferenceBand>>();
   const order=(a:{sourceOrder?:number},b:{sourceOrder?:number})=>(a.sourceOrder??0)-(b.sourceOrder??0);
@@ -48,7 +49,7 @@ export function createReferenceLibrary(read:ReadPart=readPart, sources:Record<st
       const source=sources[id];
       const [metal,stones]=await Promise.all([part(source,source.head),part(source,source.headStones)]);
       if(!metal.metal.length||!stones.stones.some(stone=>stone.zone==='center'))throw new Error('戒头缺少主石或镶座');
-      return {id,classified:source.classified,profileId:source.profileId,seatY:source.seatY,metal:metal.metal,stones:stones.stones};
+      return {id:source.sourceId??id,classified:source.classified,profileId:source.profileId,seatY:source.seatY,metal:metal.metal,stones:stones.stones};
     });
   }
 
@@ -62,26 +63,29 @@ export function createReferenceLibrary(read:ReadPart=readPart, sources:Record<st
       ]);
       const metal=[...base.metal,...(pave?pave.metal:[]),...(adapter?adapter.metal:[])].sort(order);
       if(!metal.length)throw new Error('戒圈缺少金属结构');
-      return prepareReferenceBand({id,classified:source.classified,profileId:source.profileId,seatY:source.seatY,metal,stones:pave?pave.stones:[],reflowShank:base.reflowShank});
+      return prepareReferenceBand({id:source.sourceId??id,classified:source.classified,profileId:source.profileId,seatY:source.seatY,metal,supportMetal:base.metal,paveMetalNames:pave?pave.metal.map(part=>part.name):[],stones:pave?pave.stones:[],reflowShank:base.reflowShank});
     });
   }
 
   return {
-    async load(headId:string,bandId:string){
+    load(headId:string,bandId:string){
+      return cached(combinations,JSON.stringify([headId,bandId]),async()=>{
       const source=sources[headId];
-      const needsAdapter=(source.profileId??headId)==='ring-02'&&
-        Object.hasOwn(LEGACY_HALO_COLLARS,sources[bandId].profileId??bandId);
+      const needsAdapter=(source.profileId??source.sourceId??headId)==='ring-02'&&
+        Object.hasOwn(LEGACY_HALO_COLLARS,sources[bandId].profileId??sources[bandId].sourceId??bandId);
       const [selectedHead,selectedBand,adapter]=await Promise.all([
         head(headId),band(bandId),
         needsAdapter&&source.adapter?part(source,source.adapter):undefined,
       ]);
       return {stock:combineReferenceRings(selectedHead,selectedBand,adapter?.metal[0]),band:selectedBand};
+      });
     },
     dispose(){
       controller.abort();
       for(const result of bands.values())void result.then(band=>band.disposePave(),()=>{});
       for(const result of geometry.values())void result.then(part=>part.dispose(),()=>{});
-      heads.clear();bands.clear();geometry.clear();
+      for(const result of combinations.values())void result.then(({stock})=>stock.metal.filter(part=>part.name==='head:connection').forEach(part=>part.geometry.dispose()),()=>{});
+      heads.clear();bands.clear();geometry.clear();combinations.clear();
     },
   };
 }

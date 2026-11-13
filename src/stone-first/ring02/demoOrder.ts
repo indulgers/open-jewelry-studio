@@ -21,6 +21,7 @@ export function estimateRing02(design:RingDesign){
 
 export type Detail={label:string;value:string};
 export type DemoOrder={
+  name?:string;
   templateRevision:string;
   revision:string;
   confirmedAt:string;
@@ -62,7 +63,7 @@ export function removeDemoOrder(revision:string){
 }
 
 export function demoOrders(){
-  const orders:(Pick<DemoOrder,'templateRevision'|'revision'|'confirmedAt'|'quote'|'details'|'thumbnail'|'pave'|'managed'>&{design?:unknown})[]=[];
+  const orders:(Pick<DemoOrder,'name'|'templateRevision'|'revision'|'confirmedAt'|'quote'|'details'|'thumbnail'|'pave'|'managed'>&{design?:unknown})[]=[];
   for(let index=0;index<localStorage.length;index++){
     const key=localStorage.key(index);
     if(!key?.startsWith(ORDER_PREFIX))continue;
@@ -73,7 +74,7 @@ export function demoOrders(){
         &&isMoney(order.quote?.amount)&&order.quote.amount>0&&order.quote.currency==='CNY'
         &&typeof order.quote.version==='string'&&typeof order.quote.leadTime==='string'&&Array.isArray(order.details)
         &&order.details.every((detail:Detail)=>detail&&typeof detail.label==='string'&&typeof detail.value==='string')){
-        orders.push({...order,managed:validManaged(order.managed)?order.managed:undefined,thumbnail:validThumbnail(order.thumbnail)?order.thumbnail:undefined});
+        orders.push({...order,name:typeof order.name==='string'&&order.name.length<=200?order.name:undefined,managed:validManaged(order.managed)?order.managed:undefined,thumbnail:validThumbnail(order.thumbnail)?order.thumbnail:undefined});
       }
     }catch{continue;}
   }

@@ -54,7 +54,7 @@ export function DiyCart(){
           const design=parseReferenceDesign(order.design);
           const parts=template&&design?referenceParts(template,design):null;
           const mixed=parts&&(parts.head.id!==template?.id||parts.band.id!==template?.id);
-          const name=order.managed?.name??(mixed?headName(parts.head.name)+' × '+bandStyle(parts.band.id).name:template?.name??'戒指定制方案');
+          const name=order.name??order.managed?.name??(mixed?headName(parts.head.name)+' × '+bandStyle(parts.band.id).name:template?.name??'戒指定制方案');
           const editor=order.managed?templateRoute(order.managed.id,order.managed.revision):template?.kind==='parametric'&&order.pave?.units==='model'?RING02_PRECISION_ROUTE:template?.editor;
           return <article key={order.revision} className="diy-cart-order">
             <CartImage thumbnail={order.thumbnail} image={order.managed?'/api/model-admin/public/'+order.managed.id+'/'+order.managed.revision+'/cover.jpg':mixed?undefined:template?.image} name={name}/>

@@ -13,11 +13,11 @@ const HEAD_STRUCTURES={
   'ring-starlight':['围镶','高托'],
   'ring-solstice':['高托'],
 } as const;
-const headStructures=['围镶','花形','高托'];
+const headStructures=['围镶','花形','高托','其他'];
 export const headChoices=RING_CATALOG.map(ring=>({
-  id:ring.id,name:headName(ring.name),image:ring.image,
+  id:ring.id,name:ring.headLabel??headName(ring.name),image:ring.image,
   detail:ring.subtitle.split(' · ')[1],
-  structures:HEAD_STRUCTURES[ring.id as keyof typeof HEAD_STRUCTURES]??[],
+  structures:ring.headStructures?.length?ring.headStructures:HEAD_STRUCTURES[ring.id as keyof typeof HEAD_STRUCTURES]??['其他'],
 }));
 const bandFinishes=BAND_STYLES.flatMap(style=>style.finishes.map(finish=>({
   id:finish.id,name:style.name,image:sourceImage(finish.id),detail:finish.name,
@@ -45,7 +45,7 @@ export function PartLibrary({kind,selected,trigger,onClose,onSelect}:{
   const selectedName=isHead?headChoices.find(item=>item.id===selected)!.name:
     bandStyle(selected).name+' · '+bandFinishes.find(item=>item.id===selected)!.detail;
   const text=query.trim();
-  const matches=(item:PartChoice)=>(item.name+' '+(item.detail??'')).includes(text);
+  const matches=(item:PartChoice)=>RING_CATALOG.some(ring=>ring.id===item.id&&(ring.listed||ring.id===selected))&&(item.name+' '+(item.detail??'')).includes(text);
   const visible=isHead
     ?headChoices.filter(item=>(!structure||item.structures.some(value=>value===structure))&&matches(item))
     :bandFinishes.filter(item=>(!structure||item.name===structure)&&(!finish||item.detail===finish)&&matches(item));

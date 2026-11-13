@@ -74,3 +74,26 @@ it('shares in-flight parts, requests only the new head, and retries a failed ass
     expect(requests).toEqual([second.headStones]);
   }finally{library.dispose();}
 });
+
+it('uses reviewed roles for an unknown uploaded model, repacks it and caches mixed assemblies',async()=>{
+  const requests:string[]=[];
+  const sources={
+    uploaded:{...assets['ring-petal'],classified:true,sourceId:'new-upload-with-no-code-profile'},
+    other:{...assets['ring-floral'],sourceId:'ring-floral'},
+  };
+  const library=createReferenceLibrary(async url=>{requests.push(url);return bytes(url);},sources);
+  try{
+    const original=await library.load('uploaded','uploaded');
+    const mixed=await library.load('other','uploaded');
+    const count=requests.length;
+    expect(await library.load('other','uploaded')).toBe(mixed);
+    expect(requests).toHaveLength(count);
+    const small=applyReferencePave(mixed.stock,mixed.band,80,100);
+    const short=applyReferencePave(mixed.stock,mixed.band,80,70);
+    expect(small.pave!.count).toBeGreaterThan(short.pave!.count);
+    expect(short.pave!.minGap).toBeGreaterThan(0);
+    expect(short.frames).toBe(mixed.stock.frames);
+    expect(short.metal.some(part=>mixed.band.paveMetalNames!.includes(part.name))).toBe(false);
+    expect(original.stock.stones.filter(stone=>stone.zone!=='shoulder').length).toBeGreaterThan(1);
+  }finally{library.dispose();}
+});

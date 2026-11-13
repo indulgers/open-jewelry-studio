@@ -1,7 +1,9 @@
 import type {ComponentPrices,TemplatePrice} from '../pricing';
 import type {ReferenceAssets} from './part-library';
 
+export type ComponentSettings={headStructure?:string;bandStructure?:string;bandFinish?:string;automaticPave?:boolean};
 export type LibrarySource = {
+  settings?:ComponentSettings;
   id: string;
   name: string;
   revision: string;
@@ -35,11 +37,13 @@ export type TemplateSelection = ProductPresentation&{
   basePrice?:number;
   pricing?:TemplatePrice;
 };
-export type TemplateDraft = TemplateSelection & {id: string; revision: string; updatedAt: string};
+export type TemplateDraft = TemplateSelection & {id: string; revision: string; updatedAt: string;componentMetadata?:{head:string;band:string}};
 export type ManagedTemplate = ProductPresentation&{
   id: string;
   revision: string;
   name: string;
+  headSettings?:ComponentSettings;
+  bandSettings?:ComponentSettings;
   headName: string;
   bandName: string;
   headId: string;

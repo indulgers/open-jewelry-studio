@@ -46,7 +46,7 @@ export function selectTemplate(draft:TemplateDraft,options:LibrarySource[]):Mana
     };
     if(head.id===band.id)library[head.id]=head.assets;
     return {id:draft.id,revision:draft.revision,name:draft.name,headName:head.partNames?.head??head.name,bandName:band.partNames?.band??band.name,
-      headId:head.id,bandId:band.id,library,review:draft.review,pricing:draft.pricing,description:draft.description,cover:draft.cover,order:draft.order,featured:draft.featured,catalogId:draft.catalogId,campaign:draft.campaign,collection:draft.collection};
+      headId:head.id,bandId:band.id,headSettings:head.settings,bandSettings:band.settings,library,review:draft.review,pricing:draft.pricing,description:draft.description,cover:draft.cover,order:draft.order,featured:draft.featured,catalogId:draft.catalogId,campaign:draft.campaign,collection:draft.collection};
 }
 
 export function validateTemplateInput(input:unknown){

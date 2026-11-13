@@ -3,8 +3,12 @@ import {templateQuote} from '../pricing';
 import {useCallback,useEffect,useMemo,useRef,useState,type RefObject} from 'react';
 import {STONE_APPEARANCES,STONE_APPEARANCE_IDS,type StoneAppearance} from '../../viewer/stoneAppearance';
 import {VIEWS,type RingView} from '../ring02/Ring02Stage';
+import {SourceRingStudio} from './SourceRingStudio';
+import {RING_CATALOG} from '../catalog';
 import {ORIGINAL_REFERENCE} from './design';
 import {fetchManaged,type ManagedTemplate} from './managed-types';
+import {PAVE_DIAMETERS,PAVE_LENGTHS,describePaveGap,type PaveDiameter,type PaveLength} from './pave-options';
+import type {ReferenceBand,RingAssembly} from './model';
 import {applyReferencePave} from './pave';
 import {createReferenceLibrary} from './part-library';
 import {SourceLoading,SourceRingStage,type SourceFrame} from './SourceRingStage';
@@ -22,13 +26,17 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
   const [view,setView]=useState<RingView>('overall');
   const [reset,setReset]=useState(0);
   const [center,setCenter]=useState<StoneAppearance>('diamond');
-  const [loaded,setLoaded]=useState<{ring?:SourceFrame['ring'];error?:boolean}>({});
+  const [loaded,setLoaded]=useState<{stock?:RingAssembly;band?:ReferenceBand;error?:boolean}>({});
+  const [diameter,setDiameter]=useState<PaveDiameter>(100),[length,setLength]=useState<PaveLength>(100);
+  const layout=useMemo(()=>{try{return {ring:loaded.stock&&loaded.band?applyReferencePave(loaded.stock,loaded.band,diameter,length):undefined};}catch(error){return {error:error instanceof Error?error.message:'排钻失败，请核对配钻和镶爪分区。'};}},[loaded,diameter,length]);
+  const original=diameter===100&&length===100;
+  const ring=layout.ring;
   const capture=useRef<(()=>string|undefined)|null>(null);
   const design=useMemo(()=>({...ORIGINAL_REFERENCE,center}),[center]);
   const [ready,setReady]=useState(false);
   const [adding,setAdding]=useState(false);
   const [message,setMessage]=useState('');
-  const captureReady=useCallback((frame:SourceFrame|null)=>{setReady(!!frame);onReady(frame);},[onReady]);
+  const captureReady=useCallback((frame:SourceFrame|null)=>{setReady(!!frame);onReady(original?frame:null);},[onReady,original]);
   const quote=template.pricing?templateQuote(template.pricing,template.revision):undefined;
   async function addToCart(){
     if(!quote||!ready||adding)return;
@@ -53,14 +61,14 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
     const library=createReferenceLibrary(undefined,template.library);
     let active=true;
     library.load(template.headId,template.bandId).then(({stock,band})=>{
-      if(active)setLoaded({ring:applyReferencePave(stock,band,100,100)});
+      if(active)setLoaded({stock,band});
     }).catch(()=>{if(active)setLoaded({error:true});});
     return ()=>{active=false;library.dispose();};
   },[attempt,template]);
 
   return <div className="stone-first-workspace ring02-workspace source-ring-workspace managed-editor">
     <div className="stone-first-main ring02-main source-ring-main"><section className="stone-first-preview">
-      {loaded.ring?<SourceRingStage ring={loaded.ring} design={design} template={template}
+      {ring?<SourceRingStage ring={ring} design={design} template={template}
         view={view} reset={reset} captureRef={thumbnailRef??capture} captureSize={thumbnailRef?768:320} onCaptureReady={captureReady}/>
         :<div className="stone-first-canvas ring02-canvas"><SourceLoading template={template} retry={loaded.error?()=>{
           setLoaded({});setAttempt(value=>value+1);
@@ -77,6 +85,13 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
       {!thumbnailRef&&<label>主石外观 <select value={center} onChange={event=>setCenter(event.target.value as StoneAppearance)}>
         {STONE_APPEARANCE_IDS.map(id=><option key={id} value={id}>{STONE_APPEARANCES[id].name}</option>)}
       </select></label>}
+      {thumbnailRef&&loaded.band?.stones.some(stone=>stone.zone==='shoulder')&&template.bandSettings?.automaticPave!==false&&<fieldset><legend>试排戒臂配钻</legend>
+        <label>石径 <select value={diameter} onChange={event=>setDiameter(Number(event.target.value) as PaveDiameter)}>{PAVE_DIAMETERS.map(value=><option key={value} value={value}>{value}%</option>)}</select></label>
+        <label>铺钻长度 <select value={length} onChange={event=>setLength(Number(event.target.value) as PaveLength)}>{PAVE_LENGTHS.map(value=><option key={value} value={value}>{value}%</option>)}</select></label>
+        {ring?.pave&&<p>{ring.pave.count} 颗 · 间距 {describePaveGap(ring.pave)}</p>}
+        {layout.error&&<p role="alert">{layout.error}</p>}
+        {!original&&<><p>检查后恢复原款，再确认发布。</p><button type="button" onClick={()=>{setDiameter(100);setLength(100);}}>恢复原款排钻</button></>}
+      </fieldset>}
       {quote&&<section className="managed-price" aria-label="商品报价"><p>参考价 <strong>{formatYuan(quote.amount)}</strong></p>
         <details><summary>价格明细</summary><dl>{(['base','head','band','pave'] as const).map((key,index)=><div key={key}><dt>{['模板基础价','戒头加价','戒圈加价','铺钻加价'][index]}</dt><dd>{formatYuan(template.pricing![key])}</dd></div>)}</dl></details>
         {!thumbnailRef&&template.publishedAt&&<><button className="shop-button" disabled={!ready||adding} onClick={addToCart}>{adding?'正在保存…':'加入购物车'}</button><a className="shop-text-link" href="#/diy/cart">查看购物车</a></>}
@@ -101,6 +116,8 @@ export default function PublishedTemplateStudio({id,revision}:{id:string;revisio
       }).catch(()=>{if(!controller.signal.aborted)setError(true);});
     return ()=>controller.abort();
   },[id,revision,attempt]);
+  const current=RING_CATALOG.find(item=>item.listed&&item.publication?.id===id&&item.publication.revision===revision);
+  if(current)return <SourceRingStudio templateId={current.id}/>;
   return <main className="shop-wrap">
     <a href="#/diy/collection">返回全部款式</a>
     {template?<ManagedTemplateStudio template={template}/>:error

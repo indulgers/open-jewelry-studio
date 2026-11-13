@@ -22,28 +22,31 @@ import './source-ring-picker.css';
 preloadJewelryLighting();
 
 type PartChoice={id:string;name:string;image:string};
-const bandChoices=BAND_STYLES.map(style=>({id:style.name,name:style.name,image:sourceImage(style.finishes[0].id)}));
+const listed=(id:string)=>RING_CATALOG.some(item=>item.id===id&&item.listed);
+const bandChoices=BAND_STYLES.filter(style=>style.finishes.some(finish=>listed(finish.id))).map(style=>({id:style.name,name:style.name,image:sourceImage((style.finishes.find(finish=>listed(finish.id))??style.finishes[0]).id)}));
 
 function PartChoices({kind,label,choices,selected,disabled,pending,onSelect}:{
   kind:'head'|'band'|'finish';label:string;choices:readonly PartChoice[];selected:string;
   disabled:boolean;pending:boolean;onSelect:(id:string)=>void;
 }){
   const fixed=kind==='finish'&&choices.length===1;
+  const visible=kind==='finish'?choices:[...choices.slice(0,4),...(choices.slice(0,4).some(item=>item.id===selected)?[]:choices.filter(item=>item.id===selected))];
   return <fieldset className={'source-part-options source-'+kind+'-options'} disabled={disabled}>
     <legend>{label}</legend>
     {fixed?<p className="source-fixed-finish">{choices[0].name}</p>:
-      <div className="source-part-grid">{choices.map(({id,name,image})=><PartCard key={id} item={{id,name,image}}
+      <div className="source-part-grid">{visible.map(({id,name,image})=><PartCard key={id} item={{id,name,image}}
         selected={selected===id} pending={pending} onSelect={onSelect}/>)}</div>}
   </fieldset>;
 }
 
 function Editor({template}:{template:CatalogRing}){
   const originalKey='open-jewelry-studio:'+template.revision;
-  const key=template.kind==='parametric'?originalKey+':combination':originalKey;
+  const key='open-jewelry-studio:combination:'+template.id;
+  const legacyKey='open-jewelry-studio:'+(template.legacyRevision??template.revision)+(template.kind==='parametric'?':combination':'');
   const [history,setHistory]=useState(()=>{
     try{
       // Earlier combination previews used the precision editor's key. Only migrate reference drafts.
-      const saved=JSON.parse(localStorage.getItem(key)??(key!==originalKey?localStorage.getItem(originalKey):null)??'null');
+      const saved=JSON.parse(localStorage.getItem(key)??localStorage.getItem(legacyKey)??localStorage.getItem(originalKey)??'null');
       const design=parseReferenceDesign(saved?.design);
       if(design&&typeof saved.revision==='string'&&saved.revision.length<=128)return {design,revision:saved.revision,past:[] as ReferenceDesign[]};
     }catch{}
@@ -56,6 +59,7 @@ function Editor({template}:{template:CatalogRing}){
   const [headZone,setHeadZone]=useState<'center'|'halo'>('center');
   const [view,setView]=useState<RingView>('overall'),[reset,setReset]=useState(0);
   const [compare,setCompare]=useState(false),[review,setReview]=useState(false);
+  const [adding,setAdding]=useState(false);
   const [saveError,setSaveError]=useState(false),[message,setMessage]=useState('');
   const [engraving,setEngraving]=useState(design.engraving);
   const capture=useRef<(()=>string|undefined)|null>(null);
@@ -64,12 +68,14 @@ function Editor({template}:{template:CatalogRing}){
   const style=bandStyle(band.id);
   const selection=useReferenceSelection(compare?template.id:head.id,compare?template.id:band.id);
   const paved=zones.includes('shoulder');
-  const diameter=compare||!paved?100:design.paveDiameter??100;
-  const length=compare||!paved?100:design.paveLength??100;
-  const ring=useMemo(()=>selection.parts?applyReferencePave(selection.parts.stock,selection.parts.band,diameter,length):null,
-    [selection.parts,diameter,length]);
+  const automaticPave=paved&&band.automaticPave!==false;
+  const diameter=compare||!automaticPave?100:design.paveDiameter??100;
+  const length=compare||!automaticPave?100:design.paveLength??100;
+  const layout=useMemo(()=>{try{return {ring:selection.parts?applyReferencePave(selection.parts.stock,selection.parts.band,diameter,length):null};}
+    catch(error){return {ring:null,error:error instanceof Error?error.message:'当前排钻无法完成，请调整参数。'};}},[selection.parts,diameter,length]);
+  const ring=layout.ring;
   const pave=ring?.pave;
-  const loadingError=selection.error;
+  const loadingError=selection.error||layout.error;
   const zone=part==='shank'?(zones.includes('shoulder')?'shoulder':null):zones.includes(headZone)?headZone:'center';
   const mixed=head.id!==template.id||band.id!==template.id;
   const displayName=mixed?headName(head.name)+' × '+style.name:template.name;
@@ -105,24 +111,32 @@ function Editor({template}:{template:CatalogRing}){
     if(name===style.name)return;
     const next=BAND_STYLES.find(item=>item.name===name)!;
     const paved=band.zones.includes('shoulder');
-    const finish=next.finishes.find(item=>(item.name!=='素面')===paved)??next.finishes[0];
+    const finish=next.finishes.find(item=>listed(item.id)&&(item.name!=='素面')===paved)??next.finishes.find(item=>listed(item.id))!;
     change({...design,bandId:finish.id});
     if(finish.name!==style.finishes.find(item=>item.id===band.id)?.name)setMessage(name+'采用'+finish.name+'。');
   }
   function selectFinish(id:string){
     if(id!==band.id)change({...design,bandId:id});
   }
-  function confirm(){
-    if(compare||engravingDirty||!ring||!canCapture)return;
+  async function confirm(){
+    if(compare||engravingDirty||!ring||!canCapture||adding)return;
     let thumbnail:string|undefined;
     try{thumbnail=capture.current?.();}catch{}
     if(!thumbnail){setMessage('搭配图片暂未生成，请重试。');return;}
+    setAdding(true);
     try{
-      addDemoOrder({templateRevision:template.revision,revision,confirmedAt:new Date().toISOString(),design,quote,details,thumbnail,
+      if(import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE){
+        const query=new URLSearchParams({head:head.id,band:band.id,headRevision:head.revision,bandRevision:band.revision,center:design.center,halo:design.halo,shoulder:design.shoulder});
+        const response=await fetch('/api/model-admin/public/combination-quote?'+query);
+        const confirmed=await response.json();
+        if(!response.ok)throw new Error(confirmed.error??'报价暂不可用，请重试。');
+        if(confirmed.amount!==quote.amount||confirmed.version!==quote.version)throw new Error('报价已更新，请刷新后重新确认。');
+      }
+      addDemoOrder({name:displayName,templateRevision:template.revision,revision,confirmedAt:new Date().toISOString(),design,quote,details,thumbnail,
         stones:ring.stones.map(stone=>({id:stone.name,zone:stone.zone,appearance:design[stone.zone],placement:stone.matrix.toArray()})),
       });
       setReview(false);setMessage('已加入购物车。');
-    }catch{setMessage('购物车未能保存，请允许浏览器存储后重试。');}
+    }catch(error){setMessage(error instanceof Error?error.message:'购物车未能保存，请重试。');}finally{setAdding(false);}
   }
   return <><div className="stone-first-main ring02-main source-ring-main">
     <section className="stone-first-preview" aria-label="戒指预览">
@@ -132,7 +146,7 @@ function Editor({template}:{template:CatalogRing}){
           <SourceLoading template={template} retry={loadingError?selection.retry:undefined}/>
         </div>}
       {!ring&&visiblePreview&&<div className="source-ring-swap-status" role={loadingError?'alert':'status'}>
-        {loadingError?<><span>新搭配未加载</span><button onClick={selection.retry}>重试</button></>:'正在更新搭配…'}
+        {loadingError?<><span>{loadingError}</span><button onClick={selection.retry}>重试</button></>:'正在更新搭配…'}
       </div>}
       <div className="stone-first-camera-views" role="group" aria-label="戒指观察视角">{VIEWS.map(([id,label])=><button key={id} aria-pressed={view===id} onClick={()=>{setView(id);setReset(n=>n+1);}}>{label}</button>)}</div>
     </section>
@@ -143,12 +157,12 @@ function Editor({template}:{template:CatalogRing}){
         <button type="button" className="source-library-trigger shop-text-link" ref={libraryTrigger} aria-haspopup="dialog"
           aria-label={part==='head'?'查看全部戒头':'查看全部戒圈'} disabled={compare} onClick={()=>setLibrary(part==='head'?'head':'band')}>查看全部</button>
         {part==='head'?<>
-          <PartChoices kind="head" label="戒头款式" choices={headChoices} selected={head.id} disabled={compare} pending={swapping&&previousParts?.head.id!==head.id} onSelect={selectHead}/>
+          <PartChoices kind="head" label="戒头款式" choices={headChoices.filter(item=>listed(item.id)||item.id===head.id)} selected={head.id} disabled={compare} pending={swapping&&previousParts?.head.id!==head.id} onSelect={selectHead}/>
           {zones.includes('halo')&&<div className="ring02-head-zones stone-first-options" role="group" aria-label="戒头镶嵌区域">{(['center','halo'] as const).map(id=><button key={id} aria-pressed={zone===id} onClick={()=>setHeadZone(id)}>{ZONE_NAMES[id]}</button>)}</div>}
         </>:<>
           <PartChoices kind="band" label="戒圈结构" choices={bandChoices} selected={style.name} disabled={compare} pending={swapping&&!!previousParts&&bandStyle(previousParts.band.id).name!==style.name} onSelect={selectBand}/>
-          <PartChoices kind="finish" label="戒臂铺钻" choices={style.finishes.map(item=>({...item,image:sourceImage(item.id)}))} selected={band.id} disabled={compare} pending={swapping&&previousParts?.band.id!==band.id} onSelect={selectFinish}/>
-          {paved&&<>
+          <PartChoices kind="finish" label="戒臂铺钻" choices={style.finishes.filter(item=>listed(item.id)||item.id===band.id).map(item=>({...item,image:sourceImage(item.id)}))} selected={band.id} disabled={compare} pending={swapping&&previousParts?.band.id!==band.id} onSelect={selectFinish}/>
+          {automaticPave&&<>
             <fieldset disabled={compare}><legend>配钻石径</legend>
               <div className="stone-first-options">{PAVE_DIAMETERS.map(value=><button key={value} aria-pressed={diameter===value}
                 onClick={()=>diameter!==value&&change({...design,paveDiameter:value})}>{value===100?'原款基准':value+'%'}</button>)}</div>
@@ -187,7 +201,7 @@ function Editor({template}:{template:CatalogRing}){
     </section>
     {library&&<PartLibrary kind={library} trigger={libraryTrigger} selected={library==='head'?head.id:band.id}
       onClose={()=>setLibrary(null)} onSelect={library==='head'?selectHead:selectFinish}/>}
-    {review&&<ReviewDialog title="确认你的戒指方案" onClose={()=>setReview(false)}><p>{displayName} · 参考估价 {formatYuan(quote.amount)}</p><dl>{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>当前为演示加购，价格、圈号与制作工艺待正式确认。</p>{message&&<p role="alert">{message}</p>}<div className="ring02-dialog-actions"><button autoFocus onClick={()=>setReview(false)}>继续修改</button><button className="shop-button" disabled={!canCapture} onClick={confirm}>确认并加入演示购物车</button></div></ReviewDialog>}
+    {review&&<ReviewDialog title="确认你的戒指方案" onClose={()=>setReview(false)}><p>{displayName} · 参考估价 {formatYuan(quote.amount)}</p><dl>{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>当前为演示加购，价格、圈号与制作工艺待正式确认。</p>{message&&<p role="alert">{message}</p>}<div className="ring02-dialog-actions"><button autoFocus onClick={()=>setReview(false)}>继续修改</button><button className="shop-button" disabled={!canCapture||adding} onClick={confirm}>确认并加入演示购物车</button></div></ReviewDialog>}
   </>;
 }
 
@@ -195,7 +209,7 @@ function useReferenceSelection(headId:string,bandId:string){
   type Loaded=Awaited<ReturnType<ReturnType<typeof createReferenceLibrary>['load']>>;
   const [library,setLibrary]=useState<ReturnType<typeof createReferenceLibrary>>();
   const [loaded,setLoaded]=useState<{key:string;parts:Loaded}>();
-  const [failed,setFailed]=useState<string>(),[attempt,setAttempt]=useState(0);
+  const [failed,setFailed]=useState<{key:string;message:string}>(),[attempt,setAttempt]=useState(0);
   const key=headId+':'+bandId;
   useEffect(()=>{
     const next=createReferenceLibrary();
@@ -205,12 +219,12 @@ function useReferenceSelection(headId:string,bandId:string){
   useEffect(()=>{
     if(!library)return;
     let current=true;
-    library.load(headId,bandId).then(parts=>{
+    library.load(RING_CATALOG.find(item=>item.id===headId)?.headSourceId??headId,RING_CATALOG.find(item=>item.id===bandId)?.bandSourceId??bandId).then(parts=>{
       if(current){setLoaded({key,parts});setFailed(undefined);}
-    }).catch(()=>{if(current)setFailed(key);});
+    }).catch(error=>{if(current)setFailed({key,message:error instanceof Error?error.message:'新搭配未加载，请重试。'});});
     return ()=>{current=false;};
   },[library,headId,bandId,key,attempt]);
-  return {parts:loaded?.key===key?loaded.parts:undefined,error:failed===key,
+  return {parts:loaded?.key===key?loaded.parts:undefined,error:failed?.key===key?failed.message:undefined,
     retry:()=>{setFailed(undefined);setAttempt(value=>value+1);}};
 }
 
