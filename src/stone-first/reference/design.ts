@@ -35,17 +35,17 @@ export function referenceDetails(template:CatalogRing,design:ReferenceDesign,pav
   const {head,band,zones}=referenceParts(template,design);
   return [
     ...(head.id===template.id&&band.id===template.id
-      ?[{label:'款式',value:template.name+' · 原款镶座'}]
-      :[{label:'戒头',value:headName(head.name)},{label:'戒圈',value:bandName(band.id)}]),
-    ...zones.map(zone=>({label:ZONE_NAMES[zone],value:STONE_APPEARANCES[design[zone]].name+(zone==='shoulder'&&pave
+      ?[{field:'head',label:'款式',value:template.name+' · 原款镶座'}]
+      :[{field:'head',label:'戒头',value:headName(head.name)},{field:'band',label:'戒圈',value:bandName(band.id)}]),
+    ...zones.map(zone=>({field:zone,label:ZONE_NAMES[zone],value:STONE_APPEARANCES[design[zone]].name+(zone==='shoulder'&&pave
       ?' · '+pave.count+' 颗'
       :' · 原款切形与大小')})),
     ...(pave?[
-      {label:'配钻石径 / 铺钻长度',value:(design.paveDiameter??100)+'% / '+(design.paveLength??100)+'%'},
-      {label:'同列配钻间距',value:describePaveGap(pave)},
+      {field:'pave',label:'配钻石径 / 铺钻长度',value:(design.paveDiameter??100)+'% / '+(design.paveLength??100)+'%'},
+      {field:'pave',label:'同列配钻间距',value:describePaveGap(pave)},
     ]:[]),
-    {label:'金属外观',value:'银色'},
-    {label:'内圈刻字',value:design.engraving||'未添加'},
-    {label:'实物圈号',value:'待工艺确认'},
+    {field:'material',label:'金属外观',value:'银色'},
+    {field:'engraving',label:'内圈刻字',value:design.engraving||'未添加'},
+    {field:'size',label:'实物圈号',value:'待工艺确认'},
   ];
 }

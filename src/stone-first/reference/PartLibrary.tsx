@@ -2,7 +2,7 @@ import {useId,useLayoutEffect,useRef,useState,type RefObject} from 'react';
 import {RING_CATALOG} from '../catalog';
 import {BAND_STYLES,bandStyle,headName} from './parts';
 
-type PartChoice={id:string;name:string;image:string;detail?:string};
+type PartChoice={id:string;name:string;image:string;detail?:string;price?:string};
 export const sourceImage=(id:string)=>RING_CATALOG.find(ring=>ring.id===id)!.image;
 const HEAD_STRUCTURES={
   'ring-02':['围镶'],
@@ -27,13 +27,14 @@ const finishes=[...new Set(bandFinishes.map(item=>item.detail))];
 export function PartCard({item,selected,pending,onSelect}:{item:PartChoice;selected:boolean;pending?:boolean;onSelect:(id:string)=>void}){
   return <button type="button" className="source-part-card" aria-pressed={selected} onClick={()=>onSelect(item.id)}>
     <span className="source-part-image"><img src={item.image} alt="" decoding="async" loading="lazy"/></span>
-    <span className="source-part-name">{item.name}{pending&&selected&&<span className="ring02-spinner" aria-hidden="true"/>}</span>
+    <span className="source-part-name">{item.name}{selected&&<span className="source-selected-mark" aria-label="已选">✓</span>}{pending&&selected&&<span className="ring02-spinner" aria-hidden="true"/>}</span>
     {item.detail&&<span className="source-part-detail">{item.detail}</span>}
+    {item.price&&<span className="source-part-detail">{item.price}</span>}
   </button>;
 }
 
-export function PartLibrary({kind,selected,trigger,onClose,onSelect}:{
-  kind:'head'|'band';selected:string;trigger:RefObject<HTMLButtonElement|null>;onClose:()=>void;onSelect:(id:string)=>void;
+export function PartLibrary({kind,selected,trigger,onClose,onSelect,priceNote}:{
+  kind:'head'|'band';selected:string;trigger:RefObject<HTMLButtonElement|null>;onClose:()=>void;onSelect:(id:string)=>void;priceNote?:(id:string)=>string;
 }){
   const titleId=useId();
   const dialog=useRef<HTMLDialogElement>(null);
@@ -90,7 +91,7 @@ export function PartLibrary({kind,selected,trigger,onClose,onSelect}:{
       </div>
       <div ref={results} className="source-library-results">
         {visible.length?<div className={'source-part-grid source-'+kind+'-options'}>{visible.map(item=><PartCard
-          key={item.id} item={item} selected={item.id===selected} onSelect={id=>{onClose();onSelect(id);}}/>)}</div>:
+          key={item.id} item={{...item,price:priceNote?.(item.id)}} selected={item.id===selected} onSelect={id=>{onClose();onSelect(id);}}/>)}</div>:
           <div className="source-library-empty"><p>没有符合条件的款式。</p>
             <button type="button" className="shop-text-link" onClick={()=>{setQuery('');setStructure('');setFinish('');}}>清除筛选</button>
           </div>}

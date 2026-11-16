@@ -94,3 +94,29 @@ html:has(.source-library[open]) {overflow: hidden}
 .managed-price dl>div { display: flex; justify-content: space-between; gap: 16px; padding: 5px 0; }
 
 .source-ring-canvas > .viewer-boundary {height:100%}
+
+.source-save-status {margin: 0; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums}
+.source-save-status button {margin-left: 8px}
+fieldset.source-ring-fields {border: 0; padding: 0; margin: 0; min-width: 0}
+.source-selected-mark {font-weight: 600}
+.source-draft-issue {padding: 12px; border: 1px solid var(--accent); margin-bottom: 16px}
+.source-draft-issue a {margin-right: 12px}
+.source-production-notes {display: grid; gap: 12px; color: var(--muted); font-size: 13px}
+.source-production-notes h2 {font-size: 14px; color: var(--ink)}
+.source-production-notes p {line-height: 1.6}
+.ring02-workspace .source-ring-summary dt button {border: 0; border-radius: 0; background: transparent; color: var(--ink); text-align: left; padding: 4px 0; min-height: 36px; text-decoration: underline; text-underline-offset: 4px}
+.source-ring-fields :is(fieldset,section,input) {scroll-margin-block: 96px}
+@media (max-width: 800px) {
+  .source-save-status {flex-basis: 100%}
+  .source-ring-workspace:has(#source-engraving:focus) .stone-first-preview {position: relative; top: auto}
+  .source-ring-workspace:has(#source-engraving:focus) .ring02-purchase {position: static}
+  #source-engraving {font-size: 16px; scroll-margin-block: 100px}
+}
+
+@media (max-width: 800px) {
+  .ring02-engraving:focus-within .ring02-engraving-sample {margin-block: 6px}
+  .ring02-engraving:focus-within .ring02-engraving-sample blockquote {min-height: 32px; padding-block: 6px}
+  .ring02-engraving:focus-within .ring02-engraving-sample figcaption {font-size: 10px}
+}
+
+.source-draft-recovery {display: flex; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 12px}

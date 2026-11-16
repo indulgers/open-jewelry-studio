@@ -1,3 +1,4 @@
+import {BEFORE_ROUTE_CHANGE} from './navigation';
 import {HALO_COMBINATION_ROUTE} from './stone-first/reference/parts';
 import {lazy,Suspense,useCallback,useEffect,useLayoutEffect,useReducer,useState} from 'react';
 import {DEFAULT_CONFIGURATION,configurationReducer} from './configuration/configuration';
@@ -146,7 +147,9 @@ export default function App(){
     if(window.scrollY>0)window.scrollTo({top:0,behavior:'instant'});
   },[tab,diyPage,route.tab==='stonefirst'?route.section:null,route.tab==='stonefirst'?route.templateId:null]);
   useEffect(()=>{
-    const sync=()=>{
+    const sync=(event:HashChangeEvent)=>{
+      const navigation=new CustomEvent(BEFORE_ROUTE_CHANGE,{cancelable:true,detail:{oldURL:event.oldURL,newURL:event.newURL}});
+      if(!window.dispatchEvent(navigation))return;
       const next=readRoute();
       setRoute(next);
       if(next.tab==='modules')setModulesVisited(true);
