@@ -312,11 +312,14 @@
           "error with retry"
         ],
         "source": [
-          "src/stone-first/reference/SourceRingStudio.tsx · ring02-editor-feedback",
-          "src/stone-first/ring02/Ring02Studio.tsx · ring02-cart-notice",
-          "src/model-admin/TemplateLibrary.tsx · role=status"
+          "src/components/FeedbackToast.tsx",
+          "src/components/operation-feedback.css",
+          "src/stone-first/reference/SourceRingStudio.tsx",
+          "src/stone-first/reference/ManagedTemplateStudio.tsx",
+          "src/stone-first/ring02/Ring02Studio.tsx",
+          "src/model-admin/TemplateLibrary.tsx"
         ],
-        "scope": "Figma design patterns. Runtime currently uses in-place status feedback and an existing precision editor notice."
+        "scope": "Editor cart and admin draft or publish operations. Errors stay in the confirmation surface when one is open."
       },
       {
         "name": "Dialog / ring review",
@@ -330,8 +333,8 @@
       {
         "name": "Confirmation / product publication",
         "source": [
-          "src/model-admin/TemplateLibrary.tsx · publish-confirm",
-          "src/model-admin/model-admin.css"
+          "src/model-admin/TemplateLibrary.tsx · feedback-confirmation",
+          "src/components/operation-feedback.css"
         ],
         "referenceNode": "68:14"
       },

@@ -1,3 +1,4 @@
+import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
 import {useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {preloadJewelryLighting} from '../../viewer/JewelryLighting';
 import {STONE_APPEARANCES,STONE_APPEARANCE_IDS,type StoneAppearance} from '../../viewer/stoneAppearance';
@@ -65,6 +66,7 @@ function Editor({template}:{template:CatalogRing}){
   const [view,setView]=useState<RingView>('overall'),[reset,setReset]=useState(0);
   const [compare,setCompare]=useState(false),[review,setReview]=useState(false);
   const [adding,setAdding]=useState(false);
+  const [cartFeedback,setCartFeedback]=useState<Feedback>();
   const [saveError,setSaveError]=useState(false),[message,setMessage]=useState('');
   const [engraving,setEngraving]=useState(design.engraving);
   const capture=useRef<(()=>string|undefined)|null>(null);
@@ -127,8 +129,8 @@ function Editor({template}:{template:CatalogRing}){
     if(compare||engravingDirty||!ring||!canCapture||adding)return;
     let thumbnail:string|undefined;
     try{thumbnail=capture.current?.();}catch{}
-    if(!thumbnail){setMessage('搭配图片暂未生成，请重试。');return;}
-    setAdding(true);
+    if(!thumbnail){setCartFeedback({tone:'error',title:'购物车未能保存',description:'搭配图片暂未生成。'});return;}
+    setAdding(true);setCartFeedback(undefined);
     try{
       if(import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE){
         const query=new URLSearchParams({head:head.id,band:band.id,headRevision:head.revision,bandRevision:band.revision,center:design.center,halo:design.halo,shoulder:design.shoulder});
@@ -140,8 +142,8 @@ function Editor({template}:{template:CatalogRing}){
       addDemoOrder({name:displayName,templateRevision:template.revision,revision,confirmedAt:new Date().toISOString(),design,quote,details,thumbnail,
         stones:ring.stones.map(stone=>({id:stone.name,zone:stone.zone,appearance:design[stone.zone],placement:stone.matrix.toArray()})),
       });
-      setReview(false);setMessage('已加入购物车。');
-    }catch(error){setMessage(error instanceof Error?error.message:'购物车未能保存，请重试。');}finally{setAdding(false);}
+      setReview(false);setCartFeedback({tone:'success',title:'已加入购物车',description:'你的戒指方案已保存。'});
+    }catch(error){setCartFeedback({tone:'error',title:'购物车未能保存',description:error instanceof Error?error.message:'当前配置仍在编辑器中。'});}finally{setAdding(false);}
   }
   return <><div className="stone-first-main ring02-main source-ring-main">
     <section className="stone-first-preview" aria-label="戒指预览">
@@ -207,11 +209,12 @@ function Editor({template}:{template:CatalogRing}){
     </section>
   </div>
     <section className="ring02-purchase" aria-label="估价与演示加购"><div><p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p><small>示例交期 {quote.leadTime} · 待工艺确认</small></div>
-      {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:part==='head'?<button className="shop-button" onClick={()=>setPart('shank')}>下一步 · 配置戒圈</button>:<button className="shop-button" disabled={compare||engravingDirty||!canCapture} onClick={()=>{setMessage('');setReview(true);}}>查看方案</button>}
+      {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:part==='head'?<button className="shop-button" onClick={()=>setPart('shank')}>下一步 · 配置戒圈</button>:<button className="shop-button" disabled={compare||engravingDirty||!canCapture} onClick={()=>{setMessage('');setCartFeedback(undefined);setReview(true);}}>查看方案</button>}
     </section>
     {library&&<PartLibrary kind={library} trigger={libraryTrigger} selected={library==='head'?head.id:band.id}
       onClose={()=>setLibrary(null)} onSelect={library==='head'?selectHead:selectFinish}/>}
-    {review&&<ReviewDialog title="确认你的戒指方案" onClose={()=>setReview(false)}><p>{displayName} · 参考估价 {formatYuan(quote.amount)}</p><dl>{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>当前为演示加购，价格、圈号与制作工艺待正式确认。</p>{message&&<p role="alert">{message}</p>}<div className="ring02-dialog-actions"><button autoFocus onClick={()=>setReview(false)}>继续修改</button><button className="shop-button" disabled={!canCapture||adding} onClick={confirm}>确认并加入演示购物车</button></div></ReviewDialog>}
+    {!review&&<FeedbackToast notice={cartFeedback?.tone==='success'?cartFeedback:undefined} onDismiss={()=>setCartFeedback(undefined)}/>}
+    {review&&<ReviewDialog title="确认你的戒指方案" busy={adding} onClose={()=>setReview(false)}><p>{displayName} · 参考估价 {formatYuan(quote.amount)}</p><dl>{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>当前为演示加购，价格、圈号与制作工艺待正式确认。</p><FeedbackToast inline notice={cartFeedback} onDismiss={()=>setCartFeedback(undefined)} onRetry={cartFeedback&&!adding?confirm:undefined}/><div className="ring02-dialog-actions"><button autoFocus disabled={adding} onClick={()=>setReview(false)}>继续修改</button><button className="shop-button" disabled={!canCapture||adding} onClick={confirm}>{adding?'正在加入…':'确认并加入演示购物车'}</button></div></ReviewDialog>}
   </>;
 }
 

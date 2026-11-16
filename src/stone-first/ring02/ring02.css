@@ -142,8 +142,6 @@
 .ring02-purchase strong {font-size: 22px;font-variant-numeric: tabular-nums}
 .ring02-purchase small {color: var(--muted);font-size: 12px}
 .ring02-purchase .shop-button {min-width: 0;justify-content: center;white-space: nowrap}
-.ring02-purchase .ring02-cart-notice {position: absolute;bottom: 100%;right: 0}
-.ring02-cart-notice:not(:empty) {padding: 8px 12px;background: var(--panel);color: #2a624c;border: 1px solid var(--line)}
 .ring02-dialog {width: min(460px,calc(100% - 26px));max-height: calc(100dvh - 32px);overflow: auto;border: 1px solid var(--line);border-radius: var(--shop-radius);padding: 22px;color: var(--ink);background: var(--panel)}
 .ring02-dialog::backdrop {background: #231b1882}
 .ring02-dialog h2 {font: 500 25px/1.3 var(--shop-title);margin: 0 0 14px}
@@ -162,7 +160,6 @@
   .ring02-main .stone-first-canvas {height: clamp(250px,65vw,390px)}
   .ring02-purchase {width: auto;inset-inline: 0;grid-template-columns: minmax(0,1fr) 132px;border-inline: 0;border-radius: 0;padding: 9px var(--shop-gutter) max(9px,env(safe-area-inset-bottom))}
   .ring02-purchase small {font-size: 11px}
-  .ring02-purchase .ring02-cart-notice {right: var(--shop-gutter)}
   .app-shell .ring02-purchase .shop-button {padding-inline: 11px;font-size: 13px}
   .ring02-workspace button {min-height: 43px}
   .ring02-product {margin-bottom: 14px}

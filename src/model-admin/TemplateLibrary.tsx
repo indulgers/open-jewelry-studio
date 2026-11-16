@@ -1,3 +1,4 @@
+import {FeedbackToast,type Feedback} from '../components/FeedbackToast';
 import {lazy,Suspense,useCallback,useEffect,useRef,useState,type FormEvent} from 'react';
 import {productRoute,type LibrarySource,type ManagedTemplate,type PublishedTemplate,type TemplateDraft,type TemplateSelection} from '../stone-first/reference/managed-types';
 
@@ -32,6 +33,14 @@ export default function TemplateLibrary({request,tab,initialSourceId,onUse}:{req
   const thumbnail=useRef<(()=>string|undefined)|null>(null);
   const onReady=useCallback((frame:unknown)=>setReady(!!frame),[]);
   const [confirm,setConfirm]=useState(false);
+  const confirmationTitle=useRef<HTMLHeadingElement>(null);
+  const publishTrigger=useRef<HTMLButtonElement>(null);
+  const draftForm=useRef<HTMLFormElement>(null);
+  const [feedback,setFeedback]=useState<Feedback>();
+  const [retry,setRetry]=useState<'save'|'preview'|'library'>();
+  const [publishError,setPublishError]=useState<Feedback>();
+  const [confirmedRevision,setConfirmedRevision]=useState('');
+  useEffect(()=>{if(confirm)confirmationTitle.current?.focus();},[confirm]);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
   const [status,setStatus]=useState('');
@@ -54,21 +63,36 @@ export default function TemplateLibrary({request,tab,initialSourceId,onUse}:{req
   },[library,initialSourceId]);
   function open(draft?:TemplateDraft){
     setEditing(true);setHistory(undefined);setVisibilityConfirm(false);
+    setFeedback(undefined);setRetry(undefined);
     setSaved(draft);setForm(draft?{...draft,pricing:undefined}:empty);setPreview(undefined);setConfirm(false);setStatus('');setError('');
   }
   function update(values:Partial<TemplateSelection>){
+    setFeedback(undefined);setRetry(undefined);
     setForm(current=>({...current,...values,...(values.head||values.band?{review:{...current.review??pendingReview,status:'pending' as const}}:{})}));setPreview(undefined);setConfirm(false);setStatus('');
+  }
+  async function readPreview(draft:TemplateDraft){
+    setReady(false);
+    try{
+      setPreview(await request<ManagedTemplate>('/templates/'+draft.id+'/'+draft.revision));
+    }catch(error){
+      setFeedback({tone:'error',title:'草稿已保存，预览暂未打开',description:errorText(error)});
+      setRetry('preview');
+    }
   }
   async function save(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
-    setBusy(true);setError('');
+    if(busy)return;
+    setBusy(true);setError('');setFeedback(undefined);setRetry(undefined);
     try{
       const draft=await request<TemplateDraft>('/templates',post({...form,id:saved?.id,expectedRevision:saved?.revision}));
       open(draft);
       setLibrary(current=>current&&({...current,drafts:[draft,...current.drafts.filter(item=>item.id!==draft.id)]}));
-      setStatus('草稿已保存，正在打开预览。');setReady(false);
-      setPreview(await request<ManagedTemplate>('/templates/'+draft.id+'/'+draft.revision));setStatus('草稿已保存，请检查三维预览后确认发布。');
-    }catch(error){setError(errorText(error));}finally{setBusy(false);}
+      setFeedback({tone:'info',title:'草稿已保存',description:'可继续检查 3D 预览。'});
+      await readPreview(draft);
+    }catch(error){
+      setFeedback({tone:'error',title:'草稿未能保存',description:errorText(error)});
+      setRetry('save');
+    }finally{setBusy(false);}
   }
   function currentPricing(){
     if(form.basePrice===undefined)return undefined;
@@ -96,22 +120,32 @@ export default function TemplateLibrary({request,tab,initialSourceId,onUse}:{req
     }catch(error){setError(errorText(error));}finally{setBusy(false);}
   }
   async function loadPreview(){
-    if(!saved||dirty)return;
-    setBusy(true);setError('');setReady(false);
+    if(!saved||dirty||busy)return;
+    setBusy(true);setError('');setFeedback(undefined);setRetry(undefined);
+    try{await readPreview(saved);}finally{setBusy(false);}
+  }
+  async function refreshPublished(){
     try{
-      setPreview(await request<ManagedTemplate>('/templates/'+saved.id+'/'+saved.revision));
-    }catch(error){setError(errorText(error));}finally{setBusy(false);}
+      setLibrary(await request<Library>('/library'));
+      setFeedback({tone:'success',title:'版本已发布',description:'款式的上下架状态保持当前设置。'});
+    }catch(error){
+      setFeedback({tone:'warning',title:'版本已发布，列表暂未更新',description:errorText(error)});
+      setRetry('library');
+    }
   }
   async function publish(){
-    if(!saved||dirty||!ready||preview?.revision!==saved.revision)return;
-    setBusy(true);setError('');
+    if(!saved||dirty||!ready||busy||preview?.revision!==saved.revision||confirmedRevision===saved.revision)return;
+    setBusy(true);setError('');setPublishError(undefined);setFeedback(undefined);setRetry(undefined);
     try{
       const image=thumbnail.current?.();
       if(!image)throw new Error('暂时无法生成款式图，请重新预览。');
-      const published=await request<PublishedTemplate>('/templates/'+saved.id+'/'+saved.revision+'/publish',post({confirmed:true,image}));
-      setLibrary(await request<Library>('/library'));
-      setHistory(undefined);setConfirm(false);setStatus('版本已发布。款式的上下架状态保持当前设置。');
-    }catch(error){setError(errorText(error));}finally{setBusy(false);}
+      await request<PublishedTemplate>('/templates/'+saved.id+'/'+saved.revision+'/publish',post({confirmed:true,image}));
+      setConfirmedRevision(saved.revision);
+      setHistory(undefined);setConfirm(false);
+      await refreshPublished();
+    }catch(error){
+      setPublishError({tone:'error',title:'版本未能发布',description:errorText(error)});
+    }finally{setBusy(false);}
   }
 
   async function changeVisibility(current:Publication){
@@ -180,6 +214,11 @@ export default function TemplateLibrary({request,tab,initialSourceId,onUse}:{req
       <button disabled={busy} onClick={()=>{if(!dirty||window.confirm('离开后会丢弃尚未保存的修改。继续返回？'))setEditing(false);}}>返回款式列表</button>
     </header>
     {error&&<p role="alert" className="error">{error}</p>}
+    <FeedbackToast notice={feedback} onDismiss={()=>{setFeedback(undefined);setRetry(undefined);}}
+      onRetry={busy?undefined:retry==='save'?()=>draftForm.current?.requestSubmit():retry==='preview'?loadPreview:retry==='library'?async()=>{
+        setBusy(true);setFeedback(undefined);setRetry(undefined);
+        try{await refreshPublished();}finally{setBusy(false);}
+      }:undefined}/>
     <div className={'template-detail'+(preview?' has-preview':'')}>
       <article className="review">
         {current&&<section className="release-status"><strong>{current.hidden?'已下架':'线上版本'} · {current.name}</strong>
@@ -195,7 +234,7 @@ export default function TemplateLibrary({request,tab,initialSourceId,onUse}:{req
             <strong>{item.name}</strong> · {item.current?'当前发布版本':'历史发布版本'} · {new Date(item.publishedAt).toLocaleString('zh-CN')}
             <small>版本 {item.revision.slice(0,8)}</small></li>)}</ol>}
         </section>}
-        <form className="template-form" onSubmit={save}>
+        <form className="template-form" ref={draftForm} onSubmit={save}>
           {initialSourceId&&<label className="product-target">这套部件用于<select aria-label="商品目标" disabled={busy} value={target} onChange={e=>{setTarget(e.target.value);useKit(sources.find(item=>item.id===initialSourceId)!,drafts.find(item=>item.id===e.target.value));}}><option value="">新建商品</option>{drafts.map(item=><option key={item.id} value={item.id}>更新：{item.name}</option>)}</select><small>更新商品会保留原名称、价格和首页位置。保存后仍是草稿，确认发布才替换线上版本。</small></label>}
           <fieldset disabled={busy}>
             <label>款式名称<input value={form.name} required maxLength={60} onChange={event=>update({name:event.target.value})}/></label>
@@ -253,12 +292,19 @@ export default function TemplateLibrary({request,tab,initialSourceId,onUse}:{req
           <Suspense fallback={<p role="status">正在打开编辑器…</p>}>
             <Preview key={preview.revision} template={preview} onReady={onReady} thumbnailRef={thumbnail}/>
           </Suspense>
-          {!confirm?<button type="button" className="primary" disabled={!ready||busy||current?.revision===preview.revision}
-            onClick={()=>setConfirm(true)}>{current?'发布新版本':'发布模板'}</button>:<div className="publish-confirm">
-            <p>确认发布「{preview.name}」的当前预览版本？{current?.hidden?'款式会保持下架，恢复上架后展示此版本。':current?'线上款式将替换为此版本，历史版本仍会保留。':'发布后会显示在全部款式。'}</p>
-            <button type="button" className="primary" disabled={busy} onClick={publish}>确认发布</button>
-            <button type="button" disabled={busy} onClick={()=>setConfirm(false)}>继续复核</button>
-          </div>}
+          {!confirm?<button ref={publishTrigger} type="button" className="primary"
+            disabled={!ready||busy||current?.revision===preview.revision||confirmedRevision===preview.revision}
+            onClick={()=>{setPublishError(undefined);setConfirm(true);}}>{current?'发布新版本':'发布模板'}</button>
+            :<section className="feedback-confirmation" aria-labelledby="publish-confirm-title" aria-busy={busy}>
+              <h3 ref={confirmationTitle} tabIndex={-1} id="publish-confirm-title">确认发布{preview.name}</h3>
+              <p>{current?.hidden?'款式会保持下架，恢复上架后展示此版本。':current?'线上款式将替换为此版本，历史版本仍会保留。':'发布后会显示在全部款式。'}</p>
+              <small>草稿预览 · 版本 {preview.revision.slice(0,8)}</small>
+              <FeedbackToast inline notice={publishError} onDismiss={()=>setPublishError(undefined)} onRetry={publishError&&!busy?publish:undefined}/>
+              <div className="template-actions">
+                <button type="button" disabled={busy} onClick={()=>{setConfirm(false);requestAnimationFrame(()=>publishTrigger.current?.focus());}}>继续复核</button>
+                <button type="button" className="primary" disabled={busy} onClick={publish}>{busy?'正在发布…':'确认发布'}</button>
+              </div>
+            </section>}
         </div>}
       </article>
     </div>

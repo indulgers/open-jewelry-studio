@@ -1,3 +1,4 @@
+import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {Mesh} from 'three';
 import {jewelryModelLoader} from '../../viewer/modelLoader';
@@ -58,7 +59,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
   const [pending,setPending]=useState<PendingChange|null>(null);
   const [review,setReview]=useState<DemoOrder|null>(null);
   const captureThumbnail=useRef<(()=>string|undefined)|null>(null);
-  const [cartNotice,setCartNotice]=useState('');
+  const [cartNotice,setCartNotice]=useState<Feedback>();
   const [orderError,setOrderError]=useState(false);
   const [engravingInput,setEngravingInput]=useState<string|null>(null);
   const [engravingError,setEngravingError]=useState('');
@@ -111,7 +112,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
       return;
     }
     setMessage('');
-    setCartNotice('');
+    setCartNotice(undefined);
     if(next.engraving!==current.engraving){
       setEngravingInput(null);
       setEngravingError('');
@@ -130,7 +131,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     }
     setHistory({past:past.slice(0,-1),current:newDraft(past[past.length-1]),future:[current,...future]});
     setMessage('');
-    setCartNotice('');
+    setCartNotice(undefined);
   }
 
   function redo(){
@@ -140,7 +141,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     }
     setHistory({past:[...past,current],current:newDraft(future[0]),future:future.slice(1)});
     setMessage('');
-    setCartNotice('');
+    setCartNotice(undefined);
   }
 
   function selectHead(head:Head){
@@ -208,7 +209,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     try{
       const created=addDemoOrder({...review,thumbnail,confirmedAt:new Date().toISOString()});
       setReview(null);
-      setCartNotice(created?'已加入购物车。':'此方案已在购物车。');
+      setCartNotice({tone:created?'success':'info',title:created?'已加入购物车':'此方案已在购物车',description:created?'你的戒指方案已保存。':undefined});
     }catch{setOrderError(true);}
   }
 
@@ -327,8 +328,8 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
       !RING02_TEMPLATE.listed?<span>该款式已停售</span>:
       part==='head'?<button className="shop-button" onClick={()=>jumpTo('shoulder')}>下一步 · 配置戒圈</button>:
       <button className="shop-button" disabled={compare} onClick={openReview}>查看方案</button>}
-    <p className="ring02-cart-notice" role="status">{cartNotice}</p>
   </section>
+  <FeedbackToast notice={cartNotice} onDismiss={()=>setCartNotice(undefined)}/>
   {pending&&<ReviewDialog title={pending.title} onClose={()=>setPending(null)}>
     <p>{pending.description}</p>
     <div className="ring02-dialog-actions">
@@ -340,7 +341,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     <dl>{review.details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl>
     <p><strong>{formatYuan(review.quote.amount)}</strong> · 示例交期 {review.quote.leadTime}</p>
     <p>金额与交期为示例。实物尺寸与工艺确认后才能购买。</p>
-    {orderError&&<p role="alert">浏览器未能保存演示购物车，请重试。</p>}
+    <FeedbackToast inline notice={orderError?{tone:'error',title:'购物车未能保存',description:'浏览器未能保存方案，当前配置仍在编辑器中。'}:undefined} onDismiss={()=>setOrderError(false)} onRetry={orderError?confirmOrder:undefined}/>
     <div className="ring02-dialog-actions">
       <button autoFocus onClick={()=>setReview(null)}>返回修改</button>
       <button className="shop-button" onClick={confirmOrder}>确认并加入演示购物车</button>

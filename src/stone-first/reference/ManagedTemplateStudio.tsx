@@ -1,3 +1,4 @@
+import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
 import {addDemoOrder,formatYuan,type DemoOrder} from '../ring02/demoOrder';
 import {templateQuote} from '../pricing';
 import {useCallback,useEffect,useMemo,useRef,useState,type RefObject} from 'react';
@@ -35,12 +36,12 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
   const design=useMemo(()=>({...ORIGINAL_REFERENCE,center}),[center]);
   const [ready,setReady]=useState(false);
   const [adding,setAdding]=useState(false);
-  const [message,setMessage]=useState('');
+  const [feedback,setFeedback]=useState<Feedback>();
   const captureReady=useCallback((frame:SourceFrame|null)=>{setReady(!!frame);onReady(original?frame:null);},[onReady,original]);
   const quote=template.pricing?templateQuote(template.pricing,template.revision):undefined;
   async function addToCart(){
     if(!quote||!ready||adding)return;
-    setAdding(true);setMessage('');
+    setAdding(true);setFeedback(undefined);
     try{
       const confirmed=await fetchManaged<DemoOrder['quote']>(template.id+'/'+template.revision+'/quote',new AbortController().signal);
       if(confirmed.amount!==quote.amount||confirmed.version!==quote.version)throw new Error('价格已更新，请重新打开商品。');
@@ -51,8 +52,8 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
         details:[{label:'戒头',value:template.headName},{label:'戒圈',value:template.bandName},{label:'主石外观',value:STONE_APPEARANCES[center].name},
           ...(['base','head','band','pave'] as const).map((key,index)=>({label:['基础价','戒头加价','戒圈加价','铺钻加价'][index],value:formatYuan(template.pricing![key])})),
           {label:'工艺状态',value:template.review?.status==='approved'?'复核通过':'待人工确认'}]});
-      setMessage('已加入购物车');
-    }catch(error){setMessage(error instanceof Error?error.message:'暂时无法加入购物车，请重试。');}
+      setFeedback({tone:'success',title:'已加入购物车',description:'你的戒指方案已保存。'});
+    }catch(error){setFeedback({tone:'error',title:'购物车未能保存',description:error instanceof Error?error.message:'当前配置仍在编辑器中。'});}
     finally{setAdding(false);}
   }
 
@@ -96,7 +97,7 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
         <details><summary>价格明细</summary><dl>{(['base','head','band','pave'] as const).map((key,index)=><div key={key}><dt>{['模板基础价','戒头加价','戒圈加价','铺钻加价'][index]}</dt><dd>{formatYuan(template.pricing![key])}</dd></div>)}</dl></details>
         {!thumbnailRef&&template.publishedAt&&<><button className="shop-button" disabled={!ready||adding} onClick={addToCart}>{adding?'正在保存…':'加入购物车'}</button><a className="shop-text-link" href="#/diy/cart">查看购物车</a></>}
       </section>}
-      {message&&<p role="status">{message}</p>}
+      <FeedbackToast notice={feedback} onDismiss={()=>setFeedback(undefined)} onRetry={feedback?.tone==='error'&&!adding?addToCart:undefined}/>
       <p>银色金属外观 · {template.review?.status==='approved'?'组合已完成工艺复核':'需人工确认制作要求'}</p>
       {template.review?.minDiameter!=null&&<p>登记戒圈内径 {template.review.minDiameter}–{template.review.maxDiameter} mm，档位步长 {template.review.step} mm。</p>}
     </section></div>
