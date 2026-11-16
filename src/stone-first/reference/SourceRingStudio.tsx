@@ -19,6 +19,11 @@ import '../stone-first.css';
 import '../ring02/ring02.css';
 import './source-ring-picker.css';
 
+const VIEW_ICONS={
+  top:new URL('./icons/view-top.svg',import.meta.url).href,
+  side:new URL('./icons/view-side.svg',import.meta.url).href,
+};
+
 preloadJewelryLighting();
 
 type PartChoice={id:string;name:string;image:string};
@@ -148,7 +153,12 @@ function Editor({template}:{template:CatalogRing}){
       {!ring&&visiblePreview&&<div className="source-ring-swap-status" role={loadingError?'alert':'status'}>
         {loadingError?<><span>{loadingError}</span><button onClick={selection.retry}>重试</button></>:'正在更新搭配…'}
       </div>}
-      <div className="stone-first-camera-views" role="group" aria-label="戒指观察视角">{VIEWS.map(([id,label])=><button key={id} aria-pressed={view===id} onClick={()=>{setView(id);setReset(n=>n+1);}}>{label}</button>)}</div>
+      <div className="stone-first-camera-views source-camera-toolbar" role="group" aria-label="戒指观察视角">
+        {VIEWS.map(([id,label])=><button key={id} aria-pressed={view===id} onClick={()=>{setView(id);setReset(n=>n+1);}}>
+          {(id==='top'||id==='side')&&<img src={VIEW_ICONS[id]} width={16} height={16} alt=""/>}
+          {label}
+        </button>)}
+      </div>
     </section>
     <section className="stone-first-panel" aria-label="戒指配置">
       <header className="ring02-product"><h1>专属定制</h1><p>{displayName} · 银色</p></header>
