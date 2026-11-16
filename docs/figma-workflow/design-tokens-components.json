@@ -298,5 +298,71 @@
       "source": "src/model-admin/TemplateLibrary.tsx .template-row",
       "implementation": "Editable source layer; promote pending"
     }
-  ]
+  ],
+  "feedbackBoard": {
+    "node": "70:2",
+    "url": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=70-2",
+    "patterns": [
+      {
+        "name": "Toast",
+        "states": [
+          "success",
+          "info",
+          "warning",
+          "error with retry"
+        ],
+        "source": [
+          "src/stone-first/reference/SourceRingStudio.tsx · ring02-editor-feedback",
+          "src/stone-first/ring02/Ring02Studio.tsx · ring02-cart-notice",
+          "src/model-admin/TemplateLibrary.tsx · role=status"
+        ],
+        "scope": "Figma design patterns. Runtime currently uses in-place status feedback and an existing precision editor notice."
+      },
+      {
+        "name": "Dialog / ring review",
+        "source": [
+          "src/stone-first/ring02/ReviewDialog.tsx",
+          "src/stone-first/reference/SourceRingStudio.tsx",
+          "src/stone-first/ring02/ring02.css"
+        ],
+        "referenceNode": "60:14"
+      },
+      {
+        "name": "Confirmation / product publication",
+        "source": [
+          "src/model-admin/TemplateLibrary.tsx · publish-confirm",
+          "src/model-admin/model-admin.css"
+        ],
+        "referenceNode": "68:14"
+      },
+      {
+        "name": "Drawer / component library",
+        "states": [
+          "desktop right",
+          "mobile bottom",
+          "no matching parts"
+        ],
+        "source": [
+          "src/stone-first/reference/PartLibrary.tsx",
+          "src/stone-first/reference/source-ring-picker.css"
+        ],
+        "referenceNodes": [
+          "31:14",
+          "33:14"
+        ]
+      },
+      {
+        "name": "Alert and Loading",
+        "states": [
+          "3D preview failure and retry",
+          "loading mesh"
+        ],
+        "source": [
+          "src/stone-first/ring02/Ring02Loading.tsx",
+          "src/model-admin/PartPreview.tsx",
+          "src/viewer/ViewerBoundary.tsx"
+        ]
+      }
+    ]
+  }
 }
