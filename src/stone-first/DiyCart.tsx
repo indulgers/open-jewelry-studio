@@ -1,3 +1,5 @@
+import {consumerRequest} from './consumer-api';
+import type {DesignRequest} from './consumer-types';
 import {sumMoney} from './pricing';
 import {templateRoute} from './reference/managed-types';
 import {useEffect,useState} from 'react';
@@ -21,6 +23,10 @@ function CartImage({thumbnail,image,name}:{thumbnail?:string;image?:string;name:
 export function DiyCart(){
   const [orders,setOrders]=useState<ReturnType<typeof demoOrders>|null>(null);
   const [error,setError]=useState('');
+  const [requests,setRequests]=useState<DesignRequest[]>([]),[requestError,setRequestError]=useState('');
+  useEffect(()=>{if(!orders?.some(item=>item.request))return;const controller=new AbortController();consumerRequest<DesignRequest[]>('requests',undefined,controller.signal).then(setRequests).catch(()=>{if(!controller.signal.aborted)setRequestError('受理状态暂未同步，请在「我的方案」核对恢复码或重试。');});return ()=>controller.abort();},[orders]);
+  const receipt=(order:NonNullable<typeof orders>[number])=>requests.find(item=>item.id===order.request?.id&&item.design.id===order.request.designId&&item.design.revision===order.request.revision);
+  const actualQuote=(order:NonNullable<typeof orders>[number])=>{const item=receipt(order);return item?.status==='confirmed'&&item.quote?item.quote:order.quote;};
   useEffect(()=>{
     function refresh(){
       try{setOrders(demoOrders());setError('');}
@@ -35,13 +41,14 @@ export function DiyCart(){
     try{removeDemoOrder(revision);}
     catch{setError('暂时无法移除该方案，请稍后重试。');}
   }
-  const total=sumMoney(orders?.map(order=>order.quote.amount)??[]);
+  const total=sumMoney(orders?.map(order=>actualQuote(order).amount)??[]);
   return <main className="diy-home diy-cart-page shop-wrap">
     <header className="diy-home-intro">
-      <a className="shop-text-link" href="#/diy/collection">返回款式系列</a>
+      <a className="shop-text-link" href="#/diy/collection">返回款式系列</a> · <a className="shop-text-link" href="#/diy/designs">我的方案与受理记录</a>
       <h1>你的购物车{orders&&<span>{orders.length} 件心意之选</span>}</h1>
       <p>把喜欢的留下，再慢慢确认每个细节。</p>
     </header>
+    {requestError&&<p role="alert">{requestError} <a href="#/diy/designs">我的方案</a></p>}
     {error&&<p className="cart-error" role="alert">{error}</p>}
     {!orders&&!error&&<p role="status">正在读取购物车…</p>}
     {orders?.length===0?<div className="diy-cart-empty">
@@ -50,6 +57,7 @@ export function DiyCart(){
     </div>:!!orders?.length&&<div className="cart-layout">
       <div className="diy-cart">
         {orders.map(order=>{
+          const record=receipt(order),formal=record?.status==='confirmed'&&!!record.quote,currentQuote=actualQuote(order);
           const template=RING_CATALOG.find(item=>item.revision===order.templateRevision);
           const design=parseReferenceDesign(order.design);
           const parts=template&&design?referenceParts(template,design):null;
@@ -60,10 +68,11 @@ export function DiyCart(){
             <CartImage thumbnail={order.thumbnail} image={order.managed?'/api/model-admin/public/'+order.managed.id+'/'+order.managed.revision+'/cover.jpg':mixed?undefined:template?.image} name={name}/>
             <div className="cart-order-info">
               <div className="cart-order-top"><div><span className="collection-label">{template?.collection??'专属定制'}</span><h2>{name}</h2><p>银色 · 1 件</p></div><button className="cart-remove" aria-label={'移除'+name} onClick={()=>remove(order.revision)}>移除</button></div>
-              <p className="cart-order-price"><strong>{formatYuan(order.quote.amount)}</strong><span>参考价</span></p>
-              <details className="cart-details"><summary>查看款式与配置</summary><dl>{order.details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>确认于 <time dateTime={order.confirmedAt}>{new Date(order.confirmedAt).toLocaleString('zh-CN')}</time></p></details>
+              <p className="cart-order-price"><strong>{formatYuan(currentQuote.amount)}</strong><span>{formal?'已确认正式报价':'参考价'}</span></p>
+              <details className="cart-details"><summary>查看款式与配置</summary><dl>{order.details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>确认于 <time dateTime={record?.confirmedAt??order.confirmedAt}>{new Date(record?.confirmedAt??order.confirmedAt).toLocaleString('zh-CN')}</time></p></details>
+              {order.request&&<p>已提交人工确认 · 申请编号 {order.request.id} <a href="#/diy/designs">查看处理进度与正式报价</a></p>}
               {editor&&<a className="cart-customize" href={editor}>定制此款</a>}
-              <p className="cart-delivery">示例交期 {order.quote.leadTime} · 工艺与圈号待确认</p>
+              <p className="cart-delivery">{formal?'已确认交期':'示例交期'} {currentQuote.leadTime} · {formal?'制作要求见受理记录':'工艺与圈号待确认'}</p>
             </div>
           </article>;
         })}
@@ -71,7 +80,7 @@ export function DiyCart(){
       <aside className="cart-summary" aria-labelledby="cart-summary-title">
         <h2 id="cart-summary-title">心意清单</h2>
         <dl><div><dt>已选方案</dt><dd>{orders.length} 件</dd></div><div className="cart-total"><dt>参考合计</dt><dd>{formatYuan(total)}</dd></div></dl>
-        <p>方案已保留在本机。当前为演示购物车，暂不收款，实物价格与制作信息待正式确认。</p>
+        <p>商品行会核对服务器受理记录，已确认方案显示正式报价。待人工确认的估价不能作为付款依据。当前尚未接入支付。</p>
         <a className="shop-button" href="#/diy/collection">继续挑选</a>
         <a className="shop-text-link" href="#/diy/collection">选择款式定制</a>
       </aside>

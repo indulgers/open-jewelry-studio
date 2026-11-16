@@ -1,3 +1,4 @@
+import {consumerLibrary,consumerBody} from './consumer.ts';
 import {createHash,createHmac,randomUUID,timingSafeEqual} from 'node:crypto';
 import {mkdir,mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -258,7 +259,7 @@ function cloudLibrary(store:CloudStore){
         headStructures:release.headSettings?.headStructure?[release.headSettings.headStructure]:original?.headStructures??[],
         bandStructure:release.bandSettings?.bandStructure,bandFinish:release.bandSettings?.bandFinish,
         automaticPave:release.bandSettings?.automaticPave!==false,
-        publication:{id:product.id,revision:product.revision},
+        publication:{id:product.id,revision:product.revision},workflow:release.workflow,
         zones:original?.zones??['center',...(!head.zones||head.zones.includes('halo')?['halo']:[]),...(band.pave?['shoulder']:[])],stoneCount:original?.stoneCount??0,
       };
       if(release.pricing)components[id]={head:release.pricing.head,band:release.pricing.band,pave:release.pricing.pave};
@@ -316,21 +317,28 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
       if(action==='index.json'&&!revision)return json(await library.published());
       if(uuid.test(action??'')&&uuid.test(revision??'')&&rest.length===1){
         const {value:publication}=await library.required<Publication>(library.publicationKey(action));
-        if(publication.hidden||!publication.revisions.includes(revision))fail(404,'找不到已发布版本。');
+        if(!publication.revisions.includes(revision))fail(404,'找不到已发布版本。');
         const key=releaseKey(action,revision);
         const {value:release}=await library.required<Release>(key+'template.json');
         if(rest[0]==='quote'){
+          if(publication.hidden)fail(409,'该商品已下架，可以查看历史方案，但不能新购。');
           if(publication.current.revision!==revision)fail(409,'该商品已更新，请从商品目录打开最新版本。');
           requirePrice(release);
           return json(templateQuote(release.pricing!,release.revision));
         }
         if(rest[0]==='template.json'){
           const {files,...template}=release;
-          return json(template);
+          return json({...template,available:!publication.hidden&&publication.current.revision===revision});
         }
         if(release.files.includes(rest[0]))return redirect(await store.sign(key+rest[0],'GET'));
       }
       return json({error:'找不到已发布版本。'},404);
+    }
+    if(id==='consumer'){
+      if(!store)return json({error:'服务器方案存储尚未配置。'},503);
+      if(method==='POST'&&request.headers.get('origin')!==url.origin)fail(403,'请从本站提交方案。');
+      const library=cloudLibrary(store);
+      return await consumerLibrary(store,library.storefront).handle(request,[action,revision,...rest].filter(Boolean));
     }
     if(!store||!password||password.length<32)return json({error:'线上后台尚未配置 R2 或管理员密码。'},503);
     if(method==='POST'&&request.headers.get('origin')!==url.origin)fail(403,'请从本站后台操作。');
@@ -344,6 +352,12 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     if(!sessionIsValid(request,password))return json({error:'请先登录后台。'},401);
     if(id==='session'&&!action&&method==='GET')return new Response(null,{status:204,headers:{'Cache-Control':'no-store'}});
     const library=cloudLibrary(store);
+    if(id==='design-requests'){
+      const consumer=consumerLibrary(store,library.storefront);
+      if(!action&&method==='GET')return json(await consumer.requests());
+      if(action&&!revision&&method==='POST')return json(await consumer.review(action,await consumerBody(request)));
+      if(action&&(revision==='file'||revision==='image')&&!rest.length)return await consumer.adminFile(action,request,revision);
+    }
     if(id==='library'&&!action&&method==='GET')return json({sources:await library.sources(),
       drafts:(await library.records<TemplateDraft>('drafts')).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)),
       published:await library.published(true),prices:await library.prices(),catalog:(await library.required<unknown>(root+'stock/catalog.json')).value,cloud:true,versionManagement:true});

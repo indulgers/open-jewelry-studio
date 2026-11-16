@@ -101,7 +101,7 @@ export default function TemplateLibrary({request,tab,initialSourceId,onUse}:{req
     return {base:form.basePrice,head:head.head,band:band.band,pave:form.pave?band.pave:0};
   }
   const partsChanged=!!saved&&(['head','band'] as const).some(kind=>saved.componentMetadata?.[kind]!==((library?.sources.find(source=>source.id===form[kind])?.metadataRevision)??form[kind]));
-  const dirty=!saved||partsChanged||['description','cover','order','featured'].some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||form.basePrice!==saved.basePrice||(form.basePrice!==undefined&&JSON.stringify(currentPricing())!==JSON.stringify(saved.pricing))||Object.keys(empty).some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||JSON.stringify(form.review)!==JSON.stringify(saved.review);
+  const dirty=!saved||partsChanged||['description','cover','order','featured'].some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||form.basePrice!==saved.basePrice||(form.basePrice!==undefined&&JSON.stringify(currentPricing())!==JSON.stringify(saved.pricing))||Object.keys(empty).some(key=>form[key as keyof TemplateSelection]!==saved[key as keyof TemplateSelection])||JSON.stringify(form.workflow)!==JSON.stringify(saved.workflow)||JSON.stringify(form.review)!==JSON.stringify(saved.review);
   async function uploadCover(file?:File){
     if(!file)return;
     setBusy(true);setError('');
@@ -264,6 +264,11 @@ export default function TemplateLibrary({request,tab,initialSourceId,onUse}:{req
             <dl>{(['head','band','pave'] as const).map((key,index)=><div key={key}><dt>{['戒头加价','戒圈加价','铺钻加价'][index]}</dt><dd>{formatYuan(currentPricing()?.[key]??0)}</dd></div>)}</dl>
             <p>商品参考价 <strong>{currentPricing()?formatYuan(templateQuote(currentPricing()!,'draft').amount):'请填写基础价'}</strong></p><small>部件加价在部件管理中维护，发布时锁定本版价格。</small>
           </section>
+          <details className="review-rules"><summary>编辑步骤与必填项</summary>
+            <label>先配置<select aria-label="先配置" value={form.workflow?.firstStep??'head'} onChange={event=>update({workflow:{requireSizeNote:form.workflow?.requireSizeNote??false,firstStep:event.target.value as 'head'|'shank'}})}><option value="head">戒头 → 戒圈与个性化</option><option value="shank">戒圈与个性化 → 戒头</option></select></label>
+            <label className="check"><input type="checkbox" checked={form.workflow?.requireSizeNote??false} onChange={event=>update({workflow:{firstStep:form.workflow?.firstStep??'head',requireSizeNote:event.target.checked}})}/>提交前必须填写尺寸与制作要求</label>
+            <p>无配钻的结构会自动隐藏配钻选项。此处只改变编辑顺序和填写要求，工艺仍须人工确认；发布后生效。</p>
+          </details>
           <details className="review-rules">
             <summary>规则与工艺复核 · {form.review?.status==='approved'?'已通过':form.review?.status==='rejected'?'不通过':'待人工确认'}</summary>
             <p>复核当前戒头、戒圈及配钻组合。更换部件后，需要重新确认。</p>

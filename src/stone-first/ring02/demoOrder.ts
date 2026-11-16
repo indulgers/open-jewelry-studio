@@ -21,6 +21,7 @@ export function estimateRing02(design:RingDesign){
 
 export type Detail={label:string;value:string};
 export type DemoOrder={
+  request?:{id:string;designId:string;revision:string};
   name?:string;
   templateRevision:string;
   revision:string;
@@ -44,7 +45,7 @@ export function hasDemoOrder(revision:string){
   catch{return false;}
 }
 export function addDemoOrder(order:DemoOrder){
-  if(!validManaged(order.managed)&&!RING_CATALOG.some(template=>template.revision===order.templateRevision&&template.listed))throw new Error('当前款式已停售');
+  if(!validRequest(order.request)&&!validManaged(order.managed)&&!RING_CATALOG.some(template=>template.revision===order.templateRevision&&template.listed))throw new Error('当前款式已停售');
   const key=ORDER_PREFIX+order.revision;
   if(localStorage.getItem(key)!==null)return false;
   const thumbnail=validThumbnail(order.thumbnail)?order.thumbnail:undefined;
@@ -63,7 +64,7 @@ export function removeDemoOrder(revision:string){
 }
 
 export function demoOrders(){
-  const orders:(Pick<DemoOrder,'name'|'templateRevision'|'revision'|'confirmedAt'|'quote'|'details'|'thumbnail'|'pave'|'managed'>&{design?:unknown})[]=[];
+  const orders:(Pick<DemoOrder,'name'|'templateRevision'|'revision'|'confirmedAt'|'quote'|'details'|'thumbnail'|'pave'|'managed'|'request'>&{design?:unknown})[]=[];
   for(let index=0;index<localStorage.length;index++){
     const key=localStorage.key(index);
     if(!key?.startsWith(ORDER_PREFIX))continue;
@@ -74,7 +75,7 @@ export function demoOrders(){
         &&isMoney(order.quote?.amount)&&order.quote.amount>0&&order.quote.currency==='CNY'
         &&typeof order.quote.version==='string'&&typeof order.quote.leadTime==='string'&&Array.isArray(order.details)
         &&order.details.every((detail:Detail)=>detail&&typeof detail.label==='string'&&typeof detail.value==='string')){
-        orders.push({...order,name:typeof order.name==='string'&&order.name.length<=200?order.name:undefined,managed:validManaged(order.managed)?order.managed:undefined,thumbnail:validThumbnail(order.thumbnail)?order.thumbnail:undefined});
+        orders.push({...order,request:validRequest(order.request)?order.request:undefined,name:typeof order.name==='string'&&order.name.length<=200?order.name:undefined,managed:validManaged(order.managed)?order.managed:undefined,thumbnail:validThumbnail(order.thumbnail)?order.thumbnail:undefined});
       }
     }catch{continue;}
   }
@@ -85,4 +86,10 @@ function validManaged(value:unknown):value is NonNullable<DemoOrder['managed']>{
   if(!value||typeof value!=='object')return false;
   const v=value as Record<string,unknown>;
   return typeof v.id==='string'&&typeof v.revision==='string'&&[v.id,v.revision].every(id=>/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(id))&&typeof v.name==='string'&&v.name.length>0&&v.name.length<=60;
+}
+
+function validRequest(value:unknown):value is NonNullable<DemoOrder['request']>{
+  if(!value||typeof value!=='object')return false;
+  const v=value as Record<string,unknown>;
+  return typeof v.id==='string'&&/^[a-f0-9]{24}$/.test(v.id)&&typeof v.designId==='string'&&/^[a-f0-9-]{36}$/.test(v.designId)&&typeof v.revision==='string'&&/^[a-f0-9-]{36}$/.test(v.revision);
 }

@@ -1,3 +1,6 @@
+import {PersonalImageField} from './PersonalImage';
+import {consumerRequest,ConsumerError} from '../consumer-api';
+import type {SavedDesign,DesignRequest,ConfigurationCheck,DesignInput} from '../consumer-types';
 import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
 import {useEffect,useLayoutEffect,useMemo,useReducer,useRef,useState} from 'react';
 import {preloadJewelryLighting} from '../../viewer/JewelryLighting';
@@ -18,6 +21,7 @@ import {applyReferencePave} from './pave';
 import {SourceLoading,SourceRingStage,type SourceFrame} from './SourceRingStage';
 import {draftKey,editorHistory,readEditorDraft,startNewDraft} from './editor-history';
 import {useEditorExit} from './useEditorExit';
+import '../guest-designs.css';
 import '../stone-first.css';
 import '../ring02/ring02.css';
 import './source-ring-picker.css';
@@ -53,13 +57,21 @@ function Editor({template}:{template:CatalogRing}){
   const [draftIssue,setDraftIssue]=useState(restored.issue);
   const [history,dispatch]=useReducer(editorHistory,restored.history);
   const {design,revision,past,future}=history;
+  const [server,setServer]=useState<{revision:string;savedAt:string}|undefined>(restored.server);
+  const [serverBusy,setServerBusy]=useState(false),[serverError,setServerError]=useState('');
+  const [check,setCheck]=useState<ConfigurationCheck>(),[checking,setChecking]=useState(false),[checkError,setCheckError]=useState('');
+  const [checkAttempt,setCheckAttempt]=useState(0),[unsupported,setUnsupported]=useState(false);
+  const hosted=!!(import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE);
+
   const [savedAt,setSavedAt]=useState('');
   const [saveAttempt,setSaveAttempt]=useState(0);
   const [pendingTemplate,setPendingTemplate]=useState<CatalogRing>();
   const [pendingChange,setPendingChange]=useState<{title:string;notes:string[];design:ReferenceDesign;clearEngraving?:boolean;recover?:boolean}>();
   const [recovery,setRecovery]=useState(()=>{try{return localStorage.getItem(key+':previous');}catch{return null;}});
   const [jump,setJump]=useState<string>();
-  const [part,setPart]=useState<'head'|'shank'>('head');
+  const firstStep=template.workflow?.firstStep??'head',lastStep=firstStep==='head'?'shank':'head';
+  const steps=[firstStep,lastStep] as const;
+  const [part,setPart]=useState<'head'|'shank'>(firstStep);
   const [library,setLibrary]=useState<'head'|'band'|null>(null);
   const libraryTrigger=useRef<HTMLButtonElement>(null);
   const [headZone,setHeadZone]=useState<'center'|'halo'>('center');
@@ -69,6 +81,9 @@ function Editor({template}:{template:CatalogRing}){
   const [cartFeedback,setCartFeedback]=useState<Feedback>();
   const [saveError,setSaveError]=useState(false),[message,setMessage]=useState('');
   const [engraving,setEngraving]=useState(design.engraving);
+  const [requirements,setRequirements]=useState(design.requestNote??''),[imageUploading,setImageUploading]=useState(false);
+  const requirementsDirty=requirements!==(design.requestNote??'');
+  useEffect(()=>setRequirements(design.requestNote??''),[design.requestNote]);
   const capture=useRef<(()=>string|undefined)|null>(null);
   const [captureFrame,setCaptureFrame]=useState<SourceFrame|null>(null);
   const {head,band,zones}=referenceParts(template,design);
@@ -97,20 +112,21 @@ function Editor({template}:{template:CatalogRing}){
   const visiblePreview=canCapture?preview:lastPreview.current;
   const swapping=!ring&&!loadingError;
   const previousParts=visiblePreview?referenceParts(template,visiblePreview.design):null;
-  const quote=referenceQuote(template,design),details=referenceDetails(template,design,compare?null:pave);
+  const quote=hosted&&check?.revision===revision?check.quote:referenceQuote(template,design),details=referenceDetails(template,design,compare?null:pave);
   const engravingDirty=engraving!==design.engraving;
   const [composing,setComposing]=useState(false);
   const engravingError=composing?'':engravingProblem(engraving.trim());
-  const exit=useEditorExit(engravingDirty||saveError);
+  const draftDirty=engravingDirty||requirementsDirty||imageUploading;
+  const exit=useEditorExit(draftDirty||saveError);
   const finalText=engraving.trim();
   const added=hasDemoOrder(revision);
   useEffect(()=>{
     if(draftIssue)return;
     try{
       const savedAt=new Date().toISOString();
-      localStorage.setItem(key,JSON.stringify({design,revision,savedAt}));setSaveError(false);setSavedAt(savedAt);
+      localStorage.setItem(key,JSON.stringify({id:history.id,design,revision,savedAt,server}));setSaveError(false);setSavedAt(savedAt);
     }catch{setSaveError(true);}
-  },[key,design,revision,draftIssue,saveAttempt]);
+  },[key,design,revision,draftIssue,saveAttempt,server,history.id]);
   useEffect(()=>{
     if(!jump)return;
     const field=document.getElementById(jump);
@@ -136,12 +152,12 @@ function Editor({template}:{template:CatalogRing}){
       try{const current=localStorage.getItem(key);if(current)localStorage.setItem(key+':previous',current);setRecovery(current);setDraftIssue(undefined);}
       catch{setMessage('当前草稿未能备份，请重试。');setPendingChange(undefined);return;}
     }
-    change(next);if(pendingChange?.clearEngraving)setEngraving(next.engraving);setPendingChange(undefined);
+    change(next);if(pendingChange?.clearEngraving){setEngraving(next.engraving);setRequirements(next.requestNote??'');}setPendingChange(undefined);
   }
   function moveHistory(type:'undo'|'redo'){
     const next=type==='undo'?past.at(-1):future[0];
     if(!next)return;
-    if(engravingDirty){setMessage('请先确认或取消刻字修改，再'+(type==='undo'?'撤销':'重做')+'。');return;}
+    if(draftDirty){setMessage('请先完成或取消文字、制作要求及图片修改，再'+(type==='undo'?'撤销':'重做')+'。');return;}
     dispatch({type});setEngraving(next.engraving);setMessage('');
   }
   function replaceBand(id:string){
@@ -204,32 +220,63 @@ function Editor({template}:{template:CatalogRing}){
   function selectFinish(id:string){
     replaceBand(id);
   }
+  function serverInput(thumbnail?:string):DesignInput{
+    return {id:history.id,revision,expectedRevision:server?.revision??null,templateId:template.id,head:{id:head.id,revision:head.revision},band:{id:band.id,revision:band.revision},design,...(thumbnail?{thumbnail}:{})};
+  }
+  useEffect(()=>{
+    if(!hosted||draftIssue)return;
+    const controller=new AbortController();
+    setChecking(true);setCheckError('');setUnsupported(false);
+    const timer=setTimeout(()=>{
+      consumerRequest<ConfigurationCheck>('check',serverInput(),controller.signal).then(value=>{
+        if(!controller.signal.aborted)setCheck(value);
+      }).catch(error=>{if(!controller.signal.aborted){setCheckError(error instanceof Error?error.message:'配置检查失败，请重试。');setUnsupported(error instanceof ConsumerError&&[409,422].includes(error.status));}})
+        .finally(()=>{if(!controller.signal.aborted)setChecking(false);});
+    },250);
+    return ()=>{clearTimeout(timer);controller.abort();};
+  },[hosted,revision,head.revision,band.revision,draftIssue,checkAttempt]);
+  async function saveToServer(){
+    if(serverBusy||adding||draftIssue||draftDirty)return;
+    setServerBusy(true);setServerError('');
+    try{
+      if(!hosted)throw new Error('本地预览尚未连接线上方案服务，请在部署环境使用服务器保存。');
+      let thumbnail:string|undefined;
+      try{if(canCapture&&!compare)thumbnail=capture.current?.();}catch{}
+      const saved=await consumerRequest<SavedDesign>('designs',serverInput(thumbnail));
+      setServer({revision:saved.revision,savedAt:saved.savedAt});
+      setMessage('方案已保存到服务器，可用游客恢复码找回。');
+    }catch(error){setServerError(error instanceof Error?error.message:'服务器保存失败，请重试。');}
+    finally{setServerBusy(false);}
+  }
   async function confirm(){
-    if(compare||engravingDirty||draftIssue||!ring||!canCapture||adding)return;
+    if(compare||draftDirty||draftIssue||!ring||!canCapture||adding||serverBusy)return;
     let thumbnail:string|undefined;
     try{thumbnail=capture.current?.();}catch{}
-    if(!thumbnail){setCartFeedback({tone:'error',title:'购物车未能保存',description:'搭配图片暂未生成。'});return;}
+    if(!thumbnail){setCartFeedback({tone:'error',title:'方案未能提交',description:'搭配图片暂未生成。'});return;}
     setAdding(true);setCartFeedback(undefined);
     try{
-      if(import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE){
-        const query=new URLSearchParams({head:head.id,band:band.id,headRevision:head.revision,bandRevision:band.revision,center:design.center,halo:design.halo,shoulder:design.shoulder});
-        const response=await fetch('/api/model-admin/public/combination-quote?'+query);
-        const confirmed=await response.json();
-        if(!response.ok)throw new Error(confirmed.error??'报价暂不可用，请重试。');
-        if(confirmed.amount!==quote.amount||confirmed.version!==quote.version)throw new Error('报价已更新，请刷新后重新确认。');
+      let receipt:DesignRequest|undefined;
+      if(hosted){
+        if(checking||checkError||check?.state==='incomplete'||check?.revision!==revision)throw new Error('请先完成当前修订的配置检查。');
+        const saved=await consumerRequest<SavedDesign>('designs',serverInput(thumbnail));
+        setServer({revision:saved.revision,savedAt:saved.savedAt});
+        receipt=await consumerRequest<DesignRequest>('designs/'+saved.id+'/'+saved.revision+'/submit',{thumbnail});
       }
-      addDemoOrder({name:displayName,templateRevision:template.revision,revision,confirmedAt:new Date().toISOString(),design,quote,details,thumbnail,
+      addDemoOrder({name:displayName,templateRevision:template.revision,revision,confirmedAt:new Date().toISOString(),design,quote:receipt?.design.check.quote??quote,details,thumbnail,
+        ...(receipt?{request:{id:receipt.id,designId:receipt.design.id,revision:receipt.design.revision}}:{}),
         stones:ring.stones.map(stone=>({id:stone.name,zone:stone.zone,appearance:design[stone.zone],placement:stone.matrix.toArray()})),
       });
-      setReview(false);setCartFeedback({tone:'success',title:'已加入购物车',description:'你的戒指方案已保存。'});
-    }catch(error){setCartFeedback({tone:'error',title:'购物车未能保存',description:error instanceof Error?error.message:'当前配置仍在编辑器中。'});}finally{setAdding(false);}
+      setReview(false);setCartFeedback({tone:'success',title:receipt?'方案已受理':'已加入购物车',description:receipt?'申请编号 '+receipt.id+'。可在「我的方案」查看进度。':'你的戒指方案已保存。'});
+    }catch(error){if(error instanceof ConsumerError&&error.status===409)setServerError(error.message);setCartFeedback({tone:'error',title:'方案未能完成提交',description:error instanceof Error?error.message:'当前配置仍在编辑器中。'});}finally{setAdding(false);}
   }
   return <>
     <div className="source-ring-entry">
       <nav className="ring02-breadcrumb" aria-label="所在页面"><a href="#/diy/collection">全部款式</a><span aria-hidden="true">/</span><span aria-current="page">{template.name}</span></nav>
       <RingStylePicker id={template.id} onSelect={id=>setPendingTemplate(RING_CATALOG.find(item=>item.id===id))}/>
-      <p className="source-save-status" role={saveError?'alert':'status'}>{draftIssue?'旧草稿需要处理':saveError?'本机草稿保存失败':savedAt?'本机已暂存 · '+new Date(savedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):'正在暂存…'}{saveError&&<button onClick={()=>setSaveAttempt(value=>value+1)}>重试保存</button>}</p>
+      <div className="source-save-actions"><button disabled={serverBusy||adding||!!draftIssue||draftDirty} onClick={saveToServer}>{serverBusy?'正在保存…':'保存方案'}</button><a href="#/diy/designs">我的方案与恢复码</a></div>
+      <p className="source-save-status" role={saveError?'alert':'status'}>{draftIssue?'旧草稿需要处理':server?.revision===revision?'服务器已保存 · '+new Date(server.savedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):saveError?'本机草稿保存失败':savedAt?'本机已暂存 · '+new Date(savedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):'正在暂存…'}{saveError&&<button onClick={()=>setSaveAttempt(value=>value+1)}>重试保存</button>}</p>
     </div>
+    {serverError&&<p role="alert">{serverError} <button disabled={serverBusy} onClick={saveToServer}>重试保存</button>{hosted&&<button disabled={serverBusy||adding||draftDirty} onClick={()=>{dispatch({type:'fork'});setServer(undefined);setServerError('');setMessage('当前内容已转为新的本机方案，请点击保存方案。服务器原版本仍保留。');}}>保留当前内容，新建方案</button>} <a href="#/diy/designs">查看服务器方案</a></p>}
     {draftIssue&&<section className="source-draft-issue" role="alert"><p>{draftIssue}</p><p>处理前可查看原款，不能覆盖旧草稿或确认加购。</p>
       <button onClick={()=>location.reload()}>重试读取</button>
       <a href={'data:application/json;charset=utf-8,'+encodeURIComponent(restored.raw??'null')} download="xiangyan-draft.json">下载原记录</a>
@@ -254,7 +301,7 @@ function Editor({template}:{template:CatalogRing}){
     </section>
     <section className="stone-first-panel" aria-label="戒指配置">
       <header className="ring02-product"><h1>专属定制</h1><p>{displayName} · 银色</p></header>
-      <div className="source-part-tabs" role="group" aria-label="选择戒指部件"><button aria-pressed={part==='head'} onClick={()=>setPart('head')}>戒头</button><button aria-pressed={part==='shank'} onClick={()=>setPart('shank')}>戒圈与铺钻</button></div>
+      <div className="source-part-tabs" role="group" aria-label="选择戒指部件">{steps.map(id=><button key={id} aria-pressed={part===id} onClick={()=>setPart(id)}>{id==='head'?'戒头':'戒圈与铺钻'}</button>)}</div>
       <fieldset disabled={!!draftIssue} className="stone-first-fields ring02-fields source-ring-fields">
         <button type="button" className="source-library-trigger shop-text-link" ref={libraryTrigger} aria-haspopup="dialog"
           aria-label={part==='head'?'查看全部戒头':'查看全部戒圈'} disabled={compare} onClick={()=>setLibrary(part==='head'?'head':'band')}>查看全部</button>
@@ -284,7 +331,8 @@ function Editor({template}:{template:CatalogRing}){
         </>}
         {zone?<fieldset id={'source-'+zone} tabIndex={-1} disabled={compare}><legend>{ZONE_NAMES[zone]}搭配</legend><div className="stone-first-options ring02-gems">{STONE_APPEARANCE_IDS.map(id=><button key={id} aria-pressed={design[zone]===id} onClick={()=>color(id)}><i className={'ring02-swatch swatch-'+id} aria-hidden="true"/>{STONE_APPEARANCES[id].name}{id!=='diamond'?' +¥100':''}</button>)}</div></fieldset>:<><h2>素面戒臂</h2><p>这款戒臂采用银色素面。</p></>}
 
-        {part==='shank'&&<div className="source-production-notes"><section id="source-material" tabIndex={-1}><h2>材质与表面</h2><p>当前仅提供银色外观预览。实物材质及表面工艺待人工确认。</p></section><section id="source-size" tabIndex={-1}><h2>实物圈号</h2><p>圈号标准和可制作档位待工艺确认。旋转、缩放预览不会改变实物尺寸。</p></section></div>}
+        {part==='shank'&&<div className="source-production-notes"><section id="source-material" tabIndex={-1}><h2>材质与表面</h2><p>当前仅提供银色外观预览。实物材质及表面工艺待人工确认。</p></section><section id="source-size" tabIndex={-1}><h2>实物圈号与制作要求</h2><p>圈号标准和可制作档位待工艺确认。旋转、缩放预览不会改变实物尺寸。</p><label htmlFor="source-requirements">你的尺寸与制作要求</label><textarea id="source-requirements" value={requirements} maxLength={1000} disabled={compare} onChange={event=>setRequirements(event.target.value)} placeholder="如有圈号，请写明采用的标准；也可提供实测内径（mm）或希望工艺人员确认的问题。"/><div className="ring02-engraving-actions"><button disabled={!requirementsDirty} onClick={()=>setRequirements(design.requestNote??'')}>取消要求修改</button><button disabled={!requirementsDirty} onClick={()=>change({...design,requestNote:requirements})}>确认制作要求</button></div></section></div>}
+        {part==='shank'&&<PersonalImageField value={design.image} disabled={compare||!hosted} onBusy={setImageUploading} onChange={image=>change({...design,image})}/>}
         {part==='shank'&&<fieldset disabled={compare} className="ring02-engraving"><legend>内圈刻字 <span>选填</span></legend>
           <label className="sr-only" htmlFor="source-engraving">刻字文字</label><input id="source-engraving" value={engraving} autoComplete="off" spellCheck={false} placeholder="例如  A & B" aria-describedby="source-engraving-help source-engraving-error" onCompositionStart={()=>setComposing(true)} onCompositionEnd={()=>setComposing(false)} onChange={event=>setEngraving(event.target.value)}/>
           <p id="source-engraving-help">最多 {ENGRAVING_LIMIT} 个字符，剩余 {Math.max(0,ENGRAVING_LIMIT-Array.from(engraving).length)} 个。支持英文字母、数字、空格和 . &amp; -</p>
@@ -294,30 +342,33 @@ function Editor({template}:{template:CatalogRing}){
           <div className="ring02-engraving-actions"><button disabled={!engravingDirty} onClick={()=>setEngraving(design.engraving)}>取消修改</button><button disabled={!engravingDirty||composing||!!engravingError} onClick={()=>{const text=engraving.trim();change({...design,engraving:text});setEngraving(text);}}>确认刻字</button></div>
         </fieldset>}
       </fieldset>
+      {hosted&&<section className="source-check" aria-label="配置检查"><p role="status">{checking||check?.revision!==revision&&!checkError?'正在检查当前配置…':checkError?unsupported?'暂不支持当前配置':'配置检查未完成':check?.state==='incomplete'?'请完成必填项':'需人工确认'}</p>
+        {checkError?<p role="alert">{checkError} <button onClick={()=>setCheckAttempt(value=>value+1)}>重新检查</button>{unsupported&&<><button onClick={()=>jumpTo('head')}>重新选戒头</button><button onClick={()=>jumpTo('band')}>重新选戒圈</button></>}</p>:check?.revision===revision&&<ul>{check.issues.map((issue,index)=><li key={issue.field+index}><button onClick={()=>jumpTo(issue.field)}>{issue.message} ↗</button></li>)}</ul>}
+      </section>}
       <details className="ring02-summary"><summary>配置摘要</summary><dl className="source-ring-summary">{details.map(detail=><div key={detail.label}><dt><button type="button" onClick={()=>jumpTo(detail.field)}>{detail.label}<span aria-hidden="true"> ↗</span></button></dt><dd>{detail.value}</dd></div>)}</dl>{template.kind==='parametric'&&<a className="source-precision-link" href={RING02_PRECISION_ROUTE}>精调原款围钻</a>}</details>
-      <div className="ring02-actions"><button disabled={!past.length||compare||!!draftIssue} onClick={()=>moveHistory('undo')}>撤销</button><button disabled={!future.length||compare||!!draftIssue} onClick={()=>moveHistory('redo')}>重做</button><button disabled={compare||!!draftIssue} onClick={()=>setPendingChange({title:'恢复原款搭配？',notes:['戒头、戒圈、宝石、铺钻参数和刻字将恢复本款默认值。未确认的刻字输入也会清除。','恢复后可以撤销，购物车中的方案不会改变。'],design:ORIGINAL_REFERENCE,clearEngraving:true})}>恢复原款</button></div>
+      <div className="ring02-actions"><button disabled={!past.length||compare||!!draftIssue} onClick={()=>moveHistory('undo')}>撤销</button><button disabled={!future.length||compare||!!draftIssue} onClick={()=>moveHistory('redo')}>重做</button><button disabled={compare||!!draftIssue} onClick={()=>setPendingChange({title:'恢复原款搭配？',notes:['戒头、戒圈、宝石、铺钻参数、刻字、图片和制作要求将恢复本款默认值。未确认的刻字输入也会清除。','恢复后可以撤销，购物车中的方案不会改变。'],design:ORIGINAL_REFERENCE,clearEngraving:true})}>恢复原款</button></div>
       {recovery&&<div className="source-draft-recovery"><button className="source-recover" onClick={recoverPrevious}>恢复上次换款前的草稿</button><a href={'data:application/json;charset=utf-8,'+encodeURIComponent(recovery)} download="xiangyan-draft-backup.json">下载备份记录</a></div>}
       <p className="ring02-status ring02-editor-feedback" role="status">{compare?'正在对比原款。再次点击可继续编辑。':message}</p>
-      <p className="ring02-status" role={saveError?'alert':undefined}>{draftIssue?'旧草稿未覆盖，请先处理上方提示。':saveError?'浏览器未能保存草稿，请保留此页面。':engravingDirty?'请确认或取消刻字修改。':'草稿已保留在本机'}</p>
+      <p className="ring02-status" role={saveError?'alert':undefined}>{draftIssue?'旧草稿未覆盖，请先处理上方提示。':saveError?'浏览器未能保存草稿，请保留此页面。':engravingDirty?'请确认或取消刻字修改。':requirementsDirty?'请确认或取消制作要求的修改。':imageUploading?'图片正在上传，完成后才会应用到设计。':'草稿已保留在本机'}</p>
     </section>
   </div>
-    <section className="ring02-purchase" aria-label="估价与演示加购"><div><p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p><small>示例交期 {quote.leadTime} · 待工艺确认</small></div>
-      {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:part==='head'?<button className="shop-button" onClick={()=>setPart('shank')}>下一步 · 配置戒圈</button>:<button className="shop-button" disabled={compare||engravingDirty||!!draftIssue||!canCapture} onClick={()=>{setMessage('');setCartFeedback(undefined);setReview(true);}}>查看方案</button>}
+    <section className="ring02-purchase" aria-label="估价与演示加购"><div><p>{hosted&&checking?'正在核对估价':hosted&&checkError?'估价待重新核对':'参考估价'} <strong>{formatYuan(quote.amount)}</strong></p><small>示例交期 {quote.leadTime} · 待工艺确认</small></div>
+      {added&&!draftDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:part===firstStep?<button className="shop-button" onClick={()=>setPart(lastStep)}>{lastStep==='shank'?'下一步 · 配置戒圈':'下一步 · 配置戒头'}</button>:hosted&&check?.revision===revision&&check.state==='incomplete'?<button className="shop-button" onClick={()=>jumpTo('size')}>请完成必填项</button>:<button className="shop-button" disabled={serverBusy||adding||compare||draftDirty||!!draftIssue||!canCapture||(hosted&&(checking||!!checkError||check?.revision!==revision))} onClick={()=>{setMessage('');setCartFeedback(undefined);setReview(true);}}>{hosted?checking||check?.revision!==revision?'正在检查配置':'提交方案确认':'查看方案'}</button>}
     </section>
     {library&&<PartLibrary kind={library} trigger={libraryTrigger} selected={library==='head'?head.id:band.id}
       onClose={()=>setLibrary(null)} priceNote={id=>priceNote(library,id)} onSelect={library==='head'?selectHead:selectFinish}/>}
     {pendingTemplate&&<ReviewDialog title="切换款式并新建草稿？" onClose={()=>setPendingTemplate(undefined)}>
       <p>将打开{pendingTemplate.name}的默认搭配，以下选择不会带入新款。</p>
-      <ul><li>当前戒头、戒圈和宝石选择</li><li>配钻石径、铺钻长度和刻字{engravingDirty?'（含未确认的输入）':''}</li></ul>
+      <ul><li>当前戒头、戒圈和宝石选择</li><li>配钻石径、铺钻长度、制作要求、图片和刻字{engravingDirty?'（含未确认的输入）':''}</li></ul>
       <p>当前已暂存的草稿会保留。目标款式已有的草稿会备份，可在该款式中恢复。购物车方案不会改变。</p>
       <div className="ring02-dialog-actions"><button autoFocus onClick={()=>setPendingTemplate(undefined)}>保留当前方案</button><button disabled={saveError} onClick={switchTemplate}>确认新建草稿</button></div>
     </ReviewDialog>}
     {pendingChange&&<ReviewDialog title={pendingChange.title} onClose={()=>setPendingChange(undefined)}>
       <ul>{pendingChange.notes.map(note=><li key={note}>{note}</li>)}</ul><div className="ring02-dialog-actions"><button autoFocus onClick={()=>setPendingChange(undefined)}>保留原方案</button><button onClick={()=>applyChange(pendingChange.design)}>确认调整</button></div>
     </ReviewDialog>}
-    {exit.destination&&<ReviewDialog title="离开当前编辑？" onClose={exit.cancel}><p>{engravingDirty?'刻字输入尚未确认，离开会丢失这段输入。':'本机草稿尚未保存成功，离开可能丢失最新修改。'}</p><div className="ring02-dialog-actions"><button autoFocus onClick={exit.cancel}>继续编辑</button><button onClick={exit.leave}>放弃未保存修改并离开</button></div></ReviewDialog>}
+    {exit.destination&&<ReviewDialog title="离开当前编辑？" onClose={exit.cancel}><p>{imageUploading?'图片上传尚未完成，离开后新图片不会应用到本机草稿。':requirementsDirty?'制作要求尚未确认，离开会丢失这段输入。':engravingDirty?'刻字输入尚未确认，离开会丢失这段输入。':'本机草稿尚未保存成功，离开可能丢失最新修改。'}</p><div className="ring02-dialog-actions"><button autoFocus onClick={exit.cancel}>继续编辑</button><button onClick={exit.leave}>放弃未保存修改并离开</button></div></ReviewDialog>}
     {!review&&<FeedbackToast notice={cartFeedback?.tone==='success'?cartFeedback:undefined} onDismiss={()=>setCartFeedback(undefined)}/>}
-    {review&&<ReviewDialog title="确认你的戒指方案" busy={adding} onClose={()=>setReview(false)}><p>{displayName} · 参考估价 {formatYuan(quote.amount)}</p><dl>{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>当前为演示加购，价格、圈号与制作工艺待正式确认。</p><FeedbackToast inline notice={cartFeedback} onDismiss={()=>setCartFeedback(undefined)} onRetry={cartFeedback&&!adding?confirm:undefined}/><div className="ring02-dialog-actions"><button autoFocus disabled={adding} onClick={()=>setReview(false)}>继续修改</button><button className="shop-button" disabled={!canCapture||adding} onClick={confirm}>{adding?'正在加入…':'确认并加入演示购物车'}</button></div></ReviewDialog>}
+    {review&&<ReviewDialog title="确认你的戒指方案" busy={adding} onClose={()=>setReview(false)}><p>{displayName} · 参考估价 {formatYuan(quote.amount)}</p><dl>{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>{hosted?'当前价格为估价。提交后由工作人员核对材质、圈号、接合与刻字工艺，正式报价确认前不能付款。':'当前为本地演示，价格、圈号与制作工艺待正式确认。'}</p><FeedbackToast inline notice={cartFeedback} onDismiss={()=>setCartFeedback(undefined)} onRetry={cartFeedback&&!adding?confirm:undefined}/><div className="ring02-dialog-actions"><button autoFocus disabled={adding} onClick={()=>setReview(false)}>继续修改</button><button className="shop-button" disabled={!canCapture||adding} onClick={confirm}>{adding?'正在提交…':hosted?'确认提交人工复核':'确认并加入演示购物车'}</button></div></ReviewDialog>}
   </>;
 }
 

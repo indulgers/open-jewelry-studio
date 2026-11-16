@@ -143,3 +143,16 @@ it('keeps unconfirmed engraving when applying a linked head change',()=>{
   fireEvent.click(screen.getByRole('button',{name:'戒圈与铺钻'}));
   expect(screen.getByLabelText('刻字文字')).toHaveValue('Keep me');
 });
+
+it('follows the published workflow without changing the selected design',async()=>{
+ const {RING_CATALOG}=await import('../catalog');const template=RING_CATALOG.find(item=>item.id==='ring-starlight')!;
+ const previous=template.workflow;template.workflow={firstStep:'shank',requireSizeNote:false};
+ try{
+   open();
+   expect(screen.getByRole('button',{name:'戒圈与铺钻'})).toHaveAttribute('aria-pressed','true');
+   expect(screen.getByLabelText('你的尺寸与制作要求')).toBeInTheDocument();
+   fireEvent.click(screen.getByRole('button',{name:'下一步 · 配置戒头'}));
+   expect(screen.getByRole('button',{name:'戒头'})).toHaveAttribute('aria-pressed','true');
+   expect(read().design).toEqual(ORIGINAL_REFERENCE);
+ }finally{template.workflow=previous;}
+});

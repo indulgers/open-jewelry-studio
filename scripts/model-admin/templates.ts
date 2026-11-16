@@ -46,12 +46,12 @@ export function selectTemplate(draft:TemplateDraft,options:LibrarySource[]):Mana
     };
     if(head.id===band.id)library[head.id]=head.assets;
     return {id:draft.id,revision:draft.revision,name:draft.name,headName:head.partNames?.head??head.name,bandName:band.partNames?.band??band.name,
-      headId:head.id,bandId:band.id,headSettings:head.settings,bandSettings:band.settings,library,review:draft.review,pricing:draft.pricing,description:draft.description,cover:draft.cover,order:draft.order,featured:draft.featured,catalogId:draft.catalogId,campaign:draft.campaign,collection:draft.collection};
+      workflow:draft.workflow,headId:head.id,bandId:band.id,headSettings:head.settings,bandSettings:band.settings,library,review:draft.review,pricing:draft.pricing,description:draft.description,cover:draft.cover,order:draft.order,featured:draft.featured,catalogId:draft.catalogId,campaign:draft.campaign,collection:draft.collection};
 }
 
 export function validateTemplateInput(input:unknown){
   if(!input||typeof input!=='object')throw new RequestError(400,'模板数据无效。');
-  const {name:label,id,expectedRevision,head,headStones,band,pave,review,basePrice,description,cover,order,featured}=input as Record<string,unknown>;
+  const {name:label,id,expectedRevision,head,headStones,band,pave,workflow,review,basePrice,description,cover,order,featured}=input as Record<string,unknown>;
   const name=typeof label==='string'?label.trim():'';
   if(!name||name.length>60||typeof head!=='string'||typeof headStones!=='string'||typeof band!=='string'||typeof pave!=='string'){
     throw new RequestError(422,'请填写款式名并选好所需部件。');
@@ -64,6 +64,12 @@ export function validateTemplateInput(input:unknown){
   if(cover!==undefined&&(typeof cover!=='string'||(cover!==''&&!uuid.test(cover)&&!/^\/media\/(?:diy|campaign)\/[a-z0-9-]+\.jpg$/.test(cover))))throw new RequestError(422,'请选择或上传有效的封面。');
   if(order!==undefined&&(!Number.isInteger(order)||(order as number)<0||(order as number)>9999))throw new RequestError(422,'排序请填写 0–9999 的整数，数字越小越靠前。');
   if(featured!==undefined&&typeof featured!=='boolean')throw new RequestError(422,'首页精选设置无效。');
+  let checkedWorkflow:TemplateSelection['workflow'];
+  if(workflow!==undefined){
+    const value=workflow as Record<string,unknown>;
+    if(!value||!['head','shank'].includes(value.firstStep as string)||typeof value.requireSizeNote!=='boolean')throw new RequestError(422,'编辑步骤或必填项设置无效。');
+    checkedWorkflow={firstStep:value.firstStep as 'head'|'shank',requireSizeNote:value.requireSizeNote};
+  }
   let checked:TemplateSelection['review'];
   if(review!==undefined){
     if(!review||typeof review!=='object')throw new RequestError(422,'工艺复核内容无效。');
@@ -80,7 +86,7 @@ export function validateTemplateInput(input:unknown){
     if(status==='approved'&&(empty||!note.trim()))throw new RequestError(422,'通过复核前，请填写尺寸范围和工艺依据。');
     checked={status,minDiameter:minDiameter as number|null,maxDiameter:maxDiameter as number|null,step:step as number|null,note:note.trim()};
   }
-  return {id,expectedRevision,selection:{name,head,headStones,band,pave,review:checked,basePrice,description:description as string|undefined,cover:cover as string|undefined,order:order as number|undefined,featured:featured as boolean|undefined} satisfies TemplateSelection};
+  return {id,expectedRevision,selection:{name,head,headStones,band,pave,workflow:checkedWorkflow,review:checked,basePrice,description:description as string|undefined,cover:cover as string|undefined,order:order as number|undefined,featured:featured as boolean|undefined} satisfies TemplateSelection};
 }
 
 export function createTemplateLibrary(storage:string,publicDir:string){

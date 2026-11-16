@@ -56,3 +56,10 @@ describe('reference editor history and draft preservation',()=>{
     expect(readEditorDraft(template,localStorage).history.revision).not.toBe('saved');
   });
 });
+
+it('forks the current content without overwriting an existing server design',()=>{
+ const original=initialHistory({...ORIGINAL_REFERENCE,engraving:'A'});
+ const copy=editorHistory(original,{type:'fork'});
+ expect(copy.id).not.toBe(original.id);expect(copy.revision).not.toBe(original.revision);
+ expect(copy.design).toEqual(original.design);expect(copy.past).toEqual(original.past);
+});

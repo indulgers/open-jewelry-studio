@@ -249,3 +249,23 @@ summary { cursor: pointer; font-size: 14px; }
  .template-detail.has-preview .managed-editor .stone-first-panel{display:none}
  .template-detail.has-preview .source-ring-main .stone-first-canvas{height:clamp(400px,57dvh,680px)}
 }
+
+.design-review-layout {display:grid;grid-template-columns:250px minmax(0,1fr);gap:24px;margin-top:20px}
+.design-review-layout aside {display:flex;flex-direction:column;gap:8px}
+.design-review-layout aside button {display:grid;text-align:left;gap:6px;padding:14px}
+.design-review-layout aside button[aria-pressed=true] {background:var(--tint,#eee9dc);border-color:var(--accent,#8c6d1f)}
+.design-review-layout small {overflow-wrap:anywhere}
+.design-review-summary {display:flex;gap:20px;align-items:start}
+.design-review-summary img {object-fit:contain;background:white;max-width:35%;height:auto}
+.design-review-summary dd {overflow-wrap:anywhere}
+.design-review-layout details {margin:20px 0}
+.design-review-layout form {display:grid;gap:16px}
+.design-review-layout form label {display:grid;gap:6px}
+.design-review-fields {display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.design-review-layout textarea {min-height:100px;resize:vertical;font:inherit;padding:10px;border:1px solid var(--line,#ddd);border-radius:8px;background:var(--panel,#fff)}
+.design-review-layout .check {display:flex;align-items:start;gap:8px}
+@media(max-width:800px){.design-review-layout,.design-review-fields{grid-template-columns:1fr}.design-review-layout aside{max-height:220px;overflow:auto}}
+.design-review-layout input:not([type=checkbox]):not([type=file]) {width:100%;min-width:0;padding:10px 12px;border:1px solid var(--border);border-radius:6px;background:var(--paper)}
+.design-review-layout fieldset {min-width:0;padding:16px;border:1px solid var(--border);border-radius:8px}
+.design-review-layout fieldset>p {margin-bottom:12px}
+.design-review-layout .model-detail {min-width:0}

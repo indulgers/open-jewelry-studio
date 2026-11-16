@@ -1,0 +1,37 @@
+.guest-designs {padding-block: 32px 70px}
+.guest-designs h1 {font: var(--display-weight) 40px var(--shop-title)}
+.guest-designs h2 {font: var(--display-weight) 26px var(--shop-title); margin-top: 36px}
+.guest-designs p {line-height: 1.7; overflow-wrap: anywhere}
+.guest-designs :is(button,input) {font: inherit; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--shop-radius); color: var(--ink); background: var(--panel)}
+.guest-designs button:disabled {opacity: .5}
+.guest-designs :is(a,summary) {color: var(--ink); cursor: pointer; text-underline-offset: 4px}
+.guest-recovery {padding: 16px; border: 1px solid var(--line); max-width: 760px}
+.guest-recovery code {display: block; overflow-wrap: anywhere; padding: 12px 0; user-select: all}
+.guest-recovery form {display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-top: 16px}
+.guest-recovery label {display: grid; flex: 1; gap: 6px}
+.guest-card-grid {display: grid; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); gap: 16px}
+.guest-card-grid article,.guest-request {border: 1px solid var(--line); border-radius: var(--shop-radius); padding: 20px; background: var(--panel)}
+.guest-card-grid details {margin-top: 12px}
+.guest-card-grid details button {margin: 8px 8px 0 0}
+.guest-request {display: flex; gap: 24px; margin: 14px 0}
+.guest-request img {object-fit: contain; background: #fff; flex-shrink: 0}
+.guest-request button {display: block; margin: 12px 0}
+.guest-snapshot {width: 180px; display: block; margin: 12px auto}
+.preserve-lines {white-space: pre-wrap}
+.source-save-actions {display: flex; gap: 12px; align-items: center; font-size: 12px}
+.source-save-actions a {color: var(--ink)}
+.source-check {border-top: 1px solid var(--line); margin-top: 12px; font-size: 12px}
+.source-check ul {padding: 0; list-style: none}
+.source-check li button {border: 0; background: transparent; text-align: left; color: var(--muted); min-height: 32px; padding: 4px 0}
+@media (max-width: 600px) {.guest-request {flex-direction: column}.guest-recovery input {min-width: 0; font-size: 16px}.source-save-actions {flex-basis: 100%}}
+
+.personal-image-field p,.personal-image-preview figcaption {font-size:12px;color:var(--muted);line-height:1.6}
+.personal-image-preview {margin:10px 0}
+.personal-image-preview img {display:block;max-width:100%;max-height:180px;object-fit:contain}
+.personal-image-field label {display:grid;gap:8px;margin:10px 0}
+.personal-image-field input[type=file] {max-width:100%;font-size:12px}
+.personal-image-field select {padding:8px;background:var(--panel);color:var(--ink);border:1px solid var(--line);font:inherit}
+
+#source-requirements {display:block;width:100%;min-height:90px;margin:8px 0;padding:10px;font:inherit;font-size:16px;border:1px solid var(--line);border-radius:var(--shop-radius);color:var(--ink);background:var(--panel);resize:vertical}
+
+.guest-request textarea {display:block;width:100%;min-height:90px;padding:10px;font:inherit;font-size:16px;border:1px solid var(--line);border-radius:var(--shop-radius);background:var(--page);color:var(--ink)}

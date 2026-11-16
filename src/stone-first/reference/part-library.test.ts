@@ -97,3 +97,14 @@ it('uses reviewed roles for an unknown uploaded model, repacks it and caches mix
     expect(original.stock.stones.filter(stone=>stone.zone!=='shoulder').length).toBeGreaterThan(1);
   }finally{library.dispose();}
 });
+
+it('reports missing or invalid asset metadata before loading geometry',async()=>{
+  let requests=0;
+  const sources={invalid:{...assets['ring-floral'],scale:0}};
+  const library=createReferenceLibrary(async()=>{requests++;throw new Error('unexpected');},sources);
+  try{
+    await expect(library.load('missing','invalid')).rejects.toThrow('所选部件版本不可用');
+    await expect(library.load('invalid','invalid')).rejects.toThrow('比例或接合点');
+    expect(requests).toBe(0);
+  }finally{library.dispose();}
+});

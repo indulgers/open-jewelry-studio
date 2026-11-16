@@ -120,3 +120,9 @@ fieldset.source-ring-fields {border: 0; padding: 0; margin: 0; min-width: 0}
 }
 
 .source-draft-recovery {display: flex; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 12px}
+
+.source-reference-fallback {margin: 8px 0; text-align: center}
+.source-reference-fallback img {display: block; width: 170px; max-height: 200px; object-fit: contain; margin-inline: auto; background: #fff}
+.source-reference-fallback figcaption {font-size: 12px; color: var(--muted); margin-top: 6px}
+.source-ring-canvas .error-message {max-height: 100%; overflow: auto}
+.source-ring-canvas .ring02-stage-loading:has(.source-reference-fallback) {overflow: auto; place-content: start center; padding: 12px}

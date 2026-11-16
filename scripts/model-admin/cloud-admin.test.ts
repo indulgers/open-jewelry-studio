@@ -95,8 +95,9 @@ it('serves only confirmed template revisions while keeping earlier releases read
   expect((await request('templates/'+draft.id+'/visibility',hide)).status).toBe(401);
   expect((await request('templates/'+draft.id+'/visibility',hide,true)).status).toBe(200);
   expect(await (await request('public/index.json')).json()).toEqual([]);
-  expect((await request('public/'+path+'/template.json')).status).toBe(404);
-  expect((await request('public/'+nextPath+'/cover.jpg')).status).toBe(404);
+  expect((await (await request('public/'+path+'/template.json')).json()).available).toBe(false);
+  expect((await request('public/'+nextPath+'/quote')).status).toBe(409);
+  expect((await request('public/'+nextPath+'/cover.jpg')).status).toBe(302);
   expect((await request('templates/'+draft.id+'/visibility',{hidden:false,expectedState:state},true)).status).toBe(409);
   const hidden=await (await request('library',undefined,true)).json();
   expect(hidden.published[0].hidden).toBe(true);

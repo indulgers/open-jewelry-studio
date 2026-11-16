@@ -27,7 +27,9 @@ export type ManufacturingReview = {
   note:string;
 };
 export type ProductPresentation={description?:string;cover?:string;order?:number;featured?:boolean;catalogId?:string;campaign?:string;collection?:string};
+export type EditorWorkflow={firstStep:'head'|'shank';requireSizeNote:boolean};
 export type TemplateSelection = ProductPresentation&{
+  workflow?:EditorWorkflow;
   name: string;
   head: string;
   headStones: string;
@@ -39,6 +41,8 @@ export type TemplateSelection = ProductPresentation&{
 };
 export type TemplateDraft = TemplateSelection & {id: string; revision: string; updatedAt: string;componentMetadata?:{head:string;band:string}};
 export type ManagedTemplate = ProductPresentation&{
+  available?:boolean;
+  workflow?:EditorWorkflow;
   id: string;
   revision: string;
   name: string;

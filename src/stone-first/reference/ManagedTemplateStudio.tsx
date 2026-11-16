@@ -40,7 +40,7 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
   const captureReady=useCallback((frame:SourceFrame|null)=>{setReady(!!frame);onReady(original?frame:null);},[onReady,original]);
   const quote=template.pricing?templateQuote(template.pricing,template.revision):undefined;
   async function addToCart(){
-    if(!quote||!ready||adding)return;
+    if(!quote||!ready||adding||template.available===false)return;
     setAdding(true);setFeedback(undefined);
     try{
       const confirmed=await fetchManaged<DemoOrder['quote']>(template.id+'/'+template.revision+'/quote',new AbortController().signal);
@@ -69,7 +69,7 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
 
   return <div className="stone-first-workspace ring02-workspace source-ring-workspace managed-editor">
     <div className="stone-first-main ring02-main source-ring-main"><section className="stone-first-preview">
-      {ring?<SourceRingStage ring={ring} design={design} template={template}
+      {ring?<SourceRingStage ring={ring} design={design} template={{...template,image:template.publishedAt?'/api/model-admin/public/'+template.id+'/'+template.revision+'/cover.jpg':undefined}}
         view={view} reset={reset} captureRef={thumbnailRef??capture} captureSize={thumbnailRef?768:320} onCaptureReady={captureReady}/>
         :<div className="stone-first-canvas ring02-canvas"><SourceLoading template={template} retry={loaded.error?()=>{
           setLoaded({});setAttempt(value=>value+1);
@@ -82,8 +82,9 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
     </section>
     <section className="stone-first-panel">
       <h2>{template.name}</h2>
+      {template.available===false&&<p role="status">这是历史发布版本，仅供查看。该版本已更新或下架，不能新购。<a href="#/diy/collection">查看在售款式</a></p>}
       <dl><div><dt>戒头</dt><dd>{template.headName}</dd></div><div><dt>戒圈</dt><dd>{template.bandName}</dd></div></dl>
-      {!thumbnailRef&&<label>主石外观 <select value={center} onChange={event=>setCenter(event.target.value as StoneAppearance)}>
+      {!thumbnailRef&&template.available!==false&&<label>主石外观 <select value={center} onChange={event=>setCenter(event.target.value as StoneAppearance)}>
         {STONE_APPEARANCE_IDS.map(id=><option key={id} value={id}>{STONE_APPEARANCES[id].name}</option>)}
       </select></label>}
       {thumbnailRef&&loaded.band?.stones.some(stone=>stone.zone==='shoulder')&&template.bandSettings?.automaticPave!==false&&<fieldset><legend>试排戒臂配钻</legend>
@@ -95,7 +96,7 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
       </fieldset>}
       {quote&&<section className="managed-price" aria-label="商品报价"><p>参考价 <strong>{formatYuan(quote.amount)}</strong></p>
         <details><summary>价格明细</summary><dl>{(['base','head','band','pave'] as const).map((key,index)=><div key={key}><dt>{['模板基础价','戒头加价','戒圈加价','铺钻加价'][index]}</dt><dd>{formatYuan(template.pricing![key])}</dd></div>)}</dl></details>
-        {!thumbnailRef&&template.publishedAt&&<><button className="shop-button" disabled={!ready||adding} onClick={addToCart}>{adding?'正在保存…':'加入购物车'}</button><a className="shop-text-link" href="#/diy/cart">查看购物车</a></>}
+        {!thumbnailRef&&template.publishedAt&&template.available!==false&&<><button className="shop-button" disabled={!ready||adding} onClick={addToCart}>{adding?'正在保存…':'加入购物车'}</button><a className="shop-text-link" href="#/diy/cart">查看购物车</a></>}
       </section>}
       <FeedbackToast notice={feedback} onDismiss={()=>setFeedback(undefined)} onRetry={feedback?.tone==='error'&&!adding?addToCart:undefined}/>
       <p>银色金属外观 · {template.review?.status==='approved'?'组合已完成工艺复核':'需人工确认制作要求'}</p>

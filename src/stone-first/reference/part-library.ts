@@ -70,6 +70,11 @@ export function createReferenceLibrary(read:ReadPart=readPart, sources:Record<st
   return {
     load(headId:string,bandId:string){
       return cached(combinations,JSON.stringify([headId,bandId]),async()=>{
+      for(const id of [headId,bandId]){
+        const source=sources[id];
+        if(!source)throw new Error('所选部件版本不可用，请重新选择款式。');
+        if(!Number.isFinite(source.scale)||source.scale<=0||!Number.isFinite(source.axisY)||!Number.isFinite(source.seatY))throw new Error('部件的比例或接合点资料无效，请联系管理员复核。');
+      }
       const source=sources[headId];
       const needsAdapter=(source.profileId??source.sourceId??headId)==='ring-02'&&
         Object.hasOwn(LEGACY_HALO_COLLARS,sources[bandId].profileId??sources[bandId].sourceId??bandId);

@@ -21,11 +21,12 @@ test('publishes a reviewed part selection as an immutable consumer revision',asy
         await writeFile(file,'test asset');
       }
     }
-    const selection={basePrice:2000,name:'测试模板',head:head.id,headStones:head.id,band:band.id,pave:band.assets.pave?band.id:''};
+    const selection={workflow:{firstStep:'shank',requireSizeNote:true},basePrice:2000,name:'测试模板',head:head.id,headStones:head.id,band:band.id,pave:band.assets.pave?band.id:''};
     await expect(library.save({...selection,headStones:band.id})).rejects.toMatchObject({status:422});
     const draft=await library.save(selection);
     expect((await library.list()).published).toEqual([]);
     const preview=await library.preview(draft.id,draft.revision);
+    expect(preview.workflow).toEqual(selection.workflow);
     expect(preview.library[head.id].head).toBe(head.assets.head);
     expect(preview.library[band.id].band).toBe(band.assets.band);
     const release=await library.publish(draft.id,draft.revision,Buffer.from('test image'));
@@ -35,7 +36,8 @@ test('publishes a reviewed part selection as an immutable consumer revision',asy
     expect(next.revision).not.toBe(draft.revision);
     await expect(library.preview(draft.id,draft.revision)).rejects.toMatchObject({status:409});
     await expect(library.save({...draft,expectedRevision:draft.revision})).rejects.toMatchObject({status:409});
-    expect(JSON.parse(await readFile(join(publicDir,release.url.slice(1)),'utf8')).name).toBe('测试模板');
+    const published=JSON.parse(await readFile(join(publicDir,release.url.slice(1)),'utf8'));
+    expect(published.name).toBe('测试模板');expect(published.workflow).toEqual(selection.workflow);
   }finally{await rm(directory,{recursive:true,force:true});}
 });
 
@@ -58,4 +60,11 @@ test('validates product display fields without accepting external cover URLs',()
     expect(()=>validateTemplateInput({...selection,...extra})).toThrow();
   }
   expect(validateTemplateInput({...selection,description:'款式介绍',cover:'/media/diy/ring-02.jpg',order:0,featured:true}).selection).toMatchObject({description:'款式介绍',order:0,featured:true});
+});
+
+test('validates the ring workflow and retains its published configuration',()=>{
+ const selection={name:'步骤测试',head:'ring-02',headStones:'ring-02',band:'ring-02',pave:'ring-02'};
+ const workflow={firstStep:'shank',requireSizeNote:true};
+ expect(validateTemplateInput({...selection,workflow}).selection.workflow).toEqual(workflow);
+ for(const invalid of [null,{firstStep:'free-drag',requireSizeNote:true},{firstStep:'head',requireSizeNote:'yes'}])expect(()=>validateTemplateInput({...selection,workflow:invalid})).toThrow('编辑步骤');
 });
