@@ -1,0 +1,302 @@
+{
+  "fileKey": "vhveeXfbk2ISOddFXsORxf",
+  "groups": {
+    "Foundations": {
+      "page": "0:1",
+      "node": "1:6"
+    },
+    "Components": {
+      "page": "0:1",
+      "node": "1:7"
+    },
+    "Storefront": {
+      "page": "1:4",
+      "node": "1:8"
+    },
+    "Jewelry Editor": {
+      "page": "1:4",
+      "node": "1:9"
+    },
+    "Admin Console": {
+      "page": "1:4",
+      "node": "1:10"
+    },
+    "Responsive": {
+      "page": "1:5",
+      "node": "1:11"
+    },
+    "Interaction States": {
+      "page": "1:5",
+      "node": "1:12"
+    }
+  },
+  "foundations": {
+    "nodes": {
+      "board": "4:93"
+    },
+    "variables": {
+      "storefront/french/page": "VariableID:4:4",
+      "storefront/french/panel": "VariableID:4:5",
+      "storefront/french/tint": "VariableID:4:6",
+      "storefront/french/ink": "VariableID:4:7",
+      "storefront/french/muted": "VariableID:4:8",
+      "storefront/french/accent": "VariableID:4:9",
+      "storefront/french/accent-hover": "VariableID:4:10",
+      "storefront/french/line": "VariableID:4:11",
+      "storefront/french/line-strong": "VariableID:4:12",
+      "storefront/french/shop-dark": "VariableID:4:13",
+      "storefront/french/shop-dark-2": "VariableID:4:14",
+      "storefront/french/on-dark": "VariableID:4:15",
+      "storefront/french/on-dark-muted": "VariableID:4:16",
+      "storefront/french/shop-radius": "VariableID:4:17",
+      "storefront/french/button-radius": "VariableID:4:18",
+      "storefront/french/shop-gutter": "VariableID:4:19",
+      "storefront/french/shop-width": "VariableID:4:20",
+      "storefront/italian/page": "VariableID:4:22",
+      "storefront/italian/panel": "VariableID:4:23",
+      "storefront/italian/tint": "VariableID:4:24",
+      "storefront/italian/ink": "VariableID:4:25",
+      "storefront/italian/muted": "VariableID:4:26",
+      "storefront/italian/accent": "VariableID:4:27",
+      "storefront/italian/accent-hover": "VariableID:4:28",
+      "storefront/italian/line": "VariableID:4:29",
+      "storefront/italian/line-strong": "VariableID:4:30",
+      "storefront/italian/shop-dark": "VariableID:4:31",
+      "storefront/italian/shop-dark-2": "VariableID:4:32",
+      "storefront/italian/on-dark": "VariableID:4:33",
+      "storefront/italian/on-dark-muted": "VariableID:4:34",
+      "storefront/italian/shop-radius": "VariableID:4:35",
+      "storefront/italian/button-radius": "VariableID:4:36",
+      "storefront/italian/shop-gutter": "VariableID:4:37",
+      "storefront/italian/shop-width": "VariableID:4:38",
+      "storefront/arch/page": "VariableID:4:40",
+      "storefront/arch/panel": "VariableID:4:41",
+      "storefront/arch/tint": "VariableID:4:42",
+      "storefront/arch/ink": "VariableID:4:43",
+      "storefront/arch/muted": "VariableID:4:44",
+      "storefront/arch/accent": "VariableID:4:45",
+      "storefront/arch/accent-hover": "VariableID:4:46",
+      "storefront/arch/line": "VariableID:4:47",
+      "storefront/arch/line-strong": "VariableID:4:48",
+      "storefront/arch/shop-dark": "VariableID:4:49",
+      "storefront/arch/shop-dark-2": "VariableID:4:50",
+      "storefront/arch/on-dark": "VariableID:4:51",
+      "storefront/arch/on-dark-muted": "VariableID:4:52",
+      "storefront/arch/shop-radius": "VariableID:4:53",
+      "storefront/arch/button-radius": "VariableID:4:54",
+      "storefront/arch/shop-gutter": "VariableID:4:55",
+      "storefront/arch/shop-width": "VariableID:4:56",
+      "storefront/page": "VariableID:4:57",
+      "storefront/panel": "VariableID:4:58",
+      "storefront/tint": "VariableID:4:59",
+      "storefront/ink": "VariableID:4:60",
+      "storefront/muted": "VariableID:4:61",
+      "storefront/accent": "VariableID:4:62",
+      "storefront/accent-hover": "VariableID:4:63",
+      "storefront/line": "VariableID:4:64",
+      "storefront/line-strong": "VariableID:4:65",
+      "storefront/shop-dark": "VariableID:4:66",
+      "storefront/shop-dark-2": "VariableID:4:67",
+      "storefront/on-dark": "VariableID:4:68",
+      "storefront/on-dark-muted": "VariableID:4:69",
+      "storefront/shop-radius": "VariableID:4:70",
+      "storefront/button-radius": "VariableID:4:71",
+      "storefront/shop-gutter": "VariableID:4:72",
+      "storefront/shop-width": "VariableID:4:73",
+      "admin/ink": "VariableID:4:75",
+      "admin/page": "VariableID:4:76",
+      "admin/muted": "VariableID:4:77",
+      "admin/border": "VariableID:4:78",
+      "admin/accent": "VariableID:4:79",
+      "admin/paper": "VariableID:4:80",
+      "responsive/Desktop sample": "VariableID:4:82",
+      "responsive/Mobile sample": "VariableID:4:83",
+      "responsive/Header and storefront": "VariableID:4:84",
+      "responsive/Precision layout": "VariableID:4:85",
+      "responsive/Admin form": "VariableID:4:86",
+      "responsive/Catalog four or five columns": "VariableID:4:87",
+      "responsive/Admin review wide": "VariableID:4:88",
+      "responsive/Small mobile": "VariableID:4:89"
+    },
+    "styles": {
+      "Body / 14": {
+        "id": "S:44620718782b304641da2d0c8c42be034e3eb910,",
+        "font": {
+          "family": "Noto Sans SC",
+          "style": "Regular"
+        }
+      },
+      "Display / 36": {
+        "id": "S:b3d354808657d517459f6a3462d0340eb253b868,",
+        "font": {
+          "family": "Noto Serif SC",
+          "style": "Regular"
+        }
+      },
+      "Brand / Latin": {
+        "id": "S:f75b53c78c24f1198e5c096aecb58d1e85e6cc8d,",
+        "font": {
+          "family": "Cormorant Garamond",
+          "style": "Regular"
+        }
+      }
+    },
+    "storefrontValues": {
+      "paris": {
+        "page": "#faf8f3",
+        "panel": "#ffffff",
+        "tint": "#f1ebdd",
+        "ink": "#16130c",
+        "muted": "#5a5344",
+        "accent": "#8c6d1f",
+        "accent-hover": "#715618",
+        "line": "#e4dcc8",
+        "line-strong": "#aaa08a",
+        "shop-dark": "#14100a",
+        "shop-dark-2": "#211b10",
+        "on-dark": "#f4eedf",
+        "on-dark-muted": "#c9bfa6",
+        "shop-radius": "14px",
+        "button-radius": "99px",
+        "shop-title": "'Songti SC','STSong','Noto Serif SC','SimSun',serif",
+        "shop-gutter": "28px",
+        "shop-width": "1360px",
+        "display-weight": "500"
+      },
+      "french": {
+        "page": "#fbf3f0",
+        "panel": "#fffdfc",
+        "tint": "#f6e2db",
+        "ink": "#331e1a",
+        "muted": "#70514a",
+        "accent": "#9e5a63",
+        "accent-hover": "#81454f",
+        "line": "#edd2c9",
+        "line-strong": "#b78c82",
+        "shop-dark": "#2e1b16",
+        "shop-dark-2": "#422720",
+        "on-dark-muted": "#d8bdb4",
+        "shop-radius": "22px",
+        "button-radius": "28px"
+      },
+      "italian": {
+        "page": "#f7efe3",
+        "panel": "#fffcf6",
+        "tint": "#eddcc2",
+        "ink": "#1c1710",
+        "muted": "#57493a",
+        "accent": "#9a3f16",
+        "accent-hover": "#783010",
+        "line": "#dcc7a6",
+        "line-strong": "#ad9172",
+        "shop-dark": "#171008",
+        "shop-dark-2": "#2a1d0f",
+        "on-dark-muted": "#d7c3a4",
+        "shop-radius": "6px",
+        "button-radius": "6px",
+        "display-weight": "700"
+      },
+      "arch": {
+        "page": "#ffffff",
+        "panel": "#ffffff",
+        "tint": "#ededed",
+        "ink": "#000",
+        "muted": "#454545",
+        "accent": "#000",
+        "accent-hover": "#333",
+        "line": "#c9c9c9",
+        "line-strong": "#767676",
+        "shop-dark": "#000",
+        "shop-dark-2": "#161616",
+        "on-dark": "#ffffff",
+        "on-dark-muted": "#cfcfcf",
+        "shop-radius": "0px",
+        "button-radius": "0px",
+        "shop-title": "-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif",
+        "display-weight": "700"
+      }
+    },
+    "adminValues": {
+      "ink": "#242018",
+      "page": "#f7f5f0",
+      "muted": "#665e51",
+      "border": "#e2dbcf",
+      "accent": "#6c5428",
+      "paper": "#fffefa"
+    }
+  },
+  "components": [
+    {
+      "name": "Storefront / Primary button",
+      "node": "10:3",
+      "source": "src/stone-first/DiyHome.tsx; src/shop-theme.css .shop-button",
+      "implementation": "Figma component; screen instances pending"
+    },
+    {
+      "name": "Storefront / Outline button",
+      "node": "10:5",
+      "source": "src/stone-first/DiyHome.tsx; src/shop-theme.css .shop-button-outline",
+      "implementation": "Figma component; screen instances pending"
+    },
+    {
+      "name": "Admin / Text input",
+      "node": "10:7",
+      "source": "src/model-admin/TemplateLibrary.tsx; src/model-admin/model-admin.css .library-toolbar",
+      "implementation": "Figma component; screen instances pending"
+    },
+    {
+      "name": "Jewelry Editor / Camera view toolbar",
+      "node": "10:9",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx .source-camera-toolbar",
+      "implementation": "Reusable component + 15:206 instance; React reuse"
+    },
+    {
+      "name": "Icon / top",
+      "node": "10:13",
+      "source": "src/stone-first/reference/icons/view-top.svg",
+      "implementation": "SVG"
+    },
+    {
+      "name": "Icon / side",
+      "node": "10:17",
+      "source": "src/stone-first/reference/icons/view-side.svg",
+      "implementation": "SVG"
+    },
+    {
+      "name": "Shop header",
+      "node": "2:12",
+      "source": "src/components/ShopHeader.tsx",
+      "implementation": "Editable source layer; promote pending"
+    },
+    {
+      "name": "Product card",
+      "node": "2:200",
+      "source": "src/stone-first/DiyHome.tsx .diy-template",
+      "implementation": "Editable source layer; promote pending"
+    },
+    {
+      "name": "Part tabs",
+      "node": "9:97",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx .source-part-tabs",
+      "implementation": "Editable source layer; promote pending"
+    },
+    {
+      "name": "Part card",
+      "node": "9:112",
+      "source": "src/stone-first/reference/PartLibrary.tsx PartCard",
+      "implementation": "Editable source layer; promote pending"
+    },
+    {
+      "name": "Admin component table",
+      "node": "5:46",
+      "source": "src/model-admin/ComponentLibrary.tsx",
+      "implementation": "Editable source layer; promote pending"
+    },
+    {
+      "name": "Admin product row",
+      "node": "30:147",
+      "source": "src/model-admin/TemplateLibrary.tsx .template-row",
+      "implementation": "Editable source layer; promote pending"
+    }
+  ]
+}

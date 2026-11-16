@@ -1,0 +1,853 @@
+{
+  "fileKey": "vhveeXfbk2ISOddFXsORxf",
+  "coverageCommit": "8f4103b",
+  "designBranch": "design/figma-workflow",
+  "filePages": {
+    "0:1": "Design System",
+    "1:4": "Product",
+    "1:5": "QA"
+  },
+  "groups": {
+    "Foundations": {
+      "page": "0:1",
+      "node": "1:6"
+    },
+    "Components": {
+      "page": "0:1",
+      "node": "1:7"
+    },
+    "Storefront": {
+      "page": "1:4",
+      "node": "1:8"
+    },
+    "Jewelry Editor": {
+      "page": "1:4",
+      "node": "1:9"
+    },
+    "Admin Console": {
+      "page": "1:4",
+      "node": "1:10"
+    },
+    "Responsive": {
+      "page": "1:5",
+      "node": "1:11"
+    },
+    "Interaction States": {
+      "page": "1:5",
+      "node": "1:12"
+    }
+  },
+  "groupPlacement": "Logical grouping and destination page. Some captures remain separate frames on the page.",
+  "rows": [
+    {
+      "key": "storefront-desktop",
+      "title": "首页 · 精选商品",
+      "route": "/",
+      "source": "src/stone-first/DiyHome.tsx",
+      "group": "Storefront",
+      "pageId": "1:4",
+      "nodeId": "2:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=2-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "catalog-desktop",
+      "title": "完整目录 · 已上架",
+      "route": "/#/diy/collection",
+      "source": "src/stone-first/DiyHome.tsx",
+      "group": "Storefront",
+      "pageId": "1:4",
+      "nodeId": "22:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=22-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "brand-story",
+      "title": "关于相言",
+      "route": "/#/diy/story",
+      "source": "src/stone-first/DiyHome.tsx",
+      "group": "Storefront",
+      "pageId": "1:4",
+      "nodeId": "48:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=48-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed",
+      "notes": "首页品牌故事锚点。"
+    },
+    {
+      "key": "cart-empty",
+      "title": "购物车 · 空",
+      "route": "/#/diy/cart",
+      "source": "src/stone-first/DiyCart.tsx",
+      "group": "Storefront",
+      "pageId": "1:4",
+      "nodeId": "21:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=21-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "showroom",
+      "title": "珠宝展台",
+      "route": "/#/showroom",
+      "source": "src/App.tsx · JewelryStudio",
+      "group": "Storefront",
+      "pageId": "1:4",
+      "nodeId": "7:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=7-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "recipe-studio",
+      "title": "镶嵌配方编辑器",
+      "route": "/#/stonefirst",
+      "source": "src/stone-first/StoneFirstStudio.tsx",
+      "group": "Jewelry Editor",
+      "pageId": "1:4",
+      "nodeId": "46:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=46-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "precision-editor",
+      "title": "围钻精调编辑器",
+      "route": "/#/stonefirst/precision/ring-02",
+      "source": "src/stone-first/ring02/Ring02Studio.tsx",
+      "group": "Jewelry Editor",
+      "pageId": "1:4",
+      "nodeId": "18:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=18-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "combination-editor",
+      "title": "组合编辑器 · 围钻原版",
+      "route": "/#/stonefirst/combine/ring-02",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Jewelry Editor",
+      "pageId": "1:4",
+      "nodeId": "9:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=9-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "floral-editor",
+      "title": "组合编辑器 · 花环",
+      "route": "/#/stonefirst/ring-floral",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Jewelry Editor",
+      "pageId": "1:4",
+      "nodeId": "49:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=49-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "rosette-editor",
+      "title": "组合编辑器 · 花冠",
+      "route": "/#/stonefirst/ring-rosette",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Jewelry Editor",
+      "pageId": "1:4",
+      "nodeId": "19:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=19-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "petal-editor",
+      "title": "组合编辑器 · 繁花",
+      "route": "/#/stonefirst/ring-petal",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Jewelry Editor",
+      "pageId": "1:4",
+      "nodeId": "53:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=53-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "crown-editor",
+      "title": "组合编辑器 · 冠冕",
+      "route": "/#/stonefirst/ring-crown",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Jewelry Editor",
+      "pageId": "1:4",
+      "nodeId": "12:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=12-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "starlight-editor",
+      "title": "组合编辑器 · 星环",
+      "route": "/#/stonefirst/ring-starlight",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Jewelry Editor",
+      "pageId": "1:4",
+      "nodeId": "20:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=20-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "solstice-editor",
+      "title": "组合编辑器 · 凝光",
+      "route": "/#/stonefirst/ring-solstice",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Jewelry Editor",
+      "pageId": "1:4",
+      "nodeId": "6:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=6-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "admin-products",
+      "title": "后台 · 商品管理",
+      "route": "/admin/",
+      "source": "src/model-admin/TemplateLibrary.tsx",
+      "group": "Admin Console",
+      "pageId": "1:4",
+      "nodeId": "30:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=30-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "admin-parts",
+      "title": "后台 · 部件管理",
+      "route": "/admin/",
+      "source": "src/model-admin/ComponentLibrary.tsx",
+      "group": "Admin Console",
+      "pageId": "1:4",
+      "nodeId": "5:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=5-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "admin-review",
+      "title": "后台 · 上传与模型复核",
+      "route": "/admin/",
+      "source": "src/model-admin/ModelReview.tsx",
+      "group": "Admin Console",
+      "pageId": "1:4",
+      "nodeId": "23:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=23-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "home-mobile",
+      "title": "首页 · 手机",
+      "route": "/",
+      "source": "src/stone-first/DiyHome.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "27:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=27-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "catalog-mobile",
+      "title": "完整目录 · 手机",
+      "route": "/#/diy/collection",
+      "source": "src/stone-first/DiyHome.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "25:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=25-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "cart-mobile",
+      "title": "空购物车 · 手机",
+      "route": "/#/diy/cart",
+      "source": "src/stone-first/DiyCart.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "40:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=40-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "editor-mobile",
+      "title": "组合编辑器 · 手机",
+      "route": "/#/stonefirst/combine/ring-02",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "26:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=26-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "review-mobile",
+      "title": "后台上传复核 · 手机",
+      "route": "/admin/",
+      "source": "src/model-admin/ModelReview.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "42:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=42-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "product-list-mobile",
+      "title": "后台商品管理 · 手机",
+      "route": "/admin/",
+      "source": "src/model-admin/TemplateLibrary.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "28:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=28-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "part-list-mobile",
+      "title": "后台部件管理 · 手机",
+      "route": "/admin/",
+      "source": "src/model-admin/ComponentLibrary.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "8:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=8-2",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "head-library",
+      "title": "查看全部戒头",
+      "route": "/#/stonefirst/combine/ring-02",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "31:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=31-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "band-library",
+      "title": "查看全部戒圈",
+      "route": "/#/stonefirst/combine/ring-02",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "33:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=33-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "pave-controls",
+      "title": "自动排钻结果",
+      "route": "/#/stonefirst/combine/ring-02",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "34:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=34-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "compare-original",
+      "title": "对比原款",
+      "route": "/#/stonefirst/combine/ring-02",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "11:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=11-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "mobile-navigation",
+      "title": "手机导航 · 展开",
+      "route": "/",
+      "source": "src/components/ShopHeader.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "13:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=13-2",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "published-template",
+      "title": "后台发布款 · 编辑器",
+      "route": "/#/stonefirst/template/:id/:revision",
+      "source": "src/stone-first/reference/ManagedTemplateStudio.tsx",
+      "group": "Jewelry Editor",
+      "pageId": "1:4",
+      "nodeId": "56:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=56-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed",
+      "notes": "星环测试商品，模板和版本 ID 因数据而异。"
+    },
+    {
+      "key": "published-template-mobile",
+      "title": "后台发布款 · 手机",
+      "route": "/#/stonefirst/template/:id/:revision",
+      "source": "src/stone-first/reference/ManagedTemplateStudio.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "38:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=38-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed",
+      "notes": "星环测试商品，模板和版本 ID 因数据而异。"
+    },
+    {
+      "key": "admin-product-form",
+      "title": "后台 · 新建商品",
+      "route": "/admin/",
+      "source": "src/model-admin/TemplateLibrary.tsx",
+      "group": "Admin Console",
+      "pageId": "1:4",
+      "nodeId": "29:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=29-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "admin-craft-review",
+      "title": "后台 · 工艺规则展开",
+      "route": "/admin/",
+      "source": "src/model-admin/TemplateLibrary.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "39:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=39-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "admin-preview",
+      "title": "后台 · 草稿 3D 预览",
+      "route": "/admin/",
+      "source": "src/model-admin/TemplateLibrary.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "32:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=32-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "editor-review-dialog",
+      "title": "定制方案 · 加购确认",
+      "route": "/#/stonefirst/combine/ring-02",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "60:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=60-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "cart-populated",
+      "title": "购物车 · 已加购",
+      "route": "/#/diy/cart",
+      "source": "src/stone-first/DiyCart.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "37:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=37-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "engraving",
+      "title": "戒圈刻字",
+      "route": "/#/stonefirst/combine/ring-02",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "41:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=41-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "precision-mobile",
+      "title": "围钻精调编辑器 · 手机",
+      "route": "/#/stonefirst/precision/ring-02",
+      "source": "src/stone-first/ring02/Ring02Studio.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "44:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=44-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "showroom-mobile",
+      "title": "珠宝展台 · 手机",
+      "route": "/#/showroom",
+      "source": "src/App.tsx · JewelryStudio",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "43:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=43-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "recipe-mobile",
+      "title": "镶嵌配方编辑器 · 手机",
+      "route": "/#/stonefirst",
+      "source": "src/stone-first/StoneFirstStudio.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "47:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=47-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "cart-filled-mobile",
+      "title": "已加购购物车 · 手机",
+      "route": "/#/diy/cart",
+      "source": "src/stone-first/DiyCart.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "51:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=51-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "product-form-mobile",
+      "title": "后台新建商品 · 手机",
+      "route": "/admin/",
+      "source": "src/model-admin/TemplateLibrary.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "52:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=52-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "story-mobile",
+      "title": "关于相言 · 手机",
+      "route": "/#/diy/story",
+      "source": "src/stone-first/DiyHome.tsx",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "54:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=54-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed",
+      "notes": "首页品牌故事锚点。"
+    },
+    {
+      "key": "editor-roundtrip",
+      "title": "组合编辑器 · 工具栏提案",
+      "route": "/#/stonefirst/combine/ring-02",
+      "source": "src/stone-first/reference/SourceRingStudio.tsx",
+      "group": "Jewelry Editor",
+      "pageId": "1:4",
+      "nodeId": "15:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=15-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1004
+      },
+      "status": "confirmed"
+    },
+    {
+      "key": "admin-login",
+      "title": "后台 · 登录",
+      "route": "/admin/",
+      "source": "src/model-admin/main.tsx · AdminGate",
+      "group": "Admin Console",
+      "pageId": "1:4",
+      "nodeId": "62:2",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=62-2",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed",
+      "notes": "真实界面，隔离接口响应。"
+    },
+    {
+      "key": "admin-login-mobile",
+      "title": "后台登录 · 手机",
+      "route": "/admin/",
+      "source": "src/model-admin/main.tsx · AdminGate",
+      "group": "Responsive",
+      "pageId": "1:5",
+      "nodeId": "61:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=61-14",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "confirmed",
+      "notes": "真实界面，隔离接口响应。"
+    },
+    {
+      "key": "admin-login-error",
+      "title": "后台 · 登录失败",
+      "route": "/admin/",
+      "source": "src/model-admin/main.tsx · AdminGate",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "63:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=63-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed",
+      "notes": "真实界面，隔离接口响应。"
+    },
+    {
+      "key": "admin-version-history",
+      "title": "后台 · 发布版本历史",
+      "route": "/admin/",
+      "source": "src/model-admin/TemplateLibrary.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "64:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=64-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed",
+      "notes": "真实界面，隔离接口响应。"
+    },
+    {
+      "key": "admin-hide-confirm",
+      "title": "后台 · 确认下架",
+      "route": "/admin/",
+      "source": "src/model-admin/TemplateLibrary.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "66:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=66-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed",
+      "notes": "真实界面，隔离接口响应。"
+    },
+    {
+      "key": "admin-restore-confirm",
+      "title": "后台 · 确认恢复上架",
+      "route": "/admin/",
+      "source": "src/model-admin/TemplateLibrary.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "65:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=65-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed",
+      "notes": "真实界面，隔离接口响应。"
+    },
+    {
+      "key": "admin-publish-confirm",
+      "title": "后台 · 确认发布新版本",
+      "route": "/admin/",
+      "source": "src/model-admin/TemplateLibrary.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "68:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=68-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed",
+      "notes": "真实界面，隔离接口响应。"
+    },
+    {
+      "key": "admin-part-preview",
+      "title": "后台 · 独立部件 3D 预览",
+      "route": "/admin/",
+      "source": "src/model-admin/ComponentLibrary.tsx",
+      "group": "Interaction States",
+      "pageId": "1:5",
+      "nodeId": "67:14",
+      "figmaUrl": "https://www.figma.com/design/vhveeXfbk2ISOddFXsORxf?node-id=67-14",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": "confirmed"
+    }
+  ],
+  "aliases": [
+    {
+      "route": "/#/diy",
+      "canonical": "/"
+    },
+    {
+      "route": "/admin/index.html",
+      "canonical": "/admin/"
+    }
+  ],
+  "excluded": [
+    "/forme/index.html",
+    "/#/modules",
+    "/design-study/index.html"
+  ],
+  "notes": [
+    "All hosted-only administrative states use a simulated local session and synthetic versions.",
+    "The original canvas was captured as a static image within the design."
+  ]
+}
