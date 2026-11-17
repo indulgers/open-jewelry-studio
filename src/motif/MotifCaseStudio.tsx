@@ -14,6 +14,8 @@ import {createNacreTextureSet} from './nacreMaterials';
 import {createSmallBrilliantGeometry} from './brilliantGeometry';
 import {metalAppearanceProps,DISPLAY_ALLOYS} from './metalMaterials';
 import {comfortFitDiagnostics} from './comfortFitGeometry';
+import type {MetalFusionResult} from './motifMetalFusion';
+import type {BufferGeometry} from 'three';
 import './MotifCaseStudio.css';
 
 type MotifId = keyof typeof profiles;
@@ -178,7 +180,7 @@ function CenterStone({metal}:{metal:string}){
     </group>)}
   </group>;
 }
-function Assembly({config,rootRef,onReady}:{config:Settings;rootRef:React.RefObject<Group|null>;onReady:(ready:boolean)=>void}){
+function Assembly({config,rootRef,onReady,fusedMetal}:{config:Settings;rootRef:React.RefObject<Group|null>;onReady:(ready:boolean)=>void;fusedMetal:BufferGeometry|null}){
   const color=METALS[config.metal].color;
   const scale=config.size/15;
   const ring=config.product==='ring';
@@ -196,7 +198,7 @@ function Assembly({config,rootRef,onReady}:{config:Settings;rootRef:React.RefObj
       {showPart(config.part,'edge')&&<group position-z={config.explode*.65}><Rim id={config.motif} color={color} edge={config.edge}/></group>}
     </group>
     {showPart(config.part,'adapter')&&(ring
-      ?<RingAdapter color={color} diameter={config.ringDiameter} explode={config.explode}/>
+      ?<RingAdapter color={color} diameter={config.ringDiameter} explode={config.explode} fusedGeometry={fusedMetal}/>
       :<NecklaceAdapter color={color} motif={config.motif} scale={scale} explode={config.explode}/>)}
   </group>;
 }
@@ -216,7 +218,7 @@ function ViewRig({view,product}:{view:View;product:Product}){
   return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={.08}
     target={[0,product==='ring'?4.8:11,0]} minZoom={11} maxZoom={60} enablePan={false}/>;
 }
-function ModelPreview({config,view,rootRef,rendererRef,ready}:{config:Settings;view:View;rootRef:React.RefObject<Group|null>;rendererRef:React.RefObject<WebGLRenderer|null>;ready:(r:boolean)=>void}){
+function ModelPreview({config,view,rootRef,rendererRef,ready,fusedMetal}:{config:Settings;view:View;rootRef:React.RefObject<Group|null>;rendererRef:React.RefObject<WebGLRenderer|null>;ready:(r:boolean)=>void;fusedMetal:BufferGeometry|null}){
   return <Canvas orthographic dpr={[1,2]} shadows camera={{position:[14,17,34],zoom:18,near:.1,far:180}} gl={{alpha:true,antialias:true,preserveDrawingBuffer:true}}
     onCreated={({gl})=>{rendererRef.current=gl;}}>
     <Environment files={`${base}environments/catalog-studio.hdr`} background={false}/>
@@ -226,7 +228,7 @@ function ModelPreview({config,view,rootRef,rendererRef,ready}:{config:Settings;v
     <directionalLight position={[8,7,-7]} intensity={1.65} color="#dbe6ff"/>
     <directionalLight position={[0,-8,15]} intensity={.65} color="#fff7e9"/>
     <Suspense fallback={null}>
-      <Assembly key={config.motif} config={config} rootRef={rootRef} onReady={ready}/>
+      <Assembly key={config.motif} config={config} rootRef={rootRef} onReady={ready} fusedMetal={fusedMetal}/>
     </Suspense>
     <ViewRig view={view} product={config.product}/>
   </Canvas>;
@@ -244,15 +246,35 @@ export function MotifCaseStudio(){
   const [ready,setReady]=useState(false);
   const [status,setStatus]=useState('');
   const [busy,setBusy]=useState(false);
+  const [fusion,setFusion]=useState<{diameter:number;result:MetalFusionResult}|null>(null);
+  useEffect(()=>()=>fusion?.result.dispose(),[fusion]);
   const rootRef=useRef<Group>(null);
   const rendererRef=useRef<WebGLRenderer>(null);
   const update=<K extends keyof Settings>(key:K,value:Settings[K])=>setConfig(old=>({...old,[key]:value}));
+  const screenMetal=async()=>{
+    if(config.product!=='ring'||busy)return;
+    setBusy(true);setStatus('正在进行封闭金属实体布尔并集与连通性检查…');
+    try{
+      const {fuseWearableRing}=await import('./motifMetalFusion');
+      const result=await fuseWearableRing(config.ringDiameter);
+      if(result.report.status==='fused'&&result.report.closedTriangleSurface){
+        setFusion({diameter:config.ringDiameter,result});
+        setStatus('金属布尔初筛通过：'+result.report.connectedComponents+' 个连通体，'+result.report.triangles+' 个三角面。仍非制造认证。');
+      }else{
+        result.dispose();
+        setStatus('金属布尔初筛未通过：'+result.report.warnings.join('；'));
+      }
+    }catch(error){
+      setStatus('金属布尔初筛失败：'+(error instanceof Error?error.message:String(error)));
+    }finally{setBusy(false);}
+  };
   const downloadRecipe=()=>{
     const recipe={schema:'xiangyan.motif-case/0.1',reference:'Vintage Alhambra structural study (not a production replica)',
       units:'mm',settings:config,source:profiles[config.motif].src,
       parts:PARTS.map(p=>({code:p.no,name:p.name,independent:true})),
       productionStatus:'VISUAL_PROTOTYPE_ONLY',ring:config.product==='ring'?ringSizing(config.ringDiameter):null,
       geometryScreening:config.product==='ring'?comfortFitDiagnostics(config.ringDiameter):null,
+      metalFusion:config.product==='ring'&&fusion?.diameter===config.ringDiameter?fusion.result.report:null,
       chain:{referenceLengthCm:42,representation:'visible articulated segment only'},
       notes:['OBJ source is unitless and normalized to 15 mm by visual span','The shank has a continuous geometric bore, but fit and manufacture have not been certified','No casting tolerances, inlay retention, or Boolean union validated']};
     download(new Blob([JSON.stringify(recipe,null,2)],{type:'application/json'}),'xiangyan-motif-recipe.json');setStatus('已导出参数化设计记录');
@@ -315,7 +337,8 @@ export function MotifCaseStudio(){
       </aside>
       <main className="motif-visual" aria-label="实时三维结构预览">
         <div className="motif-preview-title"><span>INTERACTIVE 3D / LIVE ASSEMBLY</span><h2>{label(config.motif)} <em>·</em> {config.product==='necklace'?'悬挂项链':'镶饰戒指'}</h2><p>拖动旋转、滚轮缩放，实时观察各独立结构的组合</p></div>
-        <ModelPreview config={config} view={view} rootRef={rootRef} rendererRef={rendererRef} ready={setReady}/>
+        <ModelPreview config={config} view={view} rootRef={rootRef} rendererRef={rendererRef} ready={setReady}
+          fusedMetal={fusion?.diameter===config.ringDiameter?fusion.result.geometry:null}/>
         {!ready&&<p className="motif-loader" role="status">正在装配 3D 模组…</p>}
         <div className="motif-view-tools" role="group" aria-label="三维视角">
           {([['angle','45°'],['front','正面'],['side','侧面'],...(config.product==='ring'?[['fit','指孔'] as const]:[])] as const).map(([k,v])=><button type="button" key={k} aria-pressed={view===k} onClick={()=>setView(k)}>{v}</button>)}
@@ -331,6 +354,14 @@ export function MotifCaseStudio(){
         <div className="motif-explode"><div className="motif-explode-label"><span>爆炸视图</span><b>{Math.round(config.explode*100)}%</b></div>
           <input aria-label="结构爆炸程度" type="range" min="0" max="1.5" step=".05" value={config.explode} onChange={e=>update('explode',Number(e.target.value))}/>
           <p>沿 Z 轴分离嵌片、边框与金属底托</p></div>
+        {config.product==='ring'&&<div className="motif-fusion-panel" aria-label="金属实体初筛">
+          <div className="motif-fusion-title"><strong>金属实体检查</strong><span>MANIFOLD / PRECHECK</span></div>
+          <p>检查戒臂、两侧肩部和底部支撑能否融合为单个闭合金属实体。嵌片和宝石仍独立。</p>
+          <button type="button" disabled={busy||!ready} onClick={screenMetal}>
+            {busy?'检查中…':fusion?.diameter===config.ringDiameter?'重新检查金属连接':'运行布尔融合初筛'}
+          </button>
+          <small>{fusion?.diameter===config.ringDiameter?'已生成独立金属网格 · 仅设计预览':'结果会列出连通体数量；失败时不会伪装成功'}</small>
+        </div>}
         <div className="motif-export-panel"><h3>保存这次设计</h3><button className="motif-main-download" type="button" disabled={!ready||busy} onClick={exportGlb}>{busy?'导出中…':'导出 3D GLB'} <span>↗</span></button>
           <div className="motif-secondary-downloads"><button type="button" onClick={downloadRecipe}>配置 JSON</button><button type="button" onClick={exportPng} disabled={!ready}>当前截图 PNG</button></div>
           <p className="motif-status" role="status">{status}</p></div>
