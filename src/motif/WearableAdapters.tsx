@@ -49,11 +49,18 @@ export function NecklaceAdapter({color,motif,scale,explode,mount='side'}:Omit<Pr
     return {left,right};
   },[motif,scale,mount]);
   return <group name="04-necklace-assembly" position-z={-explode*.7}>
-    {mount==='bail'&&<mesh name="top-pendant-bail" position={[0,anchors.left[1]-.22,anchors.left[2]]}
-      rotation={[0,0,0]} castShadow>
-      <torusGeometry args={[.78,.19,14,36]}/>
-      <meshPhysicalMaterial {...metalAppearanceProps(color,.18)}/>
-    </mesh>}
+    {mount==='bail'&&<>
+      {(motif==='flower'||motif==='blossom')&&<mesh name="formed-floral-bail-stem"
+        position={[0,anchors.left[1]-1.27,anchors.left[2]]} castShadow>
+        <capsuleGeometry args={[.16,1.18,8,12]}/>
+        <meshPhysicalMaterial {...metalAppearanceProps(color,.2)}/>
+      </mesh>}
+      <mesh name="top-pendant-bail" position={[0,anchors.left[1]-.22,anchors.left[2]]}
+        rotation={[0,0,0]} castShadow>
+        <torusGeometry args={[.78,.19,14,36]}/>
+        <meshPhysicalMaterial {...metalAppearanceProps(color,.18)}/>
+      </mesh>
+    </>}
     <ChainSide anchor={anchors.left} side={-1} color={color}/>
     <ChainSide anchor={anchors.right} side={1} color={color}/>
   </group>;
