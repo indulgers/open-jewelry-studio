@@ -1,5 +1,5 @@
 import {useEffect,useMemo} from 'react';
-import {CatmullRomCurve3,Quaternion,TorusGeometry,TubeGeometry,Vector3} from 'three';
+import {CatmullRomCurve3,Quaternion,TorusGeometry,TubeGeometry,Vector3,type BufferGeometry} from 'three';
 import {createComfortFitShank} from './comfortFitGeometry';
 import {polishedGoldLikeMaterial,metalAppearanceProps} from './metalMaterials';
 import {
@@ -48,7 +48,7 @@ export function NecklaceAdapter({color,motif,scale,explode}:Omit<Props,'diameter
 /** Preserve the named API for tests while upgrading the underlying geometry. */
 export const createRingShankGeometry=createComfortFitShank;
 
-export function RingAdapter({color,diameter,explode}:Pick<Props,'color'|'diameter'|'explode'>){
+export function RingAdapter({color,diameter,explode,fusedGeometry}:Pick<Props,'color'|'diameter'|'explode'>&{fusedGeometry?:BufferGeometry|null}){
   const shank=useMemo(()=>createRingShankGeometry(diameter),[diameter]);
   const arms=useMemo(()=>ringShoulders(diameter).map(points=>new TubeGeometry(
     new CatmullRomCurve3(points.map(vec),false,'centripetal'),44,.44,16,false,
@@ -56,15 +56,16 @@ export function RingAdapter({color,diameter,explode}:Pick<Props,'color'|'diamete
   const material=useMemo(()=>polishedGoldLikeMaterial(color,.155),[color]);
   useEffect(()=>()=>{shank.dispose();arms.forEach(a=>a.dispose());material.dispose();},[shank,arms,material]);
   return <group name="04-ring-shank-and-shoulders" position-y={-explode*.5}>
-    <mesh name="wearable-continuous-ring-band" geometry={shank} material={material} castShadow receiveShadow/>
-    {arms.map((geo,i)=><mesh key={i} name={'shoulder-'+(i+1)} geometry={geo}
-      material={material} castShadow/>)}
-    {/* A shallow under-gallery seat avoids floating atop a pair of decorative rods.
-        It remains a separate closed visual solid until CAD boolean fusion. */}
-    <mesh name="underside-gallery-bridge" position={[0,ringSizing(diameter).motifSeatY-.82,0]}
-      rotation={[Math.PI/2,0,0]} scale={[1.7,.8,1]} castShadow>
-      <torusGeometry args={[2.45,.34,16,64]}/>
-      <meshPhysicalMaterial {...metalAppearanceProps(color,.19)}/>
-    </mesh>
+    {fusedGeometry?<mesh name="manifold-fused-ring-metal" geometry={fusedGeometry}
+        material={material} castShadow receiveShadow/>:<>
+      <mesh name="wearable-continuous-ring-band" geometry={shank} material={material} castShadow receiveShadow/>
+      {arms.map((geo,i)=><mesh key={i} name={'shoulder-'+(i+1)} geometry={geo}
+        material={material} castShadow/>)}
+      <mesh name="underside-gallery-bridge" position={[0,ringSizing(diameter).motifSeatY-.70,0]}
+        rotation={[Math.PI/2,0,0]} scale={[1.5,1.05,1]} castShadow>
+        <torusGeometry args={[2.45,.34,18,72]}/>
+        <meshPhysicalMaterial {...metalAppearanceProps(color,.19)}/>
+      </mesh>
+    </>}
   </group>;
 }
