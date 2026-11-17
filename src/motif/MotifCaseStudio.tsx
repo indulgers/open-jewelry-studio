@@ -419,7 +419,7 @@ export function MotifCaseStudio(){
         <div className="motif-setting-spec">
           <strong>{TECHNIQUES[config.technique].name}</strong>
           <span>{config.technique==='pave'||config.technique==='cluster'
-            ?'视觉布石 '+settingPlan(config.motif,config.technique).sites.length+' 颗 · 独立镶座与小爪'
+            ?'视觉布石 '+summarizeGemSetting(config.motif,config.technique,config.centerStone).modeledAccentStones+' 颗 · 独立镶座与小爪'
             :config.technique==='sculpted'?'五片独立金属花瓣 · 中心爪镶'
             :config.technique==='guilloche'?'沿原始轮廓收束的放射状金属纹'
             :'原始 OBJ 嵌片 · 独立底托与包边'}</span>
