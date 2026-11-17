@@ -4,7 +4,7 @@ import {
   PRESETS,allowedTechniques,compatibleTechnique,settingPlan,
   inSilhouette,distanceToOutline,validatePreset,minimumMotifSize,normalizeMotifSize,
 } from './designGrammar';
-import {buildRadialEngraving,createPetalSolid} from './designGeometry';
+import {buildRadialEngraving,createPetalSolid,petalFaceZAt} from './designGeometry';
 import {triangleEdgeCounts} from './brilliantGeometry';
 import {mineralPixel} from './mineralInlays';
 
@@ -53,6 +53,15 @@ describe('Xiayngyan artisan design grammar',()=>{
         expect(ray.start.every(Number.isFinite)).toBe(true);
       }
     }
+  });
+  it('places flower pavé stone bearings at distinct heights on curved metal petals',()=>{
+    const atCenter=petalFaceZAt(0,.2);
+    const atMiddle=petalFaceZAt(0,3.0);
+    const atTip=petalFaceZAt(0,5.7);
+    expect([atCenter,atMiddle,atTip].every(Number.isFinite)).toBe(true);
+    expect(atMiddle).toBeGreaterThan(atCenter);
+    expect(atMiddle).toBeGreaterThan(atTip);
+    expect(atTip).toBeGreaterThan(0);
   });
   it('sculpted petals are watertight 3D metals, not a white overlay',()=>{
     for(let i=0;i<5;i++){
