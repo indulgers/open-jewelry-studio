@@ -90,9 +90,9 @@ const minDistance=(a:SettingPoint,b:SettingPoint)=>Math.hypot(a.x-b.x,a.y-b.y)-a
 export function settingPlan(motif:MotifId,technique:Technique):SettingPlan{
   const mode=compatibleTechnique(motif,technique);
   const poly=profiles[motif].outline;
-  const edge=.48, gap=.18,sites:SettingPoint[]=[];
+  const edge=.50, gap=.22,sites:SettingPoint[]=[];
   if(mode==='pave'){
-    const r=motif==='feather'?.31:.40, step=(r*2+gap);
+    const r=motif==='feather'?.44:.61, step=(r*2+gap);
     for(let row=-10;row<=10;row++)for(let col=-11;col<=11;col++){
       const x=(col+(Math.abs(row)%2)*.5)*step;
       const y=row*step*.866;
