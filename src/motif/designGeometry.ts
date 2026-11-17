@@ -72,6 +72,20 @@ export function createPetalSolid(angle:number,length=6.4,width=2.4):BufferGeomet
   return geometry;
 }
 
+/** Surface ownership guard: do not scatter gem seats into gaps between petals.
+ * Tiny centered support gallery is also considered a bearing surface. */
+export function onSculptedPetal(x:number,y:number):boolean{
+  if(Math.hypot(x,y)<=.76)return true;
+  for(let i=0;i<5;i++){
+    const a=i*Math.PI*2/5,c=Math.cos(a),s=Math.sin(a);
+    const localX=x*c+y*s,localY=-x*s+y*c;
+    const t=(localY-.4)/6.4;
+    if(t<.018||t>.98)continue;
+    const envelope=.08+.92*Math.pow(Math.sin(Math.PI*t),.72);
+    if(Math.abs(localX)<=2.4*envelope*.92)return true;
+  }
+  return false;
+}
 /** Top height of a closed five-petal relief at arbitrary motif-space XY.
  * Used to seat gems on the actual sculptural surface rather than a flat decal.
  */
