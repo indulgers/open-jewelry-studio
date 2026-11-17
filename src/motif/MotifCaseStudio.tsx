@@ -17,7 +17,7 @@ import {metalAppearanceProps,DISPLAY_ALLOYS} from './metalMaterials';
 import {comfortFitDiagnostics} from './comfortFitGeometry';
 import {DesignedSurface,summarizeGemSetting} from './DesignedSurface';
 import {PRESETS,TECHNIQUES,allowedTechniques,compatibleTechnique,settingPlan,
-  type Technique,type ShankStyle,type NecklaceMount,type DesignPreset} from './designGrammar';
+  normalizeMotifSize,minimumMotifSize,type Technique,type ShankStyle,type NecklaceMount,type DesignPreset} from './designGrammar';
 import type {MetalFusionResult} from './motifMetalFusion';
 import type {BufferGeometry} from 'three';
 import './MotifCaseStudio.css';
@@ -262,18 +262,18 @@ export function MotifCaseStudio(){
   const chooseMotif=(motif:MotifId)=>{
     setConfig(old=>{
       const technique=compatibleTechnique(motif,old.technique);
-      return {...old,motif,technique,edge:technique==='inlay'&&old.edge==='none'?'double':old.edge};
+      return {...old,motif,technique,size:normalizeMotifSize(technique,old.size),edge:technique==='inlay'&&old.edge==='none'?'double':old.edge};
     });if(config.motif!==motif)setReady(false);
   };
   const chooseTechnique=(technique:Technique)=>{
     if(!allowedTechniques(config.motif).includes(technique))return;
-    setConfig(old=>({...old,technique,edge:technique==='inlay'||technique==='guilloche'?'double':'none'}));
+    setConfig(old=>({...old,technique,size:normalizeMotifSize(technique,old.size),edge:technique==='inlay'||technique==='guilloche'?'double':'none'}));
     setStatus('');
   };
   const choosePreset=(preset:DesignPreset)=>{
     setConfig(old=>({...old,product:preset.product,motif:preset.motif,technique:preset.technique,
       metal:preset.metal,inlay:preset.inlay,edge:preset.edge,shank:preset.shank,
-      necklaceMount:preset.necklaceMount,centerStone:preset.centerStone,explode:0,part:'all'}));
+      necklaceMount:preset.necklaceMount,centerStone:preset.centerStone,size:normalizeMotifSize(preset.technique,old.size),explode:0,part:'all'}));
     setView('angle');if(config.motif!==preset.motif)setReady(false);
     setStatus('已应用原创构型方案：'+preset.name);
   };
@@ -388,7 +388,12 @@ export function MotifCaseStudio(){
             ] as const).map(([id,name,note])=><button key={id} type="button" aria-pressed={config.necklaceMount===id}
               onClick={()=>update('necklaceMount',id)}><strong>{name}</strong><small>{note}</small></button>)}</div>}
         <div className="motif-section-caption"><span>07</span> 尺寸参数</div>
-        <label className="motif-range-label">主题直径 <strong>{config.size} mm</strong><input type="range" min="11" max="20" step="1" value={config.size} onChange={e=>update('size',Number(e.target.value))}/></label>
+        <label className="motif-range-label">主题直径 <strong>{config.size} mm</strong><input type="range"
+          min={minimumMotifSize(config.technique)} max="20" step="1" value={config.size}
+          onChange={e=>update('size',normalizeMotifSize(config.technique,Number(e.target.value)))}/></label>
+        {(config.technique==='pave'||config.technique==='cluster')&&<p className="motif-technique-caption">
+          密钉与群镶采用固定视觉石径；当前限制主题最小 15 mm，以保持设计阶段的金属边距。
+        </p>}
         {config.product==='ring'&&<label className="motif-range-label">戒指内径（名义） <strong>{config.ringDiameter} mm</strong><input type="range" min="16" max="21" step=".5" value={config.ringDiameter} onChange={e=>update('ringDiameter',Number(e.target.value))}/></label>}
         <div className="motif-wear-check" role="status">
           <strong>{config.product==='ring'?'贯通指孔 · '+({classic:'经典素圈',split:'分叉肩位',pave:'戒臂侧石'}[config.shank]):'交错椭圆链节 · '+(config.necklaceMount==='side'?'双侧':'顶部')+'连接'}</strong>
