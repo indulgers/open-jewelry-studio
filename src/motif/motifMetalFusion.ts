@@ -1,6 +1,6 @@
 import {
   BufferAttribute,BufferGeometry,CatmullRomCurve3,Float32BufferAttribute,
-  TorusGeometry,TubeGeometry,Vector3,
+  TorusGeometry,TubeGeometry,Vector3,Raycaster,Mesh,MeshBasicMaterial,DoubleSide,
 } from 'three';
 import {createComfortFitShank,comfortFitDiagnostics} from './comfortFitGeometry';
 import {ringShoulders,ringSizing} from './wearableGeometry';
@@ -17,9 +17,9 @@ type Kernel={
   Manifold:{new(mesh:NativeMesh):Solid;union:(meshes:Solid[])=>Solid};
 };
 export type MetalFusionReport={
-  status:'fused'|'fragmented';
+  status:'fused'|'fragmented'|'blocked';
   connectedComponents:number;triangles:number;volumeMm3:number;
-  radialWallMinimumMm:number;clearDiameterMm:number;closedTriangleSurface:boolean;
+  radialWallMinimumMm:number;clearDiameterMm:number;closedTriangleSurface:boolean;fingerAxisClear:boolean;
   manufacturingPassed:false;
   warnings:string[];
 };
@@ -124,15 +124,20 @@ export async function fuseWearableRing(innerDiameter:number):Promise<MetalFusion
     const result=fromNative(united.getMesh());
     const topology=triangleEdgeCounts(result);
     const fit=comfortFitDiagnostics(innerDiameter);
-    const status=components.length===1?'fused':'fragmented';
+    const probe=new Mesh(result,new MeshBasicMaterial({side:DoubleSide}));
+    probe.updateMatrixWorld(true);
+    const fingerAxisClear=new Raycaster(new Vector3(-15,0,0),new Vector3(1,0,0),0,30).intersectObject(probe).length===0;
+    (probe.material as MeshBasicMaterial).dispose();
+    const status=!fingerAxisClear?'blocked':components.length===1?'fused':'fragmented';
     const report:MetalFusionReport={
       status,connectedComponents:components.length,triangles:united.numTri(),
       volumeMm3:united.volume(),radialWallMinimumMm:fit.radialWallMinimumMm,
       clearDiameterMm:fit.conservativeClearDiameterMm,
-      closedTriangleSurface:topology.nonManifoldEdges===0,manufacturingPassed:false,
+      closedTriangleSurface:topology.nonManifoldEdges===0,fingerAxisClear,manufacturingPassed:false,
       warnings:[
         ...(components.length!==1?['仍有 '+components.length+' 个互不连通的金属实体，不可生成制造文件']:[]),
         ...(topology.nonManifoldEdges?['布尔结果存在非双流形边，应重试或重新建模']:[]),
+        ...(!fingerAxisClear?['融合后金属阻挡了手指轴线，禁止接受本次结果']:[]),
         '解析壁厚仅针对规则戒臂，不代表肩部、接头与爪镶局部最薄处',
         '尚未通过最小连接截面、铸造缩水、公差、拉力和工厂工艺验证',
       ],
