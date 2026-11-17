@@ -58,7 +58,7 @@ function SculptedFlower({metal}:{metal:string}){
   return <group name="five-separate-sculpted-petals">
     {petals.map((geometry,i)=><mesh key={i} geometry={geometry} name={'formed-petal-'+i}
       castShadow receiveShadow><meshPhysicalMaterial color={metal} metalness={.73} roughness={.29} envMapIntensity={.58}/></mesh>)}
-    <mesh name="petal-center-gallery" position={[0,0,.46]} castShadow>
+    <mesh name="petal-center-gallery" position={[0,0,.46]} rotation={[Math.PI/2,0,0]} castShadow>
       <cylinderGeometry args={[.86,1.16,.72,32]}/>
       <meshPhysicalMaterial color={metal} metalness={.72} roughness={.24} envMapIntensity={.65}/>
     </mesh>
