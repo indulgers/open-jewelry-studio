@@ -1,6 +1,6 @@
 import {Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {Canvas, useLoader, useThree} from '@react-three/fiber';
-import {OrbitControls} from '@react-three/drei';
+import {Environment, OrbitControls} from '@react-three/drei';
 import {
   Box3, CatmullRomCurve3, Color, ExtrudeGeometry, Group, InstancedMesh,
   Mesh, MeshPhysicalMaterial, Object3D, Shape, TubeGeometry, Vector3,
@@ -175,6 +175,7 @@ function ViewRig({view,product}:{view:View;product:Product}){
 function ModelPreview({config,view,rootRef,rendererRef,ready}:{config:Settings;view:View;rootRef:React.RefObject<Group|null>;rendererRef:React.RefObject<WebGLRenderer|null>;ready:(r:boolean)=>void}){
   return <Canvas orthographic dpr={[1,2]} shadows camera={{position:[14,17,34],zoom:21,near:.1,far:180}} gl={{alpha:true,antialias:true,preserveDrawingBuffer:true}}
     onCreated={({gl})=>{rendererRef.current=gl;}}>
+    <Environment files={`${base}environments/catalog-studio.hdr`} background={false}/>
     <ambientLight intensity={1.35}/>
     <hemisphereLight args={['#fff7e8','#c1b8a4',2]}/>
     <directionalLight position={[-8,16,17]} intensity={4.5} color="#fff5df" castShadow shadow-mapSize={[1024,1024]}/>
