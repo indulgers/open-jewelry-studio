@@ -38,6 +38,12 @@ try{
   await page.locator('.motif-product-toggle button').nth(1).click();
   await page.locator('.motif-view-tools button').filter({hasText:'45°'}).click();
   await capture('02-ring-angle');
+  await page.locator('.motif-fusion-panel button').click();
+  await page.waitForFunction(()=>/金属布尔初筛(通过|未通过|失败)/.test(document.querySelector('.motif-status')?.textContent??''),null,{timeout:90000});
+  const fusionMessage=await page.locator('.motif-status').textContent();
+  console.log('Metal fusion browser report:',fusionMessage);
+  if(!fusionMessage?.includes('通过'))throw new Error('Browser metal Boolean screening failed: '+fusionMessage);
+  await capture('06-ring-manifold-fused');
   await page.locator('.motif-view-tools button').filter({hasText:'指孔'}).click();
   await capture('03-ring-bore');
   await page.locator('.motif-part-list button').last().click();
@@ -47,6 +53,14 @@ try{
   await page.locator('.motif-choices button').nth(3).click();
   await page.locator('.motif-view-tools button').filter({hasText:'正面'}).click();
   await capture('05-butterfly-necklace');
+  // Two close-up crops, taken from the actual WebGL viewport.
+  await page.locator('.motif-visual canvas').hover();
+  await page.mouse.wheel(0,-380);
+  await delay(900);
+  await page.locator('.motif-visual').screenshot({path:dest+'/07-butterfly-inlay-detail.png'});
+  await page.locator('.motif-choices button').first().click();
+  await ready3D();
+  await page.locator('.motif-visual').screenshot({path:dest+'/08-clover-nacre-detail.png'});
   writeFileSync(dest+'/browser-errors.json',JSON.stringify(errors,null,2));
   if(errors.length)throw new Error('Browser page errors: '+errors.join(' | '));
 } finally {
