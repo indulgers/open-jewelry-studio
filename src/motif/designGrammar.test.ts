@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import profiles from './profiles.json';
 import {
   PRESETS,allowedTechniques,compatibleTechnique,settingPlan,
-  inSilhouette,distanceToOutline,validatePreset,type MotifId,
+  inSilhouette,distanceToOutline,validatePreset,minimumMotifSize,normalizeMotifSize,
 } from './designGrammar';
 import {buildRadialEngraving,createPetalSolid} from './designGeometry';
 import {triangleEdgeCounts} from './brilliantGeometry';
@@ -13,6 +13,13 @@ describe('Xiayngyan artisan design grammar',()=>{
     expect(PRESETS).toHaveLength(6);
     expect(new Set(PRESETS.map(p=>p.id)).size).toBe(6);
     for(const preset of PRESETS)expect(validatePreset(preset).permitted,preset.id).toBe(true);
+  });
+  it('keeps scaled pavé metal edge allowance from silently shrinking below reference layout',()=>{
+    expect(minimumMotifSize('pave')).toBe(15);
+    expect(minimumMotifSize('cluster')).toBe(15);
+    expect(normalizeMotifSize('pave',11)).toBe(15);
+    expect(normalizeMotifSize('inlay',11)).toBe(11);
+    expect(normalizeMotifSize('pave',18)).toBe(18);
   });
   it('does not allow sculpted five-petals on butterfly or feather meshes',()=>{
     expect(allowedTechniques('flower')).toContain('sculpted');
