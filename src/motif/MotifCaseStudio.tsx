@@ -66,7 +66,7 @@ function BeadLine({id,metal,factor,z,radius}:{id:MotifId;metal:string;factor:num
   const ref=useRef<InstancedMesh>(null);
   const points=useMemo(()=>{
     const curve=outlineCurve(id,factor,z);
-    const count=Math.max(12,Math.min(230,Math.round(curve.getLength()/.56)));
+    const count=Math.max(12,Math.min(420,Math.round(curve.getLength()/(radius*1.86))));
     return Array.from({length:count},(_,i)=>curve.getPointAt(i/count));
   },[id,factor,z]);
   useLayoutEffect(()=>{
@@ -172,7 +172,7 @@ function ViewRig({view,product}:{view:View;product:Product}){
     const target=new Vector3(0,ring?4.8:7,0);
     camera.up.set(0,ring?0:1,ring?-1:0); // keep the ring's top setting upright in its +Y view
     const positions:Record<View,[number,number,number]>=ring?{
-      angle:[26,30,23],front:[0,46,10],side:[39,15,11],fit:[45,4.8,0],
+      angle:[26,43,15],front:[2,48,6],side:[39,15,11],fit:[45,4.8,0],
     }:{angle:[15,15,35],front:[0,7,42],side:[39,11,12],fit:[0,7,42]};
     camera.position.set(...positions[view]);camera.lookAt(target);camera.updateProjectionMatrix();
     controls.current?.target.copy(target);controls.current?.update();
