@@ -1,3 +1,5 @@
+import {EngravingEditor} from '../engraving/EngravingEditor';
+import {DEFAULT_ENGRAVING_STYLE,type EngravingStyle} from '../engraving/style';
 import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
 import {useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {preloadJewelryLighting} from '../../viewer/JewelryLighting';
@@ -7,7 +9,7 @@ import {RingStylePicker} from '../RingStylePicker';
 import {ReviewDialog} from '../ring02/ReviewDialog';
 import {RING02_PRECISION_ROUTE} from '../ring02/assets';
 import {VIEWS,type RingView} from '../ring02/Ring02Stage';
-import {ENGRAVING_LIMIT,engravingProblem} from '../ring02/engraving';
+import {engravingProblem} from '../ring02/engraving';
 import {addDemoOrder,formatYuan,hasDemoOrder} from '../ring02/demoOrder';
 import {createReferenceLibrary} from './part-library';
 import {PartCard,PartLibrary,headChoices,sourceImage} from './PartLibrary';
@@ -69,6 +71,8 @@ function Editor({template}:{template:CatalogRing}){
   const [cartFeedback,setCartFeedback]=useState<Feedback>();
   const [saveError,setSaveError]=useState(false),[message,setMessage]=useState('');
   const [engraving,setEngraving]=useState(design.engraving);
+  const [engravingStyle,setEngravingStyle]=useState<EngravingStyle>(design.engravingStyle??DEFAULT_ENGRAVING_STYLE);
+  const [engravingView,setEngravingView]=useState(false);
   const capture=useRef<(()=>string|undefined)|null>(null);
   const [captureFrame,setCaptureFrame]=useState<SourceFrame|null>(null);
   const {head,band,zones}=referenceParts(template,design);
@@ -86,7 +90,7 @@ function Editor({template}:{template:CatalogRing}){
   const zone=part==='shank'?(zones.includes('shoulder')?'shoulder':null):zones.includes(headZone)?headZone:'center';
   const mixed=head.id!==template.id||band.id!==template.id;
   const displayName=mixed?headName(head.name)+' × '+style.name:template.name;
-  const sceneDesign=compare?ORIGINAL_REFERENCE:design;
+  const sceneDesign=useMemo(()=>compare?ORIGINAL_REFERENCE:engravingProblem(engraving.trim())?design:{...design,engraving:engraving.trim(),engravingStyle},[compare,design,engraving,engravingStyle]);
   const canCapture=ring!==null&&captureFrame?.ring===ring&&captureFrame.design===sceneDesign;
   const sceneName=compare?'原款搭配':displayName;
   const lastPreview=useRef<{ring:NonNullable<typeof ring>;design:ReferenceDesign;name:string}>(null);
@@ -98,8 +102,7 @@ function Editor({template}:{template:CatalogRing}){
   const swapping=!ring&&!loadingError;
   const previousParts=visiblePreview?referenceParts(template,visiblePreview.design):null;
   const quote=referenceQuote(template,design),details=referenceDetails(template,design,compare?null:pave);
-  const engravingDirty=engraving!==design.engraving;
-  const engravingError=engravingProblem(engraving.trim());
+  const engravingDirty=engraving!==design.engraving||engravingStyle.font!==(design.engravingStyle??DEFAULT_ENGRAVING_STYLE).font||engravingStyle.align!==(design.engravingStyle??DEFAULT_ENGRAVING_STYLE).align;
   const added=hasDemoOrder(revision);
   useEffect(()=>{
     try{localStorage.setItem(key,JSON.stringify({design,revision}));setSaveError(false);}
@@ -148,7 +151,7 @@ function Editor({template}:{template:CatalogRing}){
   return <><div className="stone-first-main ring02-main source-ring-main">
     <section className="stone-first-preview" aria-label="戒指预览">
       <div className="ring02-preview-bar"><div><strong>{visiblePreview?.name??sceneName}</strong><span>{visiblePreview?visiblePreview.ring.stones.length+' 颗宝石':''}</span></div><button aria-pressed={compare} onClick={()=>setCompare(!compare)}>对比原款</button></div>
-      {preview?<SourceRingStage ring={preview.ring} template={template} design={preview.design} view={view} reset={reset} captureRef={capture} onCaptureReady={setCaptureFrame}/>
+      {preview?<SourceRingStage ring={preview.ring} template={template} design={preview.design} engravingView={engravingView} view={view} reset={reset} captureRef={capture} onCaptureReady={setCaptureFrame}/>
         :<div className="stone-first-canvas ring02-canvas source-ring-canvas">
           <SourceLoading template={template} retry={loadingError?selection.retry:undefined}/>
         </div>}
@@ -156,7 +159,7 @@ function Editor({template}:{template:CatalogRing}){
         {loadingError?<><span>{loadingError}</span><button onClick={selection.retry}>重试</button></>:'正在更新搭配…'}
       </div>}
       <div className="stone-first-camera-views source-camera-toolbar" role="group" aria-label="戒指观察视角">
-        {VIEWS.map(([id,label])=><button key={id} aria-pressed={view===id} onClick={()=>{setView(id);setReset(n=>n+1);}}>
+        {VIEWS.map(([id,label])=><button key={id} aria-pressed={!engravingView&&view===id} onClick={()=>{setEngravingView(false);setView(id);setReset(n=>n+1);}}>
           {(id==='top'||id==='side')&&<img src={VIEW_ICONS[id]} width={16} height={16} alt=""/>}
           {label}
         </button>)}
@@ -194,16 +197,13 @@ function Editor({template}:{template:CatalogRing}){
         </>}
         {zone?<fieldset disabled={compare}><legend>{ZONE_NAMES[zone]}搭配</legend><div className="stone-first-options ring02-gems">{STONE_APPEARANCE_IDS.map(id=><button key={id} aria-pressed={design[zone]===id} onClick={()=>color(id)}><i className={'ring02-swatch swatch-'+id} aria-hidden="true"/>{STONE_APPEARANCES[id].name}{id!=='diamond'?' +¥100':''}</button>)}</div></fieldset>:<><h2>素面戒臂</h2><p>这款戒臂采用银色素面。</p></>}
 
-        {part==='shank'&&<fieldset disabled={compare} className="ring02-engraving"><legend>内圈刻字 <span>选填</span></legend>
-          <label className="sr-only" htmlFor="source-engraving">刻字文字</label><input id="source-engraving" value={engraving} autoComplete="off" spellCheck={false} placeholder="例如  A & B" aria-describedby="source-engraving-help source-engraving-error" onChange={event=>setEngraving(event.target.value)}/>
-          <p id="source-engraving-help">最多 {ENGRAVING_LIMIT} 个字符，支持英文字母、数字、空格和 . &amp; -</p>
-          <figure className="ring02-engraving-sample"><blockquote>{engraving.trim()&&!engravingError?engraving.trim():'刻字预览'}</blockquote><figcaption>内圈位置示意 · 字体与工艺待确认</figcaption></figure>
-          <p id="source-engraving-error" role="alert">{engravingError}</p>
-          <div className="ring02-engraving-actions"><button disabled={!engravingDirty} onClick={()=>setEngraving(design.engraving)}>取消修改</button><button disabled={!engravingDirty||!!engravingError} onClick={()=>{const text=engraving.trim();change({...design,engraving:text});setEngraving(text);}}>确认刻字</button></div>
-        </fieldset>}
+        {part==='shank'&&<EngravingEditor id="source-engraving" text={engraving} style={engravingStyle} disabled={compare} dirty={engravingDirty}
+          onText={setEngraving} onStyle={setEngravingStyle} onView={()=>{setEngravingView(true);setReset(n=>n+1);if(matchMedia('(max-width:800px)').matches)document.querySelector('.stone-first-preview')?.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth'});}}
+          onCancel={()=>{setEngraving(design.engraving);setEngravingStyle(design.engravingStyle??DEFAULT_ENGRAVING_STYLE);}}
+          onConfirm={()=>{const text=engraving.trim();change({...design,engraving:text,engravingStyle});setEngraving(text);}}/>}
       </div>
       <details className="ring02-summary"><summary>配置摘要</summary><dl className="source-ring-summary">{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl>{template.kind==='parametric'&&<a className="source-precision-link" href={RING02_PRECISION_ROUTE}>精调原款围钻</a>}</details>
-      <div className="ring02-actions"><button disabled={!past.length||compare} onClick={()=>{const next=past[past.length-1];setHistory({design:next,revision:crypto.randomUUID(),past:past.slice(0,-1)});setEngraving(next.engraving);setMessage('');}}>撤销</button><button disabled={compare} onClick={()=>{change(ORIGINAL_REFERENCE);setEngraving('');}}>恢复原款</button></div>
+      <div className="ring02-actions"><button disabled={!past.length||compare} onClick={()=>{const next=past[past.length-1];setHistory({design:next,revision:crypto.randomUUID(),past:past.slice(0,-1)});setEngraving(next.engraving);setEngravingStyle(next.engravingStyle??DEFAULT_ENGRAVING_STYLE);setMessage('');}}>撤销</button><button disabled={compare} onClick={()=>{change(ORIGINAL_REFERENCE);setEngraving('');setEngravingStyle(DEFAULT_ENGRAVING_STYLE);}}>恢复原款</button></div>
       <p className="ring02-status ring02-editor-feedback" role="status">{compare?'正在对比原款。再次点击可继续编辑。':message}</p>
       <p className="ring02-status" role={saveError?'alert':undefined}>{saveError?'浏览器未能保存草稿，请保留此页面。':engravingDirty?'请确认或取消刻字修改。':'草稿已保留在本机'}</p>
     </section>

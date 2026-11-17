@@ -1,3 +1,4 @@
+import {EngravingOverlay} from '../engraving/EngravingOverlay';
 import {Suspense,useCallback,useEffect,useMemo,useState,type RefObject} from 'react';
 import {Canvas} from '@react-three/fiber';
 import {DoubleSide,NeutralToneMapping,type Texture} from 'three';
@@ -43,13 +44,15 @@ function SourceScene({ring,design,environment,onReady}:SourceFrame&{environment:
   return <group dispose={null}>
     {ring.metal.map((part,index)=><mesh key={part.name} geometry={part.geometry} position-y={part.offsetY??0} material={material} name={part.name}
       frustumCulled={index!==0||!onReady} onAfterRender={index===0&&onReady?onReady:ignoreRender}/>)}
+    {design.engraving&&<EngravingOverlay parts={ring.metal} text={design.engraving} style={design.engravingStyle}/>}
     {batches.map(([key,stones])=><GemBatch key={key} environment={environment} stones={stones}
       studio={preset} mount={key.startsWith('center/')?mount:undefined}/>)}
   </group>;
 }
-export function SourceRingStage({ring,design,template,view,reset,captureRef,onCaptureReady,captureSize}:SourceFrame&{
-  captureSize?:number;template:Pick<CatalogRing,'name'>;view:RingView;reset:number;captureRef:RefObject<(()=>string|undefined)|null>;onCaptureReady:(frame:SourceFrame|null)=>void;
+export function SourceRingStage({ring,design,template,view,reset,captureRef,onCaptureReady,captureSize,engravingView=false}:SourceFrame&{
+  engravingView?:boolean;captureSize?:number;template:Pick<CatalogRing,'name'>;view:RingView;reset:number;captureRef:RefObject<(()=>string|undefined)|null>;onCaptureReady:(frame:SourceFrame|null)=>void;
 }){
+  const cameraFrames=useMemo(()=>engravingView?{...ring.frames,[view]:{position:[0,.75,2.4] as const,target:[0,-.72,0] as const,height:1.15}}:ring.frames,[ring.frames,view,engravingView]);
   const [rendered,setRendered]=useState<SourceFrame|null>(null),[failed,setFailed]=useState(false);
   const ready=rendered?.ring===ring&&rendered.design===design;
   const reportCapture=useCallback((available:boolean)=>onCaptureReady(available?{ring,design}:null),[onCaptureReady,ring,design]);
@@ -61,7 +64,7 @@ export function SourceRingStage({ring,design,template,view,reset,captureRef,onCa
           <JewelryLighting preset={preset}>{environment=><SourceScene ring={ring} design={design} environment={environment}
             onReady={ready?undefined:()=>setRendered(frame=>frame?.ring===ring&&frame.design===design?frame:{ring,design})}/>}</JewelryLighting>
         </Suspense>
-        <RingCamera view={view} reset={reset} frames={ring.frames}/><RingThumbnail size={captureSize} captureRef={captureRef} ready={ready&&!failed} frames={ring.frames} onCaptureReady={reportCapture}/>
+        <RingCamera view={view} reset={reset} frames={cameraFrames}/><RingThumbnail size={captureSize} captureRef={captureRef} ready={ready&&!failed} frames={ring.frames} onCaptureReady={reportCapture}/>
       </Canvas>
     </ViewerBoundary>
     {!rendered&&!failed&&<SourceLoading template={template}/>}

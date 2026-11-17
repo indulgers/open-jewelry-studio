@@ -1,3 +1,4 @@
+import {parseEngravingStyle,engravingStyleLabel,type EngravingStyle} from '../engraving/style';
 import {combinationQuote} from '../pricing';
 import {STONE_APPEARANCES,type StoneAppearance} from '../../viewer/stoneAppearance';
 import {engravingProblem} from '../ring02/engraving';
@@ -5,7 +6,7 @@ import {RING_CATALOG,type CatalogRing} from '../catalog';
 import {bandName,headName} from './parts';
 import {PAVE_DIAMETERS,PAVE_LENGTHS,describePaveGap,type PaveDiameter,type PaveLength,type PaveSummary} from './pave-options';
 
-export type ReferenceDesign={kind:'reference';center:StoneAppearance;halo:StoneAppearance;shoulder:StoneAppearance;engraving:string;headId?:string;bandId?:string;paveDiameter?:PaveDiameter;paveLength?:PaveLength};
+export type ReferenceDesign={kind:'reference';center:StoneAppearance;halo:StoneAppearance;shoulder:StoneAppearance;engraving:string;engravingStyle?:EngravingStyle;headId?:string;bandId?:string;paveDiameter?:PaveDiameter;paveLength?:PaveLength};
 export const ORIGINAL_REFERENCE:ReferenceDesign={kind:'reference',center:'diamond',halo:'diamond',shoulder:'diamond',engraving:''};
 export function parseReferenceDesign(value:unknown):ReferenceDesign|null{
   if(!value||typeof value!=='object')return null;
@@ -13,10 +14,12 @@ export function parseReferenceDesign(value:unknown):ReferenceDesign|null{
   if(v.kind!=='reference'||typeof v.engraving!=='string'||v.engraving!==v.engraving.trim()||engravingProblem(v.engraving))return null;
   if(!['center','halo','shoulder'].every(zone=>typeof v[zone]==='string'&&Object.hasOwn(STONE_APPEARANCES,v[zone] as string)))return null;
   if([v.headId,v.bandId].some(id=>id!==undefined&&!RING_CATALOG.some(ring=>ring.id===id)))return null;
+  const engravingStyle=v.engravingStyle===undefined?undefined:parseEngravingStyle(v.engravingStyle);
+  if(engravingStyle===null)return null;
   const paveDiameter=PAVE_DIAMETERS.find(diameter=>diameter===v.paveDiameter);
   const paveLength=PAVE_LENGTHS.find(length=>length===v.paveLength);
   if((v.paveDiameter!==undefined&&paveDiameter===undefined)||(v.paveLength!==undefined&&paveLength===undefined))return null;
-  return {kind:'reference',...(paveDiameter===undefined?{}:{paveDiameter}),...(paveLength===undefined?{}:{paveLength}),...(typeof v.headId==='string'?{headId:v.headId}:{}),
+  return {kind:'reference',...(engravingStyle?{engravingStyle}:{}),...(paveDiameter===undefined?{}:{paveDiameter}),...(paveLength===undefined?{}:{paveLength}),...(typeof v.headId==='string'?{headId:v.headId}:{}),
     ...(typeof v.bandId==='string'?{bandId:v.bandId}:{}),center:v.center as StoneAppearance,halo:v.halo as StoneAppearance,shoulder:v.shoulder as StoneAppearance,engraving:v.engraving};
 }
 export function referenceParts(template:CatalogRing,design:ReferenceDesign){
@@ -45,7 +48,7 @@ export function referenceDetails(template:CatalogRing,design:ReferenceDesign,pav
       {label:'同列配钻间距',value:describePaveGap(pave)},
     ]:[]),
     {label:'金属外观',value:'银色'},
-    {label:'内圈刻字',value:design.engraving||'未添加'},
+    {label:'内圈刻字',value:design.engraving?(design.engraving+' · '+engravingStyleLabel(design.engravingStyle)):'未添加'},
     {label:'实物圈号',value:'待工艺确认'},
   ];
 }

@@ -1,0 +1,7 @@
+.engraving-editor .engraving-card{margin:0 0 20px;padding:24px;background:var(--accent-soft,#f1ebdd);border:1px solid var(--line);border-radius:var(--shop-radius,12px);text-align:center}
+.engraving-editor .engraving-card blockquote{margin:18px 0;min-height:52px;font-size:clamp(22px,2.3vw,30px);line-height:1.5;overflow-wrap:anywhere;white-space:pre-wrap;color:var(--ink)}
+.engraving-card small{display:block;font-size:12px;color:var(--muted)}.engraving-card button{display:block;margin:8px auto 0;font-size:12px}
+.engraving-label{display:flex;justify-content:space-between;gap:12px;margin-bottom:10px}.engraving-label span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.engraving-suggestions{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px}.engraving-suggestions button{min-height:44px;padding:4px 8px;font-size:12px;text-decoration:underline;text-underline-offset:4px;color:var(--muted)}
+.engraving-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.engraving-options button{min-height:44px;border:1px solid var(--line);border-radius:var(--shop-radius,24px);background:var(--panel);padding:8px;font-size:13px}.engraving-options button[aria-pressed=true]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft,#f1ebdd)}
+.engraving-options button:focus-visible,.engraving-card button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.engraving-editor button:disabled{opacity:.45;cursor:default}

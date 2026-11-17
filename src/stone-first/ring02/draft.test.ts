@@ -27,7 +27,7 @@ it('restores confirmed engraving exactly on refresh',()=>{
 
 it('rejects unsupported or unconfirmed engraving in saved configurations',()=>{
   const draft=readDraft();
-  for(const engraving of ['戒指','A'.repeat(17),' A ','A\nB']){
+  for(const engraving of ['<script>','A'.repeat(17),' A ','A\nB']){
     writeDraft({...draft,design:{...draft.design,engraving}});
     expect(readDraft().design.engraving).toBe('');
   }

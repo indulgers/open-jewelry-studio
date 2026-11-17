@@ -289,7 +289,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
             aria-describedby={engravingError?'ring02-engraving-help ring02-engraving-error':'ring02-engraving-help'}
             onChange={event=>{setEngravingInput(event.target.value);setEngravingError('');}}
             onCompositionStart={()=>setComposing(true)} onCompositionEnd={()=>setComposing(false)}/>
-          <p id="ring02-engraving-help">单行，最多 {ENGRAVING_LIMIT} 个字符。支持英文字母、数字、空格和 . &amp; -</p>
+          <p id="ring02-engraving-help">单行，最多 {ENGRAVING_LIMIT} 个字符。支持中文、英文字母、数字、空格和 . &amp; -</p>
           <figure className="ring02-engraving-sample">
             <blockquote>{engravingSample}</blockquote><figcaption>内圈位置示意 · 字体与工艺待确认</figcaption>
           </figure>
