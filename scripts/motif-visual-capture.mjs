@@ -61,6 +61,34 @@ try{
   await page.locator('.motif-choices button').first().click();
   await ready3D();
   await page.locator('.motif-visual').screenshot({path:dest+'/08-clover-nacre-detail.png'});
+  // V0.4 acceptance — six independent setting grammars, not six material swatches.
+  const names=[
+    '09-carnelian-beaded-ring','10-malachite-beaded-ring','11-sunburst-engraved-ring',
+    '12-diamond-cluster-ring','13-five-petal-pave-ring','14-mirror-petal-necklace',
+  ];
+  const expected=['彩石嵌片','彩石嵌片','放射雕纹','钻石花簇','花瓣密钉','立体花瓣'];
+  for(let i=0;i<names.length;i++){
+    await page.locator('.motif-preset-card').nth(i).click();
+    await page.locator('.motif-view-tools button').filter({hasText:'45°'}).click();
+    await ready3D();
+    const spec=await page.locator('.motif-setting-spec strong').textContent();
+    if(spec!==expected[i])throw new Error('Wrong technique '+names[i]+': '+spec);
+    if(i===3||i===4){
+      const countText=await page.locator('.motif-setting-spec span').textContent();
+      if(!countText?.includes('独立镶座'))throw new Error('Missing independent gem seats: '+countText);
+    }
+    await page.screenshot({path:dest+'/'+names[i]+'.png',animations:'disabled'});
+    console.log('Recipe visual check',names[i],expected[i]);
+  }
+  // Every wearable choice is a separate geometry configuration.
+  await page.locator('.motif-preset-card').nth(4).click();
+  await page.locator('.motif-wear-styles button').filter({hasText:'分叉肩位'}).click();
+  await capture('15-split-shank-design');
+  await page.locator('.motif-wear-styles button').filter({hasText:'戒臂侧石'}).click();
+  await capture('16-pave-shoulder-design');
+  await page.locator('.motif-preset-card').nth(5).click();
+  await page.locator('.motif-wear-styles button').filter({hasText:'双侧连接'}).click();
+  await capture('17-side-attached-sculpted-necklace');
   writeFileSync(dest+'/browser-errors.json',JSON.stringify(errors,null,2));
   if(errors.length)throw new Error('Browser page errors: '+errors.join(' | '));
 } finally {
