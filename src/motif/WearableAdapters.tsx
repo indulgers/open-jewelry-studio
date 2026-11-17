@@ -46,7 +46,7 @@ export function NecklaceAdapter({color,motif,scale,explode}:Omit<Props,'diameter
   </group>;
 }
 
-function solidBand(innerDiameter:number){
+export function createRingShankGeometry(innerDiameter:number){
   const sizes=ringSizing(innerDiameter);
   const loop=new Shape();
   loop.absarc(0,0,sizes.outerRadius,0,Math.PI*2,false);
@@ -66,7 +66,7 @@ function solidBand(innerDiameter:number){
 }
 
 export function RingAdapter({color,diameter,explode}:Pick<Props,'color'|'diameter'|'explode'>){
-  const shank=useMemo(()=>solidBand(diameter),[diameter]);
+  const shank=useMemo(()=>createRingShankGeometry(diameter),[diameter]);
   const arms=useMemo(()=>ringShoulders(diameter).map(points=>new TubeGeometry(
     new CatmullRomCurve3(points.map(vec),false,'centripetal'),38,.47,12,false,
   )),[diameter]);
