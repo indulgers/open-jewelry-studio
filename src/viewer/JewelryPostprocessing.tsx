@@ -1,6 +1,6 @@
 import {useEffect,useRef} from 'react';
 import {useFrame,useThree} from '@react-three/fiber';
-import {Matrix4,Mesh} from 'three';
+import {Color,Matrix4,Mesh} from 'three';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {TAARenderPass} from 'three/addons/postprocessing/TAARenderPass.js';
@@ -12,7 +12,7 @@ import {qualitySettings,type Quality} from './quality';
 type IdlePass=TAARenderPass&{accumulateIndex:number};
 type Pipeline={composer:EffectComposer;taa:IdlePass|null;dispose:()=>void};
 
-export function JewelryPostprocessing({quality,contentKey,capturing}:{quality:Quality;contentKey:string;capturing:boolean}){
+export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackground=false}:{quality:Quality;contentKey:string;capturing:boolean;whiteBackground?:boolean}){
   const {gl,scene,camera,size,viewport,invalidate}=useThree();
   const pipeline=useRef<Pipeline|null>(null),state=useRef<RefinementState>({stableFrames:0,samples:0});
   const previous=useRef({key:'',world:new Matrix4(),projection:new Matrix4()});
@@ -21,7 +21,7 @@ export function JewelryPostprocessing({quality,contentKey,capturing}:{quality:Qu
     const pixelRatio=viewport.dpr;
     composer.setPixelRatio(pixelRatio);composer.setSize(size.width,size.height);
     const taa=capturing?new TAARenderPass(scene,camera) as IdlePass:null;
-    const scenePass=taa??new RenderPass(scene,camera);
+    const scenePass=taa??new RenderPass(scene,camera,undefined,whiteBackground?new Color(0):undefined,whiteBackground?0:undefined);
     if(taa){
       taa.sampleLevel=0;
       taa.unbiased=false;
@@ -31,20 +31,22 @@ export function JewelryPostprocessing({quality,contentKey,capturing}:{quality:Qu
     }
     const output=new OutputPass();
     // Four bilinear taps integrate isolated subpixel highlights over a small, fixed screen footprint.
-    const resolve=capturing?null:liveResolve(composer.readBuffer.width,composer.readBuffer.height);
+    const resolve=capturing?null:liveResolve(composer.readBuffer.width,composer.readBuffer.height,whiteBackground);
     composer.addPass(scenePass);composer.addPass(output);
     if(resolve)composer.addPass(resolve);
     const owned={composer,taa,dispose(){scenePass.dispose();output.dispose();resolve?.dispose();composer.dispose();}};
     pipeline.current=owned;state.current={stableFrames:0,samples:0};previous.current.key='';invalidate();
     return ()=>{pipeline.current=null;owned.dispose();};
-  },[gl,scene,camera,size.width,size.height,viewport.dpr,quality,capturing,invalidate]);
+  },[gl,scene,camera,size.width,size.height,viewport.dpr,quality,capturing,whiteBackground,invalidate]);
 
   // Priority 1 owns the final draw, after OrbitControls and contact-shadow capture.
   useFrame((_,delta)=>{
     const current=pipeline.current;
     if(!current){gl.render(scene,camera);invalidate();return;}
     if(!current.taa){
-      current.composer.render(delta);
+      const background=scene.background;
+      if(whiteBackground)scene.background=null;
+      try{current.composer.render(delta);}finally{scene.background=background;}
       gl.domElement.dataset.refinementSamples='0';
       return;
     }

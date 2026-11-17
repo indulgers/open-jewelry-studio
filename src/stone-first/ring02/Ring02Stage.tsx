@@ -3,6 +3,8 @@ import {Canvas,useThree} from '@react-three/fiber';
 import {OrbitControls} from '@react-three/drei';
 import {DoubleSide,NeutralToneMapping,OrthographicCamera,Vector3,type Texture} from 'three';
 import {JewelryLighting,clearJewelryLightingCache} from '../../viewer/JewelryLighting';
+import {JewelryPostprocessing} from '../../viewer/JewelryPostprocessing';
+import {createMountGeometry} from '../../viewer/mountGeometry';
 import {StudioFillLights} from '../../viewer/StudioFillLights';
 import {createMetalMaterial} from '../../viewer/materials';
 import {createGemOptics,syncGemDraw,type GemOpticsOptions} from '../../viewer/gemOptics';
@@ -14,7 +16,7 @@ import {BASE_DESIGN,ZONES,buildMetal,type FittedStone,type RingDesign,type prepa
 
 export const VIEWS=[['overall','整体'],['top','戒面俯视'],['side','镶座侧面'],['macro','镶嵌特写']] as const;
 export type RingView=typeof VIEWS[number][0];
-export const preset={...STUDIO_PRESETS.catalog,gemIntensity:1.18,roughness:.115};
+export const preset=STUDIO_PRESETS.catalog;
 export type RingFraming={position:readonly[number,number,number];target:readonly[number,number,number];height:number};
 const cameras={
   overall:{position:[2.2,2.5,3.6],target:[0,.235,0],height:2.48},
@@ -93,7 +95,7 @@ export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady,si
 export type PlacedGem=Pick<FittedStone,'name'|'geometry'|'appearance'|'matrix'>;
 export function GemBatch({stones,environment,studio=preset,mount}:{stones:PlacedGem[];environment:Texture;studio?:StudioPreset;mount?:GemOpticsOptions['mount']}){
   const {geometry,appearance}=stones[0];
-  const optics=useMemo(()=>createGemOptics(geometry,environment,'standard',{
+  const optics=useMemo(()=>createGemOptics(geometry,environment,'high',{
     appearance,mount,environmentOnly:!mount,environmentRotation:studio.rotation,environmentIntensity:studio.gemIntensity,dispersion:studio.dispersion,
   }),[geometry,environment,appearance,studio,mount]);
   useEffect(()=>()=>optics.dispose(),[optics]);
@@ -112,6 +114,12 @@ function RingScene({template,design,stones,onReady}:SceneProps&{onReady?:()=>voi
     return material;
   },[]);
   useEffect(()=>()=>metalMaterial.dispose(),[metalMaterial]);
+  const mountGeometry=useMemo(()=>{
+    const worldMetal=metal.map(part=>part.geometry.clone().scale(.1,.1,.1));
+    try{return createMountGeometry(worldMetal);}finally{worldMetal.forEach(geometry=>geometry.dispose());}
+  },[metal]);
+  useEffect(()=>()=>mountGeometry.dispose(),[mountGeometry]);
+  const mount=useMemo(()=>({bvh:mountGeometry.bvh,color:metalMaterial.color,roughness:preset.roughness}),[mountGeometry,metalMaterial]);
   const batches=new Map<string,FittedStone[]>();
   for(const stone of stones){
     const key=stone.geometry.uuid+'/'+stone.appearance;
@@ -122,7 +130,7 @@ function RingScene({template,design,stones,onReady}:SceneProps&{onReady?:()=>voi
 
   return <JewelryLighting preset={preset}>{environment=><group scale={.1} dispose={null}>
     {metal.map((part,index)=><mesh key={part.name} name={part.name} geometry={part.geometry} material={metalMaterial} onAfterRender={index===0?onReady:undefined}/>)}
-    {[...batches].map(([key,batch])=><GemBatch key={key} stones={batch} environment={environment}/>)}
+    {[...batches].map(([key,batch])=><GemBatch key={key} stones={batch} environment={environment} mount={mount}/>)}
   </group>}</JewelryLighting>;
 }
 
@@ -148,11 +156,12 @@ export function Ring02Stage({view,reset,design,captureRef,...scene}:SceneProps&{
   }
   return <div className="stone-first-canvas ring02-canvas" aria-label="戒指 02 三维预览">
     <ViewerBoundary onRetry={retry} onError={()=>setFailed(true)} errorDetail={errorDetail}>
-      <Canvas orthographic camera={{position:[2.2,2.5,3.6],near:.03,far:30}} dpr={[1,1.5]} frameloop="demand"
+      <Canvas orthographic camera={{position:[2.2,2.5,3.6],near:.03,far:30}} dpr={[1,2]} frameloop="demand"
         gl={{antialias:true,preserveDrawingBuffer:true}} onCreated={({gl})=>{gl.toneMapping=NeutralToneMapping;}}>
         <color attach="background" args={['#ffffff']}/>
         <StudioFillLights neutral/>
         <Suspense fallback={null}><RingScene {...scene} design={design} onReady={ready?undefined:()=>setReady(true)}/></Suspense>
+        <JewelryPostprocessing quality="high" capturing={false} whiteBackground contentKey="precision-ring"/>
         <RingCamera view={view} reset={reset}/>
         <RingThumbnail captureRef={captureRef} ready={ready&&!failed}/>
       </Canvas>

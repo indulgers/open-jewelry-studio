@@ -3,6 +3,7 @@ import {Suspense,useCallback,useEffect,useMemo,useState,type RefObject} from 're
 import {Canvas} from '@react-three/fiber';
 import {DoubleSide,NeutralToneMapping,type Texture} from 'three';
 import {JewelryLighting,clearJewelryLightingCache} from '../../viewer/JewelryLighting';
+import {JewelryPostprocessing} from '../../viewer/JewelryPostprocessing';
 import {StudioFillLights} from '../../viewer/StudioFillLights';
 import {ViewerBoundary} from '../../viewer/ViewerBoundary';
 import {createMetalMaterial} from '../../viewer/materials';
@@ -46,7 +47,7 @@ function SourceScene({ring,design,environment,onReady}:SourceFrame&{environment:
       frustumCulled={index!==0||!onReady} onAfterRender={index===0&&onReady?onReady:ignoreRender}/>)}
     {design.engraving&&<EngravingOverlay parts={ring.metal} text={design.engraving} style={design.engravingStyle}/>}
     {batches.map(([key,stones])=><GemBatch key={key} environment={environment} stones={stones}
-      studio={preset} mount={key.startsWith('center/')?mount:undefined}/>)}
+      studio={preset} mount={mount}/>)}
   </group>;
 }
 export function SourceRingStage({ring,design,template,view,reset,captureRef,onCaptureReady,captureSize,engravingView=false}:SourceFrame&{
@@ -58,12 +59,13 @@ export function SourceRingStage({ring,design,template,view,reset,captureRef,onCa
   const reportCapture=useCallback((available:boolean)=>onCaptureReady(available?{ring,design}:null),[onCaptureReady,ring,design]);
   return <div className="stone-first-canvas ring02-canvas source-ring-canvas" aria-label={template.name+'三维预览'}>
     <ViewerBoundary onError={()=>setFailed(true)} onRetry={()=>{clearJewelryLightingCache();setRendered(null);setFailed(false);}} errorDetail={<p>配置已保留。请重试加载以恢复三维预览。</p>}>
-      <Canvas orthographic camera={{position:[2.2,2.5,3.6],near:.03,far:30}} dpr={[1,1.5]} frameloop="demand" gl={{antialias:true,preserveDrawingBuffer:true}} onCreated={({gl})=>{gl.toneMapping=NeutralToneMapping;}}>
+      <Canvas orthographic camera={{position:[2.2,2.5,3.6],near:.03,far:30}} dpr={[1,2]} frameloop="demand" gl={{antialias:true,preserveDrawingBuffer:true}} onCreated={({gl})=>{gl.toneMapping=NeutralToneMapping;}}>
         <color attach="background" args={['#fff']}/><StudioFillLights neutral/>
         <Suspense fallback={null}>
           <JewelryLighting preset={preset}>{environment=><SourceScene ring={ring} design={design} environment={environment}
             onReady={ready?undefined:()=>setRendered(frame=>frame?.ring===ring&&frame.design===design?frame:{ring,design})}/>}</JewelryLighting>
         </Suspense>
+        <JewelryPostprocessing quality="high" capturing={false} whiteBackground contentKey="source-ring"/>
         <RingCamera view={view} reset={reset} frames={cameraFrames}/><RingThumbnail size={captureSize} captureRef={captureRef} ready={ready&&!failed} frames={ring.frames} onCaptureReady={reportCapture}/>
       </Canvas>
     </ViewerBoundary>
