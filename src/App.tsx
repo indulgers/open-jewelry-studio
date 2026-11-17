@@ -27,6 +27,7 @@ const Ring02Studio=lazy(()=>loadRing02().then(module=>({default:module.Ring02Stu
 const PublishedTemplateStudio=lazy(()=>import('./stone-first/reference/ManagedTemplateStudio'));
 const SourceRingStudio=lazy(()=>import('./stone-first/reference/SourceRingStudio').then(module=>({default:module.SourceRingStudio})));
 const StoneFirstStudio=lazy(()=>import('./stone-first/StoneFirstStudio').then(module=>({default:module.StoneFirstStudio})));
+const MotifCaseStudio=lazy(()=>import('./motif/MotifCaseStudio'));
 
 function JewelryStudio({active}:{active:boolean}){
   const [configuration,dispatch]=useReducer(configurationReducer,DEFAULT_CONFIGURATION);
@@ -117,7 +118,7 @@ function JewelryStudio({active}:{active:boolean}){
   </div>;
 }
 
-type StudioRoute={tab:'showroom'|'modules'}|{tab:'stonefirst';page:'catalog'|'cart'|'ring02'|'recipes'|'reference'|'published';templateId?:string;revision?:string;section?:'collection'|'story'};
+type StudioRoute={tab:'showroom'|'modules'|'motif'}|{tab:'stonefirst';page:'catalog'|'cart'|'ring02'|'recipes'|'reference'|'published';templateId?:string;revision?:string;section?:'collection'|'story'};
 function readRoute():StudioRoute{
   const hash=window.location.hash;
   switch(hash){
@@ -133,6 +134,7 @@ function readRoute():StudioRoute{
   const reference=RING_CATALOG.find(template=>template.editor===hash);
   if(reference)return {tab:'stonefirst',page:'reference',templateId:reference.id};
   if(hash.startsWith('#/stonefirst'))return {tab:'stonefirst',page:'recipes'};
+  if(hash.startsWith('#/motif-case'))return {tab:'motif'};
   if(hash.startsWith('#/modules'))return {tab:'modules'};
   if(hash.startsWith('#/showroom'))return {tab:'showroom'};
   return {tab:'stonefirst',page:'catalog'};
@@ -158,6 +160,7 @@ export default function App(){
     <ShopHeader page={route.tab==='stonefirst'&&route.section==='collection'?'collection':diyPage}/>
     <section id="panel-showroom" aria-label="珠宝展台" hidden={tab!=='showroom'}><JewelryStudio active={tab==='showroom'}/></section>
     <section id="panel-modules" aria-label="模组 DIY" hidden={tab!=='modules'}>{modulesVisited&&<ModuleStudio active={tab==='modules'}/>}</section>
+    <section id="panel-motif" aria-label="四叶草结构研究" hidden={tab!=='motif'}>{tab==='motif'&&<Suspense fallback={<p role="status">正在准备结构拆解工作台…</p>}><MotifCaseStudio/></Suspense>}</section>
     <section id="panel-stonefirst" aria-label="戒指定制" hidden={tab!=='stonefirst'}>{tab==='stonefirst'&&(diyPage==='catalog'?<DiyHome section={route.section}/>:diyPage==='cart'?<DiyCart/>:<Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='ring02'?<Ring02Studio/>:diyPage==='reference'?<SourceRingStudio key={route.templateId} templateId={route.templateId!}/>:diyPage==='published'?<PublishedTemplateStudio key={route.revision} id={route.templateId!} revision={route.revision!}/>:<StoneFirstStudio/>}</Suspense>)}</section>
   </div>;
 }

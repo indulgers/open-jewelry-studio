@@ -22,7 +22,10 @@ jobs:
       - run: npm run build:public
       - name: Verify public assets
         run: |
-          test -f dist/models/atelier/ring-02/ring-v1.glb
+          test -f dist/index.html
+          # Public builds intentionally omit private production models and media (served via R2).
+          test ! -e dist/models
+          test ! -e dist/media
           test ! -e dist/models/webgi
           test ! -e dist/models/reference
           test ! -e dist/environments/reference
