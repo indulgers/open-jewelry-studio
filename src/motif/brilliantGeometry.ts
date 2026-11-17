@@ -19,7 +19,7 @@ export function createSmallBrilliantGeometry(segments=16){
   const culet:P=[0,0,.045];
   const cap:P=[0,0,1.34];
   const points:number[]=[],colors:number[]=[];
-  const tones=['#eff9ff','#cadeed','#f9feff','#b8d2e9','#e4f3fd','#d6e8f6'];
+  const tones=['#f9feff','#7f9fb8','#d8eaf5','#ffffff','#a4c3db','#e8f5ff'];
   const palette=tones.map(t=>new Color(t));
   const tri=(a:P,b:P,c:P,tone:number)=>{
     points.push(...a,...b,...c);
