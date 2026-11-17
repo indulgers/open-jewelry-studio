@@ -53,7 +53,7 @@ export function RingAdapter({color,diameter,explode,fusedGeometry}:Pick<Props,'c
   const arms=useMemo(()=>ringShoulders(diameter).map(points=>new TubeGeometry(
     new CatmullRomCurve3(points.map(vec),false,'centripetal'),44,.44,16,false,
   )),[diameter]);
-  const material=useMemo(()=>polishedGoldLikeMaterial(color,.155),[color]);
+  const material=useMemo(()=>polishedGoldLikeMaterial(color,.255),[color]);
   useEffect(()=>()=>{shank.dispose();arms.forEach(a=>a.dispose());material.dispose();},[shank,arms,material]);
   return <group name="04-ring-shank-and-shoulders" position-y={-explode*.5}>
     {fusedGeometry?<mesh name="manifold-fused-ring-metal" geometry={fusedGeometry}
