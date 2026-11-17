@@ -50,6 +50,15 @@ export const PRESETS:readonly DesignPreset[]=[
   {id:'pave-flower',name:'花瓣·满钻',short:'花形密钉',technique:'pave',motif:'flower',product:'ring',metal:'rose',inlay:'pearl',edge:'smooth',shank:'split',necklaceMount:'bail',centerStone:true,note:'五瓣花的曲面铺钻，与分叉肩位形成呼应'},
   {id:'mirror-flower',name:'金属·立体花瓣',short:'雕塑花卉',technique:'sculpted',motif:'flower',product:'necklace',metal:'yellow',inlay:'pearl',edge:'none',shank:'classic',necklaceMount:'bail',centerStone:true,note:'利用曲面金属与单颗中心钻构成低复杂度优雅造型'},
 ];
+/** Pave/cluster layouts are validated only at >= 15mm. Smaller scaling shrinks
+ * their displayed metal edge allowance beneath the GIA-inspired 0.50mm target. */
+export function minimumMotifSize(technique:Technique):number{
+  return technique==='pave'||technique==='cluster'?15:11;
+}
+export function normalizeMotifSize(technique:Technique,requested:number):number{
+  if(!Number.isFinite(requested))return minimumMotifSize(technique);
+  return Math.min(20,Math.max(minimumMotifSize(technique),Math.round(requested)));
+}
 export function allowedTechniques(motif:MotifId):readonly Technique[]{return ALLOWED_TECHNIQUES[motif];}
 export function compatibleTechnique(motif:MotifId,requested:Technique):Technique{
   return ALLOWED_TECHNIQUES[motif].includes(requested)?requested:'inlay';
