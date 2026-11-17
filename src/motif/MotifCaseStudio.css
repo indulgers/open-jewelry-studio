@@ -35,3 +35,38 @@
 .motif-fusion-metrics{display:grid;grid-template-columns:1fr;gap:5px;margin-top:10px;padding:9px 10px;background:#fffefa;border:1px solid #e6e4d7;border-radius:6px}
 .motif-fusion-metrics span{display:flex;justify-content:space-between;gap:5px;font-size:10px;color:#7d8178}
 .motif-fusion-metrics strong{font-size:11px;color:#34453b;white-space:nowrap}
+
+/* V0.4 product grammar: product designer can see independent choices instead of a single asset switch. */
+.motif-techniques{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.motif-techniques button{border:1px solid #dcd9d0;text-align:left;padding:11px 10px;border-radius:8px;min-height:64px;background:#fffefa;transition:all .16s}
+.motif-techniques button strong{display:block;font:600 12px/1.4 -apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;color:#444e42}
+.motif-techniques button small{display:block;font-size:10px;line-height:1.55;color:#99978b;margin-top:3px}
+.motif-techniques button[aria-pressed=true]{border-color:#526c56;background:#edf2ea;box-shadow:inset 0 0 0 1px #526c56}
+.motif-techniques button:disabled{opacity:.42;cursor:not-allowed;background:#f8f8f5}
+.motif-technique-caption{font-size:10px;line-height:1.65;color:#858678;margin:9px 0 0}
+.motif-preset-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.motif-preset-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:1px solid #e3e0d8;background:#fff;border-radius:9px;overflow:hidden;padding:0 0 10px;min-width:0}
+.motif-preset-icon{width:100%;height:66px;display:grid;place-items:center;margin-bottom:9px;border-bottom:1px solid #ece8df;background:radial-gradient(circle,#e4d0ad,#fbf8f1 70%)}
+.motif-preset-icon .motif-thumb{width:47px;height:47px;stroke:none;fill:#a67831;filter:drop-shadow(0 3px 2px #c18e4f40);opacity:.95}
+.motif-preset-card strong{font-size:11px;font-weight:650;color:#383b31;margin:0 9px;line-height:1.35}
+.motif-preset-card small{font-size:10px;color:#999589;margin:3px 9px 0}
+.motif-preset-card[aria-pressed=true]{border-color:#607967;box-shadow:inset 0 0 0 1px #607967;background:#f7faf5}
+.motif-preset-carnelian{background:radial-gradient(circle at 44% 34%,#b03b25,#6c1f14 42%,#fcf3df 80%)}
+.motif-preset-malachite{background:repeating-linear-gradient(117deg,#143b2c 0,#246444 7px,#387b58 11px,#123e2d 17px,#ebdfb0 50px)}
+.motif-preset-malachite .motif-thumb,.motif-preset-carnelian .motif-thumb{fill:#f1c679}
+.motif-preset-sunburst{background:repeating-conic-gradient(from 15deg at 50% 52%,#f6dda4 0 5deg,#cda25d 5deg 6deg,#f3dbb6 6deg 12deg)}
+.motif-preset-diamond-cluster{background:radial-gradient(circle,#eef3f9,#aec1cd 38%,#f8faf9 85%)}
+.motif-preset-diamond-cluster .motif-thumb{fill:#7a9aaf}
+.motif-preset-pave-flower{background:radial-gradient(circle,#efd9cb,#c99386 50%,#fbf7f4)}
+.motif-preset-mirror-flower{background:radial-gradient(circle,#f7e6ac,#d7ac64 40%,#f7f1db)}
+.motif-wear-styles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.motif-wear-styles button{border:1px solid #e1ddd3;border-radius:7px;background:#fff;padding:11px 9px;text-align:left;min-height:50px}
+.motif-wear-styles button strong{display:block;font-size:11px;color:#51584e}
+.motif-wear-styles button small{display:block;margin-top:3px;font-size:9px;color:#94978e;line-height:1.45}
+.motif-wear-styles button[aria-pressed=true]{background:#ecf1e9;border-color:#667965}
+.motif-setting-spec{border:1px solid #e4dfd2;background:#f9f8f2;padding:12px 14px;border-radius:8px;margin:14px 0}
+.motif-setting-spec strong{display:block;font:600 13px/1.5 -apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;color:#48584a}
+.motif-setting-spec span{font-size:11px;line-height:1.6;color:#686b63;display:block;margin:5px 0}
+.motif-setting-spec small{font-size:9px;line-height:1.6;color:#a08d74;display:block}
+.motif-edge-row button:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:760px){.motif-techniques{grid-template-columns:repeat(2,1fr)}.motif-preset-grid{grid-template-columns:repeat(3,1fr)}.motif-preset-icon{height:60px}.motif-wear-styles{grid-template-columns:repeat(2,1fr)}}
