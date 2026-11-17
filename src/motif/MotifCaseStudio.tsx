@@ -14,6 +14,9 @@ import {createNacreTextureSet} from './nacreMaterials';
 import {createSmallBrilliantGeometry} from './brilliantGeometry';
 import {metalAppearanceProps,DISPLAY_ALLOYS} from './metalMaterials';
 import {comfortFitDiagnostics} from './comfortFitGeometry';
+import {DesignedSurface,summarizeGemSetting} from './DesignedSurface';
+import {PRESETS,TECHNIQUES,allowedTechniques,compatibleTechnique,settingPlan,
+  type Technique,type ShankStyle,type NecklaceMount,type DesignPreset} from './designGrammar';
 import type {MetalFusionResult} from './motifMetalFusion';
 import type {BufferGeometry} from 'three';
 import './MotifCaseStudio.css';
@@ -21,11 +24,11 @@ import './MotifCaseStudio.css';
 type MotifId = keyof typeof profiles;
 type Product = 'necklace' | 'ring';
 type Metal = 'yellow' | 'rose' | 'silver';
-type Inlay = 'pearl' | 'onyx' | 'malachite' | 'lapis';
+type Inlay = 'pearl' | 'onyx' | 'malachite' | 'lapis' | 'carnelian';
 type Edge = 'double' | 'smooth' | 'none';
 type Part = 'all' | 'plate' | 'inlay' | 'edge' | 'adapter';
 type View = 'angle' | 'front' | 'side' | 'fit';
-type Settings = {product:Product;motif:MotifId;metal:Metal;inlay:Inlay;edge:Edge;size:number;ringDiameter:number;centerStone:boolean;explode:number;part:Part};
+type Settings = {product:Product;motif:MotifId;metal:Metal;inlay:Inlay;edge:Edge;size:number;ringDiameter:number;centerStone:boolean;technique:Technique;shank:ShankStyle;necklaceMount:NecklaceMount;explode:number;part:Part};
 
 const MOTIFS: {id:MotifId; name:string;source:string}[] = [
   {id:'clover',name:'四叶草',source:'四叶草.obj'},
@@ -46,11 +49,12 @@ const INLAYS: Record<Inlay,{name:string;color:string;roughness:number;metalness:
   onyx:{name:'黑玛瑙效果',color:'#171d23',roughness:.16,metalness:.03},
   malachite:{name:'孔雀石效果',color:'#176a59',roughness:.25,metalness:.03},
   lapis:{name:'青金石效果',color:'#294f91',roughness:.24,metalness:.03},
+  carnelian:{name:'红玉髓效果',color:'#9c261c',roughness:.20,metalness:.03},
 };
-const INIT:Settings = {product:'necklace',motif:'clover',metal:'yellow',inlay:'pearl',edge:'double',size:15,ringDiameter:18,centerStone:true,explode:0,part:'all'};
+const INIT:Settings = {product:'necklace',motif:'clover',metal:'yellow',inlay:'pearl',edge:'double',size:15,ringDiameter:18,centerStone:true,technique:'inlay',shank:'classic',necklaceMount:'side',explode:0,part:'all'};
 const PARTS:{id:Exclude<Part,'all'>;no:string;name:string;description:string}[] = [
   {id:'plate',no:'01',name:'金属底托',description:'轮廓匹配的基座与结构层'},
-  {id:'inlay',no:'02',name:'造型嵌片',description:'保留原 OBJ 三维表面'},
+  {id:'inlay',no:'02',name:'主题镶面',description:'原 OBJ 嵌片 / 立体花瓣 / 密钉钻石'},
   {id:'edge',no:'03',name:'金珠包边',description:'独立环绕轮廓的珠粒与边线'},
   {id:'adapter',no:'04',name:'佩戴与连接结构',description:'交错链节 / 连续戒臂与两侧肩部'},
 ];
@@ -192,14 +196,16 @@ function Assembly({config,rootRef,onReady,fusedMetal}:{config:Settings;rootRef:R
       rotation={ring?[-Math.PI/2,0,0]:[0,0,0]}>
       {showPart(config.part,'plate')&&<group position-z={-config.explode*2.3}><Plate id={config.motif} color={color}/></group>}
       {showPart(config.part,'inlay')&&<group position-z={config.explode*1.6}>
-        <InlayObject id={config.motif} appearance={config.inlay}/>
-        {ring&&config.motif==='clover'&&config.centerStone&&<CenterStone metal={color}/>}
+        {config.technique==='inlay'
+          ?<InlayObject id={config.motif} appearance={config.inlay}/>
+          :<DesignedSurface motif={config.motif} technique={config.technique} metal={color} centerStone={config.centerStone}/>}
+        {config.centerStone&&config.technique!=='cluster'&&<CenterStone metal={color}/>}
       </group>}
       {showPart(config.part,'edge')&&<group position-z={config.explode*.65}><Rim id={config.motif} color={color} edge={config.edge}/></group>}
     </group>
     {showPart(config.part,'adapter')&&(ring
-      ?<RingAdapter color={color} diameter={config.ringDiameter} explode={config.explode} fusedGeometry={fusedMetal}/>
-      :<NecklaceAdapter color={color} motif={config.motif} scale={scale} explode={config.explode}/>)}
+      ?<RingAdapter color={color} diameter={config.ringDiameter} explode={config.explode} shank={config.shank} fusedGeometry={config.shank==='classic'?fusedMetal:null}/>
+      :<NecklaceAdapter color={color} motif={config.motif} scale={scale} explode={config.explode} mount={config.necklaceMount}/>)}
   </group>;
 }
 function ViewRig({view,product}:{view:View;product:Product}){
@@ -251,13 +257,31 @@ export function MotifCaseStudio(){
   const rootRef=useRef<Group>(null);
   const rendererRef=useRef<WebGLRenderer>(null);
   const update=<K extends keyof Settings>(key:K,value:Settings[K])=>setConfig(old=>({...old,[key]:value}));
+  const chooseMotif=(motif:MotifId)=>{
+    setConfig(old=>{
+      const technique=compatibleTechnique(motif,old.technique);
+      return {...old,motif,technique,edge:technique==='inlay'&&old.edge==='none'?'double':old.edge};
+    });setReady(false);
+  };
+  const chooseTechnique=(technique:Technique)=>{
+    if(!allowedTechniques(config.motif).includes(technique))return;
+    setConfig(old=>({...old,technique,edge:technique==='inlay'||technique==='guilloche'?'double':'none'}));
+    setStatus('');
+  };
+  const choosePreset=(preset:DesignPreset)=>{
+    setConfig(old=>({...old,product:preset.product,motif:preset.motif,technique:preset.technique,
+      metal:preset.metal,inlay:preset.inlay,edge:preset.edge,shank:preset.shank,
+      necklaceMount:preset.necklaceMount,centerStone:preset.centerStone,explode:0,part:'all'}));
+    setView('angle');setReady(false);setStatus('已应用原创构型方案：'+preset.name);
+  };
   const screenMetal=async()=>{
     if(config.product!=='ring'||busy)return;
+    if(config.shank!=='classic'){setStatus('目前仅“经典素圈”完成 Manifold 初筛。分叉戒臂和侧石戒臂需要专用金属布尔与镶座校验。');return;}
     setBusy(true);setStatus('正在进行封闭金属实体布尔并集与连通性检查…');
     try{
       const {fuseWearableRing}=await import('./motifMetalFusion');
       const result=await fuseWearableRing(config.ringDiameter);
-      if(result.report.status==='fused'&&result.report.closedTriangleSurface){
+      if(result.report.status==='fused'&&result.report.closedTriangleSurface&&result.report.fingerAxisClear){
         setFusion({diameter:config.ringDiameter,result});
         setStatus('金属布尔初筛通过：'+result.report.connectedComponents+' 个连通体，'+result.report.triangles+' 个三角面。仍非制造认证。');
       }else{
@@ -269,14 +293,15 @@ export function MotifCaseStudio(){
     }finally{setBusy(false);}
   };
   const downloadRecipe=()=>{
-    const recipe={schema:'xiangyan.motif-case/0.1',reference:'Vintage Alhambra structural study (not a production replica)',
+    const recipe={schema:'xiangyan.design-grammar/0.2',reference:'Structural jewelry research; independent original design recipes',
       units:'mm',settings:config,source:profiles[config.motif].src,
       parts:PARTS.map(p=>({code:p.no,name:p.name,independent:true})),
       productionStatus:'VISUAL_PROTOTYPE_ONLY',ring:config.product==='ring'?ringSizing(config.ringDiameter):null,
       geometryScreening:config.product==='ring'?comfortFitDiagnostics(config.ringDiameter):null,
-      metalFusion:config.product==='ring'&&fusion?.diameter===config.ringDiameter?fusion.result.report:null,
-      chain:{referenceLengthCm:42,representation:'visible articulated segment only'},
-      notes:['OBJ source is unitless and normalized to 15 mm by visual span','The shank has a continuous geometric bore, but fit and manufacture have not been certified','No casting tolerances, inlay retention, or Boolean union validated']};
+      gemstoneSetting:summarizeGemSetting(config.motif,config.technique,config.centerStone),
+      metalFusion:config.product==='ring'&&config.shank==='classic'&&fusion?.diameter===config.ringDiameter?fusion.result.report:null,
+      chain:{referenceLengthCm:42,mount:config.necklaceMount,representation:'visible articulated segment only'},
+      notes:['OBJ source is unitless and normalized to 15 mm by visual span','The shank has a continuous geometric bore, but fit and manufacture have not been certified','Manufacturing validation is technique-specific; painted or pavé stone seats are not certified']};
     download(new Blob([JSON.stringify(recipe,null,2)],{type:'application/json'}),'xiangyan-motif-recipe.json');setStatus('已导出参数化设计记录');
   };
   const exportGlb=async()=>{
@@ -299,46 +324,82 @@ export function MotifCaseStudio(){
   return <div className="motif-lab">
     <div className="motif-lab-heading">
       <div><p className="motif-kicker">XIANGYAN / DESIGN SYSTEM 001</p><h1>从一枚四叶草，拆解一套珠宝语言。</h1>
-        <p className="motif-heading-sub">经典四叶草结构研究 · 可替换主题 × 可组装结构 × 实时三维预览</p></div>
-      <span className="motif-build-tag">内部案例 · 材质与结构 V0.3</span>
+        <p className="motif-heading-sub">6 组工艺构型灵感 · 7 种源模组 · 镶嵌 × 戒臂 × 项链连接 · 实时 3D</p></div>
+      <span className="motif-build-tag">内部案例 · 珠宝构型 V0.4</span>
     </div>
     <div className="motif-workspace">
       <aside className="motif-controls" aria-label="DIY 配置面板">
         <div className="motif-section-caption"><span>01</span> 选择产品</div>
         <div className="motif-product-toggle" role="group" aria-label="产品类型">
-          <button type="button" aria-pressed={config.product==='necklace'} onClick={()=>update('product','necklace')}>◌ <span>项链</span></button>
-          <button type="button" aria-pressed={config.product==='ring'} onClick={()=>update('product','ring')}>◎ <span>戒指</span></button>
+          <button type="button" aria-pressed={config.product==='necklace'} onClick={()=>{update('product','necklace');setView('angle')}}>◌ <span>项链</span></button>
+          <button type="button" aria-pressed={config.product==='ring'} onClick={()=>{update('product','ring');setView('angle')}}>◎ <span>戒指</span></button>
         </div>
         <div className="motif-section-caption"><span>02</span> 选择造型 <small>源自上传 OBJ</small></div>
         <div className="motif-choices">{MOTIFS.map(m=><button key={m.id} type="button" aria-pressed={config.motif===m.id}
-          onClick={()=>{update('motif',m.id);setReady(false);}}><MotifThumbnail id={m.id}/><span>{m.name}</span></button>)}</div>
-        <div className="motif-section-caption"><span>03</span> 材料与工艺</div>
+          onClick={()=>chooseMotif(m.id)}><MotifThumbnail id={m.id}/><span>{m.name}</span></button>)}</div>
+        <div className="motif-section-caption"><span>03</span> 艺术构型 <small>基于首饰结构研究</small></div>
+        <div className="motif-techniques" role="group" aria-label="工艺构型">
+          {(Object.keys(TECHNIQUES) as Technique[]).map(t=>{
+            const permitted=allowedTechniques(config.motif).includes(t);
+            return <button key={t} type="button" disabled={!permitted} aria-pressed={config.technique===t}
+              title={!permitted?'此造型不适合该构型':TECHNIQUES[t].description}
+              onClick={()=>chooseTechnique(t)}>
+                <strong>{TECHNIQUES[t].name}</strong><small>{permitted?TECHNIQUES[t].description:TECHNIQUES[t].requires}</small>
+              </button>;
+          })}
+        </div>
+        <p className="motif-technique-caption">{TECHNIQUES[config.technique].description}。不同工艺会生成不同的真实三维组件。</p>
+        <div className="motif-section-caption"><span>04</span> 六组组合灵感 <small>点击应用完整方案</small></div>
+        <div className="motif-preset-grid">{PRESETS.map(p=><button key={p.id} type="button" className="motif-preset-card"
+          aria-pressed={config.motif===p.motif&&config.technique===p.technique&&config.inlay===p.inlay&&config.metal===p.metal}
+          onClick={()=>choosePreset(p)}>
+            <span className={'motif-preset-icon motif-preset-'+p.id} aria-hidden="true">
+              <MotifThumbnail id={p.motif}/></span>
+            <strong>{p.name}</strong><small>{p.short}</small>
+          </button>)}</div>
+        <div className="motif-section-caption"><span>05</span> 材料与边框</div>
         <p className="motif-label">金属外观 <span>{METALS[config.metal].name}</span></p>
         <div className="motif-color-row" role="group" aria-label="金属外观">{(Object.keys(METALS) as Metal[]).map(k=><button key={k} title={METALS[k].name} type="button" aria-label={METALS[k].name} aria-pressed={config.metal===k}
           onClick={()=>update('metal',k)}><span style={{background:METALS[k].color}}/></button>)}</div>
-        <p className="motif-label">嵌片效果 <span>{INLAYS[config.inlay].name}</span></p>
-        <div className="motif-inlay-options">{(Object.keys(INLAYS) as Inlay[]).map(k=><button key={k} type="button" aria-pressed={config.inlay===k} onClick={()=>update('inlay',k)}>
-          <span style={{background:INLAYS[k].color}}/>{INLAYS[k].name}</button>)}</div>
-        {config.product==='ring'&&config.motif==='clover'&&<label className="motif-center-toggle"><input type="checkbox" checked={config.centerStone} onChange={e=>update('centerStone',e.target.checked)}/>
+        {config.technique==='inlay'&&<>
+          <p className="motif-label">嵌片材质 <span>{INLAYS[config.inlay].name}</span></p>
+          <div className="motif-inlay-options">{(Object.keys(INLAYS) as Inlay[]).map(k=><button key={k} type="button"
+            aria-pressed={config.inlay===k} onClick={()=>update('inlay',k)}>
+            <span style={{background:INLAYS[k].color}}/>{INLAYS[k].name}</button>)}</div>
+        </>}
+        {config.technique!=='cluster'&&<label className="motif-center-toggle"><input type="checkbox" checked={config.centerStone} onChange={e=>update('centerStone',e.target.checked)}/>
           <span>中央小钻 <small>独立爪镶视觉结构，可关闭</small></span></label>}
-        <p className="motif-label">包边样式</p>
+        <p className="motif-label">主题边框 <span>依工艺选择</span></p>
         <div className="motif-edge-row" role="group" aria-label="包边样式">
-          {([['double','双排金珠'],['smooth','光面包边'],['none','不加包边']] as const).map(([k,v])=><button type="button" key={k} aria-pressed={config.edge===k} onClick={()=>update('edge',k)}>{v}</button>)}
+          {([['double','双排金珠'],['smooth','光面包边'],['none','不加包边']] as const).map(([k,v])=><button type="button" key={k} aria-pressed={config.edge===k} disabled={config.technique==='inlay'&&k==='none'}
+            onClick={()=>update('edge',k)}>{v}</button>)}
         </div>
-        <div className="motif-section-caption"><span>04</span> 尺寸参数</div>
+        <div className="motif-section-caption"><span>06</span> 佩戴结构</div>
+        {config.product==='ring'
+          ?<div className="motif-wear-styles" role="group" aria-label="戒臂构型">{([
+              ['classic','经典素圈','连续舒适型戒臂'],['split','分叉肩位','双层金属曲线'],['pave','戒臂侧石','两侧小钻镶座']
+            ] as const).map(([id,name,note])=><button key={id} type="button" aria-pressed={config.shank===id}
+              onClick={()=>update('shank',id)}><strong>{name}</strong><small>{note}</small></button>)}</div>
+          :<div className="motif-wear-styles" role="group" aria-label="项链连接方式">{([
+              ['side','双侧连接','两侧链环固定'],['bail','顶部吊环','单点顶部挂耳']
+            ] as const).map(([id,name,note])=><button key={id} type="button" aria-pressed={config.necklaceMount===id}
+              onClick={()=>update('necklaceMount',id)}><strong>{name}</strong><small>{note}</small></button>)}</div>}
+        <div className="motif-section-caption"><span>07</span> 尺寸参数</div>
         <label className="motif-range-label">主题直径 <strong>{config.size} mm</strong><input type="range" min="11" max="20" step="1" value={config.size} onChange={e=>update('size',Number(e.target.value))}/></label>
         {config.product==='ring'&&<label className="motif-range-label">戒指内径（名义） <strong>{config.ringDiameter} mm</strong><input type="range" min="16" max="21" step=".5" value={config.ringDiameter} onChange={e=>update('ringDiameter',Number(e.target.value))}/></label>}
         <div className="motif-wear-check" role="status">
-          <strong>{config.product==='ring'?'贯通戒臂 · 名义指孔':'交错椭圆链节 · 双侧连接环'}</strong>
+          <strong>{config.product==='ring'?'贯通指孔 · '+({classic:'经典素圈',split:'分叉肩位',pave:'戒臂侧石'}[config.shank]):'交错椭圆链节 · '+(config.necklaceMount==='side'?'双侧':'顶部')+'连接'}</strong>
           <p>{config.product==='ring'
             ?'内径 '+config.ringDiameter+' mm，保守几何孔径下限 '+checkRingNominalClearance(config.ringDiameter).conservativeMinimum.toFixed(2)+' mm。可在「指孔」视角检查；尚未做实际佩戴与生产公差认证。'
-            :'每侧为独立可辨认的交错链节，不再用直杆替代。画面仅展示 42 cm 项链的局部链段。'}</p>
+            :'可辨认的独立链节通过'+(config.necklaceMount==='side'?'两侧连接环':'顶部吊环')+'进入主题模组。画面只展示链条局部。'}</p>
         </div>
       </aside>
       <main className="motif-visual" aria-label="实时三维结构预览">
-        <div className="motif-preview-title"><span>INTERACTIVE 3D / LIVE ASSEMBLY</span><h2>{label(config.motif)} <em>·</em> {config.product==='necklace'?'悬挂项链':'镶饰戒指'}</h2><p>拖动旋转、滚轮缩放，实时观察各独立结构的组合</p></div>
+        <div className="motif-preview-title"><span>INTERACTIVE 3D / LIVE ASSEMBLY</span>
+          <h2>{label(config.motif)} <em>·</em> {config.product==='necklace'?'悬挂项链':'镶饰戒指'}</h2>
+          <p>{TECHNIQUES[config.technique].name} / {config.product==='ring'?({classic:'经典素圈',split:'分叉肩位',pave:'戒臂侧石'}[config.shank]):config.necklaceMount==='side'?'双侧链环':'顶部吊环'} · 拖动旋转查看装配</p></div>
         <ModelPreview config={config} view={view} rootRef={rootRef} rendererRef={rendererRef} ready={setReady}
-          fusedMetal={fusion?.diameter===config.ringDiameter?fusion.result.geometry:null}/>
+          fusedMetal={config.shank==='classic'&&fusion?.diameter===config.ringDiameter?fusion.result.geometry:null}/>
         {!ready&&<p className="motif-loader" role="status">正在装配 3D 模组…</p>}
         <div className="motif-view-tools" role="group" aria-label="三维视角">
           {([['angle','45°'],['front','正面'],['side','侧面'],...(config.product==='ring'?[['fit','指孔'] as const]:[])] as const).map(([k,v])=><button type="button" key={k} aria-pressed={view===k} onClick={()=>setView(k)}>{v}</button>)}
@@ -347,6 +408,15 @@ export function MotifCaseStudio(){
       </main>
       <aside className="motif-anatomy" aria-label="结构拆解与输出">
         <div className="motif-anatomy-head"><p className="motif-kicker">STRUCTURE / 结构</p><h2>拆开来看。</h2><p>点击一个零件单独查看它与整体的关系。</p></div>
+        <div className="motif-setting-spec">
+          <strong>{TECHNIQUES[config.technique].name}</strong>
+          <span>{config.technique==='pave'||config.technique==='cluster'
+            ?'视觉布石 '+settingPlan(config.motif,config.technique).sites.length+' 颗 · 独立镶座与小爪'
+            :config.technique==='sculpted'?'五片独立金属花瓣 · 中心爪镶'
+            :config.technique==='guilloche'?'沿原始轮廓收束的放射状金属纹'
+            :'原始 OBJ 嵌片 · 独立底托与包边'}</span>
+          <small>装配与镶爪尺寸为视觉研究，不可直接送厂</small>
+        </div>
         <button className="motif-all-parts" aria-pressed={config.part==='all'} type="button" onClick={()=>update('part','all')}>完整装配 <span>ALL PARTS ↗</span></button>
         <div className="motif-part-list">{PARTS.map(p=><button type="button" key={p.id} aria-pressed={config.part===p.id} onClick={()=>update('part',config.part===p.id?'all':p.id)}>
           <span className="motif-part-no">{p.no}</span><span><strong>{p.name}</strong><small>{p.id==='adapter'?(config.product==='necklace'?'独立椭圆链节与双侧连接环':'贯通指孔、舒适戒臂与双侧肩部'):p.description}</small></span><span className="motif-part-arrow">↗</span>
@@ -357,20 +427,20 @@ export function MotifCaseStudio(){
         {config.product==='ring'&&<div className="motif-fusion-panel" aria-label="金属实体初筛">
           <div className="motif-fusion-title"><strong>金属实体检查</strong><span>MANIFOLD / PRECHECK</span></div>
           <p>检查戒臂、两侧肩部和底部支撑能否融合为单个闭合金属实体。嵌片和宝石仍独立。</p>
-          <button type="button" disabled={busy||!ready} onClick={screenMetal}>
-            {busy?'检查中…':fusion?.diameter===config.ringDiameter?'重新检查金属连接':'运行布尔融合初筛'}
+          <button type="button" disabled={busy||!ready||config.shank!=='classic'} onClick={screenMetal}>
+            {busy?'检查中…':config.shank!=='classic'?'此戒臂尚无独立布尔规则':fusion?.diameter===config.ringDiameter?'重新检查金属连接':'运行布尔融合初筛'}
           </button>
-          {fusion?.diameter===config.ringDiameter&&<div className="motif-fusion-metrics">
+          {config.shank==='classic'&&fusion?.diameter===config.ringDiameter&&<div className="motif-fusion-metrics">
             <span>金属连通实体 <strong>{fusion.result.report.connectedComponents}</strong></span>
             <span>指孔贯通 <strong>{fusion.result.report.fingerAxisClear?'是':'否'}</strong></span>
             <span>戒臂最小径向壁厚 <strong>{fusion.result.report.radialWallMinimumMm.toFixed(2)} mm*</strong></span>
           </div>}
-          <small>{fusion?.diameter===config.ringDiameter?'*壁厚为规则戒臂的解析值，不代表全部接点和镶座。仍未通过制造认证。':'结果会列出连通体数量；失败时不会伪装成功'}</small>
+          <small>{config.shank!=='classic'?'分叉及侧石戒臂目前仅是独立可视模型，尚未进行此构型的完整布尔验证。':fusion?.diameter===config.ringDiameter?'*壁厚为素圈的解析值，不代表全部接点和镶座。仍未通过制造认证。':'结果会列出连通体数量；失败时不会伪装成功'}</small>
         </div>}
         <div className="motif-export-panel"><h3>保存这次设计</h3><button className="motif-main-download" type="button" disabled={!ready||busy} onClick={exportGlb}>{busy?'导出中…':'导出 3D GLB'} <span>↗</span></button>
           <div className="motif-secondary-downloads"><button type="button" onClick={downloadRecipe}>配置 JSON</button><button type="button" onClick={exportPng} disabled={!ready}>当前截图 PNG</button></div>
           <p className="motif-status" role="status">{status}</p></div>
-        <div className="motif-disclaimer">工程边界：本案例用于结构与外观评审，不代表梵克雅宝官方 CAD。戒圈为贯通几何、链节为独立网格；初步检查环形指孔与壁厚，但尚未完成铸造布尔、实体碰撞、佩戴舒适度、连接强度和工厂公差验证。</div>
+        <div className="motif-disclaimer">工程边界：本案例用于结构与外观评审，不代表梵克雅宝官方 CAD。新构型来自公开珠宝工艺的结构抽象，并非品牌复刻 CAD。彩石固定、密钉座深、分叉戒臂与侧石的整体连通性仍需工厂验证；导出只作为设计预览。</div>
       </aside>
     </div>
   </div>;
