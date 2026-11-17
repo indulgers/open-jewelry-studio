@@ -1,6 +1,9 @@
 import {useEffect,useMemo} from 'react';
 import {CatmullRomCurve3,Quaternion,TorusGeometry,TubeGeometry,Vector3,type BufferGeometry} from 'three';
 import {createComfortFitShank} from './comfortFitGeometry';
+import {ShankAdornment} from './ShankStyles';
+import type {ShankStyle,NecklaceMount} from './designGrammar';
+import profiles from './profiles.json';
 import {polishedGoldLikeMaterial,metalAppearanceProps} from './metalMaterials';
 import {
   necklaceAnchors,ringShoulders,ringSizing,visibleChainPoints,
@@ -37,9 +40,19 @@ function ChainSide({anchor,side,color}:{anchor:Point3;side:-1|1;color:string}){
   </group>;
 }
 
-export function NecklaceAdapter({color,motif,scale,explode}:Omit<Props,'diameter'>){
-  const anchors=useMemo(()=>necklaceAnchors(motif,scale),[motif,scale]);
+export function NecklaceAdapter({color,motif,scale,explode,mount='side'}:Omit<Props,'diameter'>&{mount?:NecklaceMount}){
+  const anchors=useMemo(()=>{
+    if(mount==='side')return necklaceAnchors(motif,scale);
+    const upper=Math.max(...profiles[motif].outline.map(p=>p[1]))*scale;
+    const top:[number,number,number]=[0,upper+.92,.58];
+    return {left:top,right:top};
+  },[motif,scale,mount]);
   return <group name="04-necklace-assembly" position-z={-explode*.7}>
+    {mount==='bail'&&<mesh name="top-pendant-bail" position={new Vector3(...anchors.left)}
+      rotation={[0,0,0]} castShadow>
+      <torusGeometry args={[.78,.19,14,36]}/>
+      <meshPhysicalMaterial {...metalAppearanceProps(color,.18)}/>
+    </mesh>}
     <ChainSide anchor={anchors.left} side={-1} color={color}/>
     <ChainSide anchor={anchors.right} side={1} color={color}/>
   </group>;
@@ -48,7 +61,7 @@ export function NecklaceAdapter({color,motif,scale,explode}:Omit<Props,'diameter
 /** Preserve the named API for tests while upgrading the underlying geometry. */
 export const createRingShankGeometry=createComfortFitShank;
 
-export function RingAdapter({color,diameter,explode,fusedGeometry}:Pick<Props,'color'|'diameter'|'explode'>&{fusedGeometry?:BufferGeometry|null}){
+export function RingAdapter({color,diameter,explode,fusedGeometry,shank='classic'}:Pick<Props,'color'|'diameter'|'explode'>&{fusedGeometry?:BufferGeometry|null;shank?:ShankStyle}){
   const shank=useMemo(()=>createRingShankGeometry(diameter),[diameter]);
   const arms=useMemo(()=>ringShoulders(diameter).map(points=>new TubeGeometry(
     new CatmullRomCurve3(points.map(vec),false,'centripetal'),44,.44,16,false,
@@ -74,5 +87,6 @@ export function RingAdapter({color,diameter,explode,fusedGeometry}:Pick<Props,'c
         <meshPhysicalMaterial {...metalAppearanceProps(color,.19)}/>
       </mesh>
     </>}
+    <ShankAdornment style={shank} diameter={diameter} color={color}/>
   </group>;
 }
