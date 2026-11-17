@@ -1,8 +1,7 @@
 import {useEffect,useMemo} from 'react';
-import {
-  CatmullRomCurve3,ExtrudeGeometry,MeshPhysicalMaterial,Path,Quaternion,Shape,
-  TorusGeometry,TubeGeometry,Vector3,
-} from 'three';
+import {CatmullRomCurve3,Quaternion,TorusGeometry,TubeGeometry,Vector3} from 'three';
+import {createComfortFitShank} from './comfortFitGeometry';
+import {polishedGoldLikeMaterial,metalAppearanceProps} from './metalMaterials';
 import {
   necklaceAnchors,ringShoulders,ringSizing,visibleChainPoints,
   type MotifId,type Point3,
@@ -13,28 +12,28 @@ const vec=(p:Point3)=>new Vector3(...p);
 const Y=new Vector3(0,1,0);
 
 function ChainSide({anchor,side,color}:{anchor:Point3;side:-1|1;color:string}){
-  const material=useMemo(()=>new MeshPhysicalMaterial({color,metalness:.98,roughness:.16,envMapIntensity:1.45}),[color]);
-  const geometry=useMemo(()=>new TorusGeometry(.52,.105,10,24),[]);
+  const material=useMemo(()=>polishedGoldLikeMaterial(color,.14),[color]);
+  // Each individual link is an oval wire: slim compared with the 15 mm motif.
+  const geometry=useMemo(()=>new TorusGeometry(.42,.072,12,32),[]);
+  const jumpRing=useMemo(()=>new TorusGeometry(.46,.115,12,40),[]);
   const links=useMemo(()=>{
     const curve=new CatmullRomCurve3(visibleChainPoints(anchor,side).map(vec),false,'centripetal');
-    const count=Math.ceil(curve.getLength()/1.08);
+    const count=Math.max(10,Math.ceil(curve.getLength()/.86));
     return Array.from({length:count},(_,i)=>{
       const t=(i+.35)/count;
       const point=curve.getPointAt(t);
       const tangent=curve.getTangentAt(t).normalize();
       const quaternion=new Quaternion().setFromUnitVectors(Y,tangent);
-      // Adjacent oval links interlock in perpendicular planes, never a continuous rigid tube.
       if(i%2===1)quaternion.multiply(new Quaternion().setFromAxisAngle(Y,Math.PI/2));
       return {point,quaternion};
     });
   },[anchor[0],anchor[1],anchor[2],side]);
-  useEffect(()=>()=>{geometry.dispose();material.dispose();},[geometry,material]);
+  useEffect(()=>()=>{geometry.dispose();jumpRing.dispose();material.dispose();},[geometry,jumpRing,material]);
   return <group name={side===-1?'necklace-left-links':'necklace-right-links'}>
-    <mesh name="articulated-connector-ring" position={vec(anchor)} material={material} castShadow>
-      <torusGeometry args={[.61,.165,12,32]}/>
-    </mesh>
+    <mesh name="articulated-connector-ring" position={vec(anchor)} geometry={jumpRing}
+      material={material} castShadow/>
     {links.map((link,i)=><mesh key={i} name="oval-chain-link" geometry={geometry} material={material}
-      position={link.point} quaternion={link.quaternion} scale={[.78,1.38,1]} castShadow/>)}
+      position={link.point} quaternion={link.quaternion} scale={[.73,1.20,1]} castShadow/>)}
   </group>;
 }
 
@@ -46,37 +45,26 @@ export function NecklaceAdapter({color,motif,scale,explode}:Omit<Props,'diameter
   </group>;
 }
 
-export function createRingShankGeometry(innerDiameter:number){
-  const sizes=ringSizing(innerDiameter);
-  const loop=new Shape();
-  loop.absarc(0,0,sizes.outerRadius,0,Math.PI*2,false);
-  const opening=new Path();
-  opening.absarc(0,0,sizes.modeledInnerRadius,0,Math.PI*2,true);
-  loop.holes.push(opening);
-  const geometry=new ExtrudeGeometry(loop,{
-    depth:sizes.bandWidth-2*sizes.bevel,
-    bevelEnabled:true,bevelSize:sizes.bevel,bevelThickness:sizes.bevel,
-    bevelSegments:3,steps:1,curveSegments:128,
-  });
-  // World X is the finger axis. The original XY annulus becomes a YZ annulus.
-  geometry.translate(0,0,-(sizes.bandWidth/2-sizes.bevel));
-  geometry.rotateY(Math.PI/2);
-  geometry.computeVertexNormals();
-  return geometry;
-}
+/** Preserve the named API for tests while upgrading the underlying geometry. */
+export const createRingShankGeometry=createComfortFitShank;
 
 export function RingAdapter({color,diameter,explode}:Pick<Props,'color'|'diameter'|'explode'>){
   const shank=useMemo(()=>createRingShankGeometry(diameter),[diameter]);
   const arms=useMemo(()=>ringShoulders(diameter).map(points=>new TubeGeometry(
-    new CatmullRomCurve3(points.map(vec),false,'centripetal'),38,.47,12,false,
+    new CatmullRomCurve3(points.map(vec),false,'centripetal'),44,.44,16,false,
   )),[diameter]);
-  useEffect(()=>()=>{shank.dispose();arms.forEach(a=>a.dispose());},[shank,arms]);
+  const material=useMemo(()=>polishedGoldLikeMaterial(color,.155),[color]);
+  useEffect(()=>()=>{shank.dispose();arms.forEach(a=>a.dispose());material.dispose();},[shank,arms,material]);
   return <group name="04-ring-shank-and-shoulders" position-y={-explode*.5}>
-    <mesh name="wearable-continuous-ring-band" geometry={shank} castShadow receiveShadow>
-      <meshPhysicalMaterial color={color} metalness={.98} roughness={.17} envMapIntensity={1.35}/>
+    <mesh name="wearable-continuous-ring-band" geometry={shank} material={material} castShadow receiveShadow/>
+    {arms.map((geo,i)=><mesh key={i} name={'shoulder-'+(i+1)} geometry={geo}
+      material={material} castShadow/>)}
+    {/* A shallow under-gallery seat avoids floating atop a pair of decorative rods.
+        It remains a separate closed visual solid until CAD boolean fusion. */}
+    <mesh name="underside-gallery-bridge" position={[0,ringSizing(diameter).motifSeatY-.82,0]}
+      rotation={[Math.PI/2,0,0]} scale={[1.7,.8,1]} castShadow>
+      <torusGeometry args={[2.45,.34,16,64]}/>
+      <meshPhysicalMaterial {...metalAppearanceProps(color,.19)}/>
     </mesh>
-    {arms.map((geo,i)=><mesh key={i} name={'shoulder-'+(i+1)} geometry={geo} castShadow>
-      <meshPhysicalMaterial color={color} metalness={.98} roughness={.18} envMapIntensity={1.35}/>
-    </mesh>)}
   </group>;
 }
