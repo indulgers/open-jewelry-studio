@@ -42,6 +42,11 @@ try{
   await capture('03-ring-bore');
   await page.locator('.motif-part-list button').last().click();
   await capture('04-ring-shank-isolated');
+  await page.locator('.motif-all-parts').click();
+  await page.locator('.motif-product-toggle button').first().click();
+  await page.locator('.motif-choices button').nth(3).click();
+  await page.locator('.motif-view-tools button').filter({hasText:'正面'}).click();
+  await capture('05-butterfly-necklace');
   writeFileSync(dest+'/browser-errors.json',JSON.stringify(errors,null,2));
   if(errors.length)throw new Error('Browser page errors: '+errors.join(' | '));
 } finally {
