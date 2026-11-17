@@ -13,3 +13,7 @@
 .motif-wear-check strong{font-size:11px;letter-spacing:.03em}
 .motif-wear-check p{font-size:10px;line-height:1.75;color:#737567;margin:7px 0 0}
 .motif-visual-status{max-width:calc(100% - 40px);flex-wrap:wrap}
+
+.motif-center-toggle{display:flex;align-items:center;gap:9px;margin:13px 0 6px;padding:10px 11px;background:#f7f6f1;border:1px solid #e7e2d8;border-radius:7px;color:#514d43;font-size:11px}
+.motif-center-toggle input{accent-color:#73694b;width:15px;height:15px;flex-shrink:0}
+.motif-center-toggle small{display:block;color:#9a9385;font-size:10px;margin-top:3px}
