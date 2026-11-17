@@ -1,7 +1,7 @@
 import {useEffect,useLayoutEffect,useMemo,useRef} from 'react';
 import {InstancedMesh,Object3D,Shape,ExtrudeGeometry,Vector3,Quaternion,Color} from 'three';
 import {createSmallBrilliantGeometry} from './brilliantGeometry';
-import {buildRadialEngraving,createPetalSolid} from './designGeometry';
+import {buildRadialEngraving,createPetalSolid,petalFaceZAt} from './designGeometry';
 import {settingPlan,type MotifId,type Technique,type SettingPoint} from './designGrammar';
 import {metalAppearanceProps} from './metalMaterials';
 import profiles from './profiles.json';
@@ -57,10 +57,10 @@ function SculptedFlower({metal}:{metal:string}){
   useEffect(()=>()=>petals.forEach(g=>g.dispose()),[petals]);
   return <group name="five-separate-sculpted-petals">
     {petals.map((geometry,i)=><mesh key={i} geometry={geometry} name={'formed-petal-'+i}
-      castShadow receiveShadow><meshPhysicalMaterial {...metalAppearanceProps(metal,.18)} side={2}/></mesh>)}
+      castShadow receiveShadow><meshPhysicalMaterial color={metal} metalness={.73} roughness={.29} envMapIntensity={.58}/></mesh>)}
     <mesh name="petal-center-gallery" position={[0,0,.46]} castShadow>
       <cylinderGeometry args={[.86,1.16,.72,32]}/>
-      <meshPhysicalMaterial {...metalAppearanceProps(metal,.2)}/>
+      <meshPhysicalMaterial color={metal} metalness={.72} roughness={.24} envMapIntensity={.65}/>
     </mesh>
   </group>;
 }
@@ -69,7 +69,7 @@ function SculptedFlower({metal}:{metal:string}){
  * Instanced gems, under-bezel rings and four small bead tips per stone.
  * These are mounted on distinct 3D parts rather than white dots in a texture.
  */
-function GemSettingArray({sites,metal}:{sites:readonly SettingPoint[];metal:string}){
+function GemSettingArray({sites,metal,raisedPetals=false}:{sites:readonly SettingPoint[];metal:string;raisedPetals?:boolean}){
   const gems=useRef<InstancedMesh>(null),bezels=useRef<InstancedMesh>(null),prongs=useRef<InstancedMesh>(null);
   const gem=useMemo(()=>createSmallBrilliantGeometry(16),[]);
   const diamonds=useMemo(()=>sites.length, [sites]);
@@ -80,18 +80,21 @@ function GemSettingArray({sites,metal}:{sites:readonly SettingPoint[];metal:stri
     const obj=new Object3D();
     sites.forEach((site,i)=>{
       const r=site.radius;
-      obj.position.set(site.x,site.y,.66);obj.quaternion.identity();obj.scale.set(r,r,r*.74);
+      // Map the bearing to the real 3D petal crown. Metal seats, facets
+      // and prongs share this elevation so no stone appears to float.
+      const bearing=raisedPetals?Math.max(.71,petalFaceZAt(site.x,site.y)+.055):.665;
+      obj.position.set(site.x,site.y,bearing+.005);obj.quaternion.identity();obj.scale.set(r,r,r*.74);
       obj.updateMatrix();a.setMatrixAt(i,obj.matrix);
-      obj.position.set(site.x,site.y,.735);obj.scale.set(r*.94,r*.94,r*.94);
+      obj.position.set(site.x,site.y,bearing+.08);obj.scale.set(r*.94,r*.94,r*.94);
       obj.updateMatrix();b.setMatrixAt(i,obj.matrix);
       for(let j=0;j<4;j++){
         const theta=Math.PI/4+j*Math.PI/2;
-        obj.position.set(site.x+Math.cos(theta)*r*.87,site.y+Math.sin(theta)*r*.87,.88);
-        obj.scale.set(.07,.07,.085);obj.updateMatrix();c.setMatrixAt(i*4+j,obj.matrix);
+        obj.position.set(site.x+Math.cos(theta)*r*.87,site.y+Math.sin(theta)*r*.87,bearing+.19);
+        obj.scale.set(.09,.09,.11);obj.updateMatrix();c.setMatrixAt(i*4+j,obj.matrix);
       }
     });
     a.instanceMatrix.needsUpdate=true;b.instanceMatrix.needsUpdate=true;c.instanceMatrix.needsUpdate=true;
-  },[sites]);
+  },[sites,raisedPetals]);
   if(!diamonds)return null;
   return <group name="individual-gem-seats-prongs-and-stones">
     <instancedMesh ref={bezels} args={[undefined,undefined,sites.length]} name="individual-metal-seats">
@@ -99,8 +102,8 @@ function GemSettingArray({sites,metal}:{sites:readonly SettingPoint[];metal:stri
       <meshPhysicalMaterial {...metalAppearanceProps(metal,.23)}/>
     </instancedMesh>
     <instancedMesh ref={gems} args={[gem,undefined,sites.length]} name="faceted-gems">
-      <meshPhysicalMaterial color="#f9fbff" vertexColors metalness={0} roughness={.035}
-        transmission={.20} ior={2.333} thickness={.36} envMapIntensity={2.1} flatShading/>
+      <meshPhysicalMaterial color="#ffffff" vertexColors metalness={0} roughness={.065}
+        transmission={0} ior={2.333} thickness={.36} envMapIntensity={1.35} flatShading/>
     </instancedMesh>
     <instancedMesh ref={prongs} args={[undefined,undefined,sites.length*4]} name="raised-bead-prongs">
       <sphereGeometry args={[1,10,8]}/>
@@ -118,8 +121,10 @@ export function DesignedSurface({motif,technique,metal,centerStone}:{motif:Motif
     </group>;
     case 'petals':return <group name="sculpted-flower-relief"><SculptedFlower metal={metal}/></group>;
     case 'gem-seats':return <group name={technique==='cluster'?'diamond-cluster':'pave-floral-surface'}>
-      <MetalRelief motif={motif} metal={metal}/>
-      <GemSettingArray sites={sites} metal={metal}/>
+      {(motif==='flower'||motif==='blossom')
+        ?<SculptedFlower metal={metal}/>
+        :<MetalRelief motif={motif} metal={metal}/>}
+      <GemSettingArray sites={sites} metal={metal} raisedPetals={motif==='flower'||motif==='blossom'}/>
     </group>;
     default:return null;
   }
