@@ -18,6 +18,7 @@ describe('actual solid parts and optional Manifold metal fusion',()=>{
       expect(result.report.triangles).toBeGreaterThan(500);
       expect(result.report.connectedComponents).toBe(1);
       expect(result.report.status).toBe('fused');
+      expect(result.report.fingerAxisClear).toBe(true);
       expect(result.report.manufacturingPassed).toBe(false);
     }finally{result.dispose();}
   },30000);
