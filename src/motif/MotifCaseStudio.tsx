@@ -116,6 +116,21 @@ function Plate({id,color}:{id:MotifId;color:string}){
     <meshPhysicalMaterial {...metalAppearanceProps(color,.16)}/>
   </mesh>;
 }
+/** Compact structural core for free-form petals, replacing the unsightly
+ * silhouette-shaped slab. Still needs joint strength testing before casting. */
+function FloralCoreBase({metal}:{metal:string}){
+  return <group name="compact-mount-under-sculpted-petals">
+    <mesh name="floral-center-support" position={[0,0,-.18]}
+      rotation={[Math.PI/2,0,0]} castShadow receiveShadow>
+      <cylinderGeometry args={[2.05,2.25,.72,48]}/>
+      <meshPhysicalMaterial {...metalAppearanceProps(metal,.21)}/>
+    </mesh>
+    <mesh name="floral-rear-connector" position={[0,0,-.52]} castShadow>
+      <sphereGeometry args={[.85,24,14]}/>
+      <meshPhysicalMaterial {...metalAppearanceProps(metal,.21)}/>
+    </mesh>
+  </group>;
+}
 function InlayObject({id,appearance}:{id:MotifId;appearance:Inlay}){
   const original=useLoader(OBJLoader,assetPath(id));
   const finish=INLAYS[appearance];
@@ -196,7 +211,12 @@ function Assembly({config,rootRef,onReady,fusedMetal}:{config:Settings;rootRef:R
     {/* The ring seat rotates 90 degrees to face away from the finger hole. */}
     <group name="01-03-face-and-setting" scale={[scale,scale,scale]} position={[0,mountHeight,0]}
       rotation={ring?[-Math.PI/2,0,0]:[0,0,0]}>
-      {showPart(config.part,'plate')&&<group position-z={-config.explode*2.3}><Plate id={config.motif} color={color}/></group>}
+      {showPart(config.part,'plate')&&<group position-z={-config.explode*2.3}>
+        {(config.motif==='flower'||config.motif==='blossom')&&
+          (config.technique==='sculpted'||config.technique==='pave'||config.technique==='cluster')
+          ?<FloralCoreBase metal={color}/>
+          :<Plate id={config.motif} color={color}/>}
+      </group>}
       {showPart(config.part,'inlay')&&<group position-z={config.explode*1.6}>
         {config.technique==='inlay'
           ?<InlayObject id={config.motif} appearance={config.inlay}/>
