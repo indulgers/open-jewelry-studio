@@ -1,7 +1,7 @@
 import {useEffect,useLayoutEffect,useMemo,useRef} from 'react';
 import {InstancedMesh,Object3D,Shape,ExtrudeGeometry,Vector3,Quaternion,Color} from 'three';
 import {createSmallBrilliantGeometry} from './brilliantGeometry';
-import {buildRadialEngraving,createPetalSolid,petalFaceZAt} from './designGeometry';
+import {buildRadialEngraving,createPetalSolid,petalFaceZAt,onSculptedPetal} from './designGeometry';
 import {settingPlan,type MotifId,type Technique,type SettingPoint} from './designGrammar';
 import {metalAppearanceProps} from './metalMaterials';
 import profiles from './profiles.json';
@@ -114,7 +114,11 @@ function GemSettingArray({sites,metal,raisedPetals=false}:{sites:readonly Settin
 
 export function DesignedSurface({motif,technique,metal,centerStone}:{motif:MotifId;technique:Technique;metal:string;centerStone:boolean}){
   const plan=useMemo(()=>settingPlan(motif,technique),[motif,technique]);
-  const sites=useMemo(()=>plan.sites.filter(p=>!(centerStone&&technique==='pave'&&Math.hypot(p.x,p.y)<1.35)),[plan,centerStone,technique]);
+  const sites=useMemo(()=>plan.sites.filter(p=>{
+    if(centerStone&&technique==='pave'&&Math.hypot(p.x,p.y)<1.35)return false;
+    if((motif==='flower'||motif==='blossom')&&plan.surface==='gem-seats'&&!onSculptedPetal(p.x,p.y))return false;
+    return true;
+  }),[plan,centerStone,technique,motif]);
   switch(plan.surface){
     case 'engraved-metal':return <group name="guilloche-relief">
       <MetalRelief motif={motif} metal={metal}/><RadialStrokePattern motif={motif} metal={metal}/>
@@ -134,7 +138,11 @@ export function summarizeGemSetting(motif:MotifId,technique:Technique,centerSton
   const plan=settingPlan(motif,technique);
   return {
     technique:plan.technique,
-    modeledAccentStones:plan.sites.filter(p=>!(centerStone&&technique==='pave'&&Math.hypot(p.x,p.y)<1.35)).length,
+    modeledAccentStones:plan.sites.filter(p=>{
+      if(centerStone&&technique==='pave'&&Math.hypot(p.x,p.y)<1.35)return false;
+      if((motif==='flower'||motif==='blossom')&&plan.surface==='gem-seats'&&!onSculptedPetal(p.x,p.y))return false;
+      return true;
+    }).length,
     metalEdgeAllowanceMm:plan.proposedMinEdgeMm,
     visualGapMm:plan.proposedMinGapMm,
     surface:plan.surface,
