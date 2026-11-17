@@ -20,7 +20,7 @@ export function parseReferenceDesign(value:unknown):ReferenceDesign|null{
   const paveLength=PAVE_LENGTHS.find(length=>length===v.paveLength);
   if((v.paveDiameter!==undefined&&paveDiameter===undefined)||(v.paveLength!==undefined&&paveLength===undefined))return null;
   return {kind:'reference',...(engravingStyle?{engravingStyle}:{}),...(paveDiameter===undefined?{}:{paveDiameter}),...(paveLength===undefined?{}:{paveLength}),...(typeof v.headId==='string'?{headId:v.headId}:{}),
-    ...(typeof v.bandId==='string'?{bandId:v.bandId}:{}),center:v.center as StoneAppearance,halo:v.halo as StoneAppearance,shoulder:v.shoulder as StoneAppearance,engraving:v.engraving};
+    ...(typeof v.bandId==='string'?{bandId:v.bandId}:{}),center:'diamond',halo:'diamond',shoulder:'diamond',engraving:v.engraving};
 }
 export function referenceParts(template:CatalogRing,design:ReferenceDesign){
   const head=RING_CATALOG.find(ring=>ring.id===design.headId)??template;

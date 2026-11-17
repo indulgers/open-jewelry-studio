@@ -20,7 +20,8 @@ describe('source model customization',()=>{
   it('charges and describes only the stone zones actually present in each supplied model',()=>{
     for(const template of RING_CATALOG.filter(item=>item.kind==='reference')){
       const design={...ORIGINAL_REFERENCE,center:'sapphire' as const,halo:'ruby' as const,shoulder:'emerald' as const};
-      expect(referenceQuote(template,design).amount).toBe(template.price.base+100*template.zones.length);
+      expect(referenceQuote(template,design).amount).toBe(template.price.base);
+      expect(parseReferenceDesign(design)).toMatchObject({center:'diamond',halo:'diamond',shoulder:'diamond'});
       const details=referenceDetails(template,design);
       expect(details).toHaveLength(template.zones.length+4);
       expect(details[0].value).toContain(template.name);

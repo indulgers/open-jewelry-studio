@@ -16,7 +16,7 @@ describe('open gemstone optics',()=>{
     const originalBvh=owned.material.uniforms.bvh.value;
     updateGemOptics(owned.material,{appearance:'sapphire',dispersion:0.006});
     expect(owned.material.uniforms.ior.value).toBe(STONE_APPEARANCES.sapphire.ior);
-    expect(owned.material.uniforms.attenuation.value.length()).toBeGreaterThan(0);
+    expect(owned.material.uniforms.attenuation.value.length()).toBe(0);
     expect(owned.material.uniforms.aberrationStrength.value).toBeCloseTo(0.006*STONE_APPEARANCES.sapphire.dispersionScale);
     expect(owned.material.uniforms.bvh.value).toBe(originalBvh);
     updateGemOptics(owned.material,{appearance:'diamond'});

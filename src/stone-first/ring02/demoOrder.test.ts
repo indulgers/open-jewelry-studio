@@ -15,7 +15,7 @@ beforeEach(()=>{
 describe('Ring 02 demo order',()=>{
   it('prices the current selected options and drops hidden halo charges',()=>{
     const changed={...BASE_DESIGN,center:{...BASE_DESIGN.center,size:1.06 as const},halo:{...BASE_DESIGN.halo,appearance:'ruby' as const}};
-    expect(estimateRing02(changed).amount).toBe(2580);
+    expect(estimateRing02(changed).amount).toBe(2480);
     expect(estimateRing02({...changed,head:'four-prong'}).amount).toBe(2280);
   });
   it('keeps the first confirmation for a revision and allows another revision',()=>{
@@ -33,6 +33,7 @@ describe('Ring 02 demo order',()=>{
     expect(()=>addDemoOrder({...first,revision:'unlisted'})).toThrow('当前款式已停售');
     const orders=demoOrders();
     expect(orders).toHaveLength(2);
+    expect(orders.find(order=>order.revision!==first.revision)?.requiresWhiteConfirmation).toBe(true);
     expect(orders.find(order=>order.revision===first.revision)).toMatchObject({quote:{amount:2280},design:{center:{appearance:'diamond'}},stones:first.stones});
   });
   it('preserves a snapshot, ignores invalid stored image URLs and saves the order if only the snapshot exceeds the quota',()=>{

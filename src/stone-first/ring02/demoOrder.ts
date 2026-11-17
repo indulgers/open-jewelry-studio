@@ -1,3 +1,4 @@
+import {hasLegacyGemColor} from '../../viewer/stoneAppearance';
 import {componentTotal,isMoney,sumMoney} from '../pricing';
 import type {FittedStone,RingDesign,paveSpacing} from './model';
 import {RING02_TEMPLATE} from './assets';
@@ -12,8 +13,7 @@ export function priceNote(amount:number){return amount?(amount>0?' +':' −')+fo
 
 export function estimateRing02(design:RingDesign){
   const price=RING02_PRICE;
-  const accent=(spec:RingDesign['halo'])=>(spec.size>1?price.accentLarge:0)
-    +(spec.appearance==='diamond'?0:price.coloredAccent);
+  const accent=(spec:RingDesign['halo'])=>(spec.size>1?price.accentLarge:0);
   const amount=price.base+price.head[design.head]+(design.center.size>1?price.centerLarge:0)
     +(design.head==='halo'?accent(design.halo):0)+accent(design.shoulder)+(design.reach>1?price.longShoulder:0);
   return {amount:sumMoney([amount,componentTotal('ring-02','ring-02',true)]),currency:'CNY' as const,version:price.version,leadTime:price.leadTime};
@@ -63,7 +63,7 @@ export function removeDemoOrder(revision:string){
 }
 
 export function demoOrders(){
-  const orders:(Pick<DemoOrder,'name'|'templateRevision'|'revision'|'confirmedAt'|'quote'|'details'|'thumbnail'|'pave'|'managed'>&{design?:unknown})[]=[];
+  const orders:(Pick<DemoOrder,'name'|'templateRevision'|'revision'|'confirmedAt'|'quote'|'details'|'thumbnail'|'pave'|'managed'>&{design?:unknown;requiresWhiteConfirmation?:boolean})[]=[];
   for(let index=0;index<localStorage.length;index++){
     const key=localStorage.key(index);
     if(!key?.startsWith(ORDER_PREFIX))continue;
@@ -74,7 +74,7 @@ export function demoOrders(){
         &&isMoney(order.quote?.amount)&&order.quote.amount>0&&order.quote.currency==='CNY'
         &&typeof order.quote.version==='string'&&typeof order.quote.leadTime==='string'&&Array.isArray(order.details)
         &&order.details.every((detail:Detail)=>detail&&typeof detail.label==='string'&&typeof detail.value==='string')){
-        orders.push({...order,name:typeof order.name==='string'&&order.name.length<=200?order.name:undefined,managed:validManaged(order.managed)?order.managed:undefined,thumbnail:validThumbnail(order.thumbnail)?order.thumbnail:undefined});
+        orders.push({...order,requiresWhiteConfirmation:hasLegacyGemColor(order.design),name:typeof order.name==='string'&&order.name.length<=200?order.name:undefined,managed:validManaged(order.managed)?order.managed:undefined,thumbnail:validThumbnail(order.thumbnail)?order.thumbnail:undefined});
       }
     }catch{continue;}
   }

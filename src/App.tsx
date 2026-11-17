@@ -100,7 +100,7 @@ function JewelryStudio({active}:{active:boolean}){
               <button key={ring.id} aria-pressed={ringStyle===ring.id} onClick={()=>{setRingStyle(ring.id);setResetToken(n=>n+1);}}><strong>{ring.name}</strong><span>{ring.note}</span></button>)}</div><p className="field-help">切换款式和观察光线，查看不同角度的镶嵌细节。</p></fieldset>}
           {modelMode==='reference'&&<fieldset className="ring-style-field"><legend>主石光学预览 <span>{ringStyle==='halo'?'可修改':'原模型保留'}</span></legend>
             <div className="preset-choices" role="group" aria-label="主石光学预览">{STONE_APPEARANCE_IDS.map(id=><button key={id} aria-pressed={stoneAppearance===id} disabled={ringStyle!=='halo'&&id!=='diamond'} onClick={()=>setStoneAppearance(id)}>{STONE_APPEARANCES[id].name}</button>)}</div>
-            <p className="field-help">{ringStyle==='halo'?'颜色仅作用于主石预览。':'这款戒指保留原主石。'}</p>
+            <p className="field-help">{ringStyle==='halo'?'主石与配钻仅提供白钻。':'这款戒指保留原主石。'}</p>
           </fieldset>}
           <fieldset><legend>观察光线</legend><div className="preset-choices">{Object.values(STUDIO_PRESETS).map(preset=><button key={preset.id} aria-pressed={studioPreset===preset.id} onClick={()=>setStudioPreset(preset.id)}>{preset.name}</button>)}</div><p className="field-help">{STUDIO_PRESETS[studioPreset].description}</p></fieldset>
           <fieldset><legend>展台背景</legend><div className="preset-choices">{STAGE_MODES.map(mode=><button key={mode.id} aria-pressed={stageMode===mode.id} onClick={()=>setStageMode(mode.id)}>{mode.name}</button>)}</div><p className="field-help">{STAGE_MODES.find(mode=>mode.id===stageMode)?.note}；商品图导出会压到白底。</p></fieldset>

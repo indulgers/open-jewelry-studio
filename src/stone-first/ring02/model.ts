@@ -33,7 +33,7 @@ export function parseDesign(value:unknown):RingDesign|null{
   if(!HEADS.some(([id])=>id===head)||!spec(center)||!spec(halo)||!spec(shoulder)||!REACHES.some(length=>length===reach)
     ||(metal!=='white'&&metal!=='yellow'&&metal!=='rose')||typeof engraving!=='string'
     ||engraving!==engraving.trim()||engravingProblem(engraving))return null;
-  return {head:head as Head,center,halo,shoulder,reach:reach as RingDesign['reach'],metal:'white',engraving};
+  return {head:head as Head,center:{...center,appearance:'diamond'},halo:{...halo,appearance:'diamond'},shoulder:{...shoulder,appearance:'diamond'},reach:reach as RingDesign['reach'],metal:'white',engraving};
 }
 
 type Part={name:string;geometry:BufferGeometry};

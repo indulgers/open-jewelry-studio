@@ -70,11 +70,9 @@ describe('stone-first finished ring studies',()=>{
     await loaded();
     expect(screen.getByText(/这款戒指保留原主石/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button',{name:/经典光环/}));
-    expect(screen.getByText(/颜色仅作用于主石预览/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button',{name:'蓝宝石'}));
-    expect(screen.getByRole('button',{name:'蓝宝石'})).toHaveAttribute('aria-pressed','true');
-    fireEvent.click(screen.getByRole('button',{name:/复古椭圆/}));
-    expect(screen.getByRole('button',{name:'蓝宝石'})).toBeDisabled();
+    expect(screen.getByText(/主石与配钻仅提供白钻/)).toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'蓝宝石'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'白钻'})).toHaveAttribute('aria-pressed','true');
   });
 });
 

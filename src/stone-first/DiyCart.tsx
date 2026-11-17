@@ -35,7 +35,7 @@ export function DiyCart(){
     try{removeDemoOrder(revision);}
     catch{setError('暂时无法移除该方案，请稍后重试。');}
   }
-  const total=sumMoney(orders?.map(order=>order.quote.amount)??[]);
+  const total=sumMoney(orders?.filter(order=>!order.requiresWhiteConfirmation).map(order=>order.quote.amount)??[]);
   return <main className="diy-home diy-cart-page shop-wrap">
     <header className="diy-home-intro">
       <a className="shop-text-link" href="#/diy/collection">返回款式系列</a>
@@ -57,11 +57,12 @@ export function DiyCart(){
           const name=order.name??order.managed?.name??(mixed?headName(parts.head.name)+' × '+bandStyle(parts.band.id).name:template?.name??'戒指定制方案');
           const editor=order.managed?templateRoute(order.managed.id,order.managed.revision):template?.kind==='parametric'&&order.pave?.units==='model'?RING02_PRECISION_ROUTE:template?.editor;
           return <article key={order.revision} className="diy-cart-order">
-            <CartImage thumbnail={order.thumbnail} image={order.managed?'/api/model-admin/public/'+order.managed.id+'/'+order.managed.revision+'/cover.jpg':mixed?undefined:template?.image} name={name}/>
+            <CartImage thumbnail={order.requiresWhiteConfirmation?undefined:order.thumbnail} image={order.managed?'/api/model-admin/public/'+order.managed.id+'/'+order.managed.revision+'/cover.jpg':mixed?undefined:template?.image} name={name}/>
             <div className="cart-order-info">
               <div className="cart-order-top"><div><span className="collection-label">{template?.collection??'专属定制'}</span><h2>{name}</h2><p>银色 · 1 件</p></div><button className="cart-remove" aria-label={'移除'+name} onClick={()=>remove(order.revision)}>移除</button></div>
-              <p className="cart-order-price"><strong>{formatYuan(order.quote.amount)}</strong><span>参考价</span></p>
-              <details className="cart-details"><summary>查看款式与配置</summary><dl>{order.details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>确认于 <time dateTime={order.confirmedAt}>{new Date(order.confirmedAt).toLocaleString('zh-CN')}</time></p></details>
+              <p className="cart-order-price" hidden={order.requiresWhiteConfirmation}><strong>{formatYuan(order.quote.amount)}</strong><span>参考价</span></p>
+              {order.requiresWhiteConfirmation&&<p role="status">目前仅提供白钻。此旧方案需重新编辑，确认白钻效果与价格后再加入购物车，暂不计入合计。</p>}
+              <details hidden={order.requiresWhiteConfirmation} className="cart-details"><summary>查看款式与配置</summary><dl>{order.details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>确认于 <time dateTime={order.confirmedAt}>{new Date(order.confirmedAt).toLocaleString('zh-CN')}</time></p></details>
               {editor&&<a className="cart-customize" href={editor}>定制此款</a>}
               <p className="cart-delivery">示例交期 {order.quote.leadTime} · 工艺与圈号待确认</p>
             </div>
