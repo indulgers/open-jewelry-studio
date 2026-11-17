@@ -2,7 +2,7 @@ import {Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import {Canvas, useLoader, useThree} from '@react-three/fiber';
 import {Environment, OrbitControls} from '@react-three/drei';
 import {
-  Box3, BufferGeometry, CanvasTexture, CatmullRomCurve3, Color, ExtrudeGeometry, Group, InstancedMesh, SRGBColorSpace,
+  Box3, CatmullRomCurve3, Color, ExtrudeGeometry, Group, InstancedMesh,
   Float32BufferAttribute, Mesh, MeshPhysicalMaterial, Object3D, Shape, TubeGeometry, Vector3,
   type WebGLRenderer,
 } from 'three';
@@ -10,6 +10,10 @@ import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader.js';
 import profiles from './profiles.json';
 import {NecklaceAdapter,RingAdapter} from './WearableAdapters';
 import {checkRingNominalClearance,ringSizing} from './wearableGeometry';
+import {createNacreTextureSet} from './nacreMaterials';
+import {createSmallBrilliantGeometry} from './brilliantGeometry';
+import {metalAppearanceProps,DISPLAY_ALLOYS} from './metalMaterials';
+import {comfortFitDiagnostics} from './comfortFitGeometry';
 import './MotifCaseStudio.css';
 
 type MotifId = keyof typeof profiles;
@@ -31,7 +35,9 @@ const MOTIFS: {id:MotifId; name:string;source:string}[] = [
   {id:'feather',name:'孔雀羽毛',source:'孔雀羽毛.obj'},
 ];
 const METALS: Record<Metal,{name:string;color:string}> = {
-  yellow:{name:'18K 黄金色',color:'#d3a84a'},rose:{name:'玫瑰金色',color:'#ca9a80'},silver:{name:'银白金属',color:'#c2cad1'},
+  yellow:{name:'18K 黄金色',color:DISPLAY_ALLOYS.yellow.base},
+  rose:{name:'玫瑰金色',color:DISPLAY_ALLOYS.rose.base},
+  silver:{name:'银白金属',color:DISPLAY_ALLOYS.silver.base},
 };
 const INLAYS: Record<Inlay,{name:string;color:string;roughness:number;metalness:number}> = {
   pearl:{name:'白色珍珠母贝',color:'#f3ece0',roughness:.24,metalness:.03},
@@ -76,22 +82,22 @@ function BeadLine({id,metal,factor,z,radius}:{id:MotifId;metal:string;factor:num
     ref.current.instanceMatrix.needsUpdate=true;
   },[points]);
   return <instancedMesh ref={ref} args={[undefined,undefined,points.length]} name="granulated-bezel" castShadow>
-    <sphereGeometry args={[radius,9,7]}/><meshPhysicalMaterial color={metal} metalness={.89} roughness={.20} clearcoat={.65}/>
+    <sphereGeometry args={[radius,14,11]}/><meshPhysicalMaterial {...metalAppearanceProps(metal,.18)}/>
   </instancedMesh>;
 }
 function Rim({id,color,edge}:{id:MotifId;color:string;edge:Edge}){
-  const outer=useMemo(()=>new TubeGeometry(outlineCurve(id,.99,.51),260,.16,12,true),[id]);
-  const inner=useMemo(()=>new TubeGeometry(outlineCurve(id,.89,.56),260,.12,12,true),[id]);
+  const outer=useMemo(()=>new TubeGeometry(outlineCurve(id,.988,.50),280,.13,14,true),[id]);
+  const inner=useMemo(()=>new TubeGeometry(outlineCurve(id,.938,.55),280,.09,12,true),[id]);
   useEffect(()=>()=>{outer.dispose();inner.dispose();},[outer,inner]);
   if(edge==='none')return null;
   return <group name="03-layered-beaded-edge">
-    <mesh geometry={outer} castShadow><meshPhysicalMaterial color={color} metalness={.98} roughness={.17}/></mesh>
+    <mesh geometry={outer} castShadow><meshPhysicalMaterial {...metalAppearanceProps(color,.15)}/></mesh>
     {edge==='double'?<>
-      <mesh geometry={inner} castShadow><meshPhysicalMaterial color={color} metalness={.98} roughness={.19}/></mesh>
-      <BeadLine id={id} metal={color} factor={.985} z={.56} radius={.195}/>
-      <BeadLine id={id} metal={color} factor={.895} z={.62} radius={.14}/>
+      <mesh geometry={inner} castShadow><meshPhysicalMaterial {...metalAppearanceProps(color,.17)}/></mesh>
+      <BeadLine id={id} metal={color} factor={.985} z={.55} radius={.185}/>
+      <BeadLine id={id} metal={color} factor={.935} z={.59} radius={.12}/>
       {id==='clover'&&[[-3.06,3.06],[3.06,3.06],[-3.06,-3.06],[3.06,-3.06]].map(([x,y],i)=><mesh key={i} position={[x,y,.67]} castShadow name="inlay-retaining-dot">
-        <sphereGeometry args={[.31,14,10]}/><meshPhysicalMaterial color={color} metalness={.98} roughness={.17}/>
+        <sphereGeometry args={[.31,14,10]}/><meshPhysicalMaterial {...metalAppearanceProps(color,.17)}/>
       </mesh>)}
     </>:null}
   </group>;
@@ -100,37 +106,24 @@ function Plate({id,color}:{id:MotifId;color:string}){
   const geometry=useMemo(()=>new ExtrudeGeometry(profilePath(id),{depth:.7,steps:1,bevelEnabled:true,bevelThickness:.15,bevelSize:.14,bevelSegments:4,curveSegments:10}),[id]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
   return <mesh name="01-metal-seat" geometry={geometry} position={[0,0,-.52]} castShadow receiveShadow>
-    <meshPhysicalMaterial color={color} metalness={.98} roughness={.19} envMapIntensity={1.35}/>
+    <meshPhysicalMaterial {...metalAppearanceProps(color,.16)}/>
   </mesh>;
-}
-/** A subtle deterministic satin texture, unlike a flat uniformly coloured plastic surface. */
-function pearlSurfaceTexture(){
-  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;
-  const ctx=canvas.getContext('2d');if(!ctx)return null;
-  const gradient=ctx.createLinearGradient(0,0,512,512);
-  gradient.addColorStop(0,'#f0e9df');gradient.addColorStop(.28,'#fffdf7');gradient.addColorStop(.54,'#e5e9e5');gradient.addColorStop(.78,'#f8f2e9');gradient.addColorStop(1,'#e8e2dc');
-  ctx.fillStyle=gradient;ctx.fillRect(0,0,512,512);
-  for(let i=0;i<74;i++){
-    const y=i*8-40;ctx.beginPath();
-    ctx.moveTo(-40,y+24*Math.sin(i*.23));
-    ctx.bezierCurveTo(120,y-36,295,y+37,560,y-9);
-    ctx.lineWidth=i%4===0?5:2;
-    ctx.strokeStyle=i%3===0?'rgba(185,201,210,.10)':i%3===1?'rgba(249,217,196,.09)':'rgba(255,255,255,.25)';
-    ctx.stroke();
-  }
-  const map=new CanvasTexture(canvas);
-  map.colorSpace=SRGBColorSpace;map.needsUpdate=true;
-  return map;
 }
 function InlayObject({id,appearance}:{id:MotifId;appearance:Inlay}){
   const original=useLoader(OBJLoader,assetPath(id));
   const finish=INLAYS[appearance];
-  const pearlMap=useMemo(()=>appearance==='pearl'?pearlSurfaceTexture():null,[appearance]);
+  const nacreMaps=useMemo(()=>appearance==='pearl'?createNacreTextureSet(512):null,[appearance]);
   const material=useMemo(()=>new MeshPhysicalMaterial({
-    color:new Color(finish.color),map:pearlMap,metalness:finish.metalness,roughness:finish.roughness,
-    clearcoat:.62,clearcoatRoughness:.13,iridescence:appearance==='pearl'?.48:0,
-    iridescenceIOR:1.24,iridescenceThicknessRange:[150,360],side:2,
-  }),[appearance,finish,pearlMap]);
+    color:new Color(appearance==='pearl'?'#ffffff':finish.color),
+    map:nacreMaps?.albedo??null,
+    bumpMap:nacreMaps?.bump??null,bumpScale:nacreMaps?.bump?.075:0,
+    roughnessMap:nacreMaps?.roughness??null,
+    metalness:appearance==='pearl'?0:finish.metalness,roughness:nacreMaps?1:finish.roughness,
+    clearcoat:appearance==='pearl'?.38:.7,clearcoatRoughness:appearance==='pearl'?.24:.12,
+    iridescence:appearance==='pearl'?.19:0,
+    iridescenceIOR:1.27,iridescenceThicknessRange:[165,275],
+    envMapIntensity:1.35,side:2,
+  }),[appearance,finish,nacreMaps]);
   const instance=useMemo(()=>{
     const clone=original.clone(true);
     const bounds=new Box3().setFromObject(original);
@@ -150,55 +143,39 @@ function InlayObject({id,appearance}:{id:MotifId;appearance:Inlay}){
       child.material=material;child.castShadow=true;child.receiveShadow=true;
     }});
     const scale=15/Math.max(span.x,span.y);
-    const inset=.875;
+    const inset=.927;
     clone.scale.set(scale*inset,scale*inset,.46/Math.max(.01,span.z));
     clone.position.set(-center.x*scale*inset,-center.y*scale*inset,.22-bounds.min.z*clone.scale.z);
     return clone;
   },[original,material]);
-  useEffect(()=>()=>{material.dispose();pearlMap?.dispose();},[material,pearlMap]);
+  useEffect(()=>()=>{material.dispose();nacreMaps?.dispose();},[material,nacreMaps]);
   useEffect(()=>()=>instance.traverse(child=>{if(child instanceof Mesh)child.geometry.dispose();}),[instance]);
   return <group name="02-inlay"><primitive object={instance}/></group>;
 }
-/** The small central stone on the ring reference is a separate setting, not part of the pearl mesh. */
+/** Separate brilliant-inspired cut and minimal retaining prongs, not manufacturing prong data. */
 function CenterStone({metal}:{metal:string}){
-  const diamond=useMemo(()=>{
-    const n=16,points:number[]=[],colors:number[]=[];
-    const palette=[new Color('#a9c2db'),new Color('#f7fbff'),new Color('#c4d7e7'),new Color('#d8e7f3'),new Color('#8fb3cb')];
-    const tri=(a:number[],b:number[],c:number[],shade=0)=>{
-      points.push(...a,...b,...c);
-      const col=palette[Math.abs(shade)%palette.length];
-      for(let j=0;j<3;j++)colors.push(col.r,col.g,col.b);
-    };
-    const girdle=Array.from({length:n},(_,i)=>{
-      const a=i*Math.PI*2/n;return [Math.cos(a)*.99,Math.sin(a)*.99,.78];
-    });
-    const table=Array.from({length:n},(_,i)=>{
-      const a=i*Math.PI*2/n;return [Math.cos(a)*.54,Math.sin(a)*.54,1.14];
-    });
-    for(let i=0;i<n;i++){
-      const next=(i+1)%n;
-      tri([0,0,1.14],table[i],table[next],i+1);
-      tri(table[i],girdle[i],girdle[next],i+2);
-      tri(table[i],girdle[next],table[next],i+3);
-      tri([0,0,.51],girdle[next],girdle[i],i);
-    }
-    const mesh=new BufferGeometry();
-    mesh.setAttribute('position',new Float32BufferAttribute(points,3));
-    mesh.setAttribute('color',new Float32BufferAttribute(colors,3));
-    mesh.computeVertexNormals();return mesh;
-  },[]);
+  const diamond=useMemo(()=>createSmallBrilliantGeometry(16),[]);
   useEffect(()=>()=>diamond.dispose(),[diamond]);
   return <group name="center-diamond-and-retaining-prongs">
     <mesh name="small-faceted-center-stone" geometry={diamond} castShadow>
-      <meshPhysicalMaterial vertexColors color="#ffffff" metalness={.04} roughness={.055} transmission={0}
-        thickness={.65} ior={2.4} clearcoat={1} clearcoatRoughness={.01} envMapIntensity={2.6} flatShading/>
+      <meshPhysicalMaterial vertexColors color="#ffffff" metalness={0} roughness={.045}
+        transmission={.53} dispersion={.055} thickness={.68} ior={2.333}
+        clearcoat={.85} clearcoatRoughness={.025} envMapIntensity={2.2} flatShading/>
     </mesh>
     <mesh name="center-stone-metal-seat" position={[0,0,.74]} castShadow>
-      <torusGeometry args={[.97,.11,12,40]}/><meshPhysicalMaterial color={metal} metalness={.98} roughness={.17}/>
+      <torusGeometry args={[.97,.105,16,48]}/>
+      <meshPhysicalMaterial {...metalAppearanceProps(metal,.14)}/>
     </mesh>
-    {[[1,0],[-1,0],[0,1],[0,-1]].map(([x,y],i)=><mesh key={i} name="center-stone-prong" position={[x*.94,y*.94,.84]} castShadow>
-      <sphereGeometry args={[.17,12,10]}/><meshPhysicalMaterial color={metal} metalness={.98} roughness={.18}/>
-    </mesh>)}
+    {[[1,0],[-1,0],[0,1],[0,-1]].map(([x,y],i)=><group key={i} name={'stone-prong-'+i}>
+      <mesh name="central-prong-post" position={[x*.91,y*.91,.91]} rotation={[Math.PI/2,0,0]} castShadow>
+        <cylinderGeometry args={[.10,.145,.38,12]}/>
+        <meshPhysicalMaterial {...metalAppearanceProps(metal,.15)}/>
+      </mesh>
+      <mesh name="central-prong-tip" position={[x*.86,y*.86,1.11]} castShadow>
+        <sphereGeometry args={[.17,14,12]}/>
+        <meshPhysicalMaterial {...metalAppearanceProps(metal,.15)}/>
+      </mesh>
+    </group>)}
   </group>;
 }
 function Assembly({config,rootRef,onReady}:{config:Settings;rootRef:React.RefObject<Group|null>;onReady:(ready:boolean)=>void}){
@@ -228,26 +205,26 @@ function ViewRig({view,product}:{view:View;product:Product}){
   const controls=useRef<React.ComponentRef<typeof OrbitControls>>(null);
   useEffect(()=>{
     const ring=product==='ring';
-    const target=new Vector3(0,ring?4.8:7,0);
+    const target=new Vector3(0,ring?4.8:11,0);
     camera.up.set(0,1,0); // preserve world +Y as screen-up for the finger bore and setting
     const positions:Record<View,[number,number,number]>=ring?{
       angle:[26,43,15],front:[2,48,6],side:[39,15,11],fit:[45,4.8,0],
     }:{angle:[15,15,35],front:[0,7,42],side:[39,11,12],fit:[0,7,42]};
-    camera.position.set(...positions[view]);camera.lookAt(target);camera.updateProjectionMatrix();
+    camera.position.set(...positions[view]);camera.zoom=ring?21:17;camera.lookAt(target);camera.updateProjectionMatrix();
     controls.current?.target.copy(target);controls.current?.update();
   },[camera,view,product]);
   return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={.08}
-    target={[0,product==='ring'?4.8:7,0]} minZoom={11} maxZoom={60} enablePan={false}/>;
+    target={[0,product==='ring'?4.8:11,0]} minZoom={11} maxZoom={60} enablePan={false}/>;
 }
 function ModelPreview({config,view,rootRef,rendererRef,ready}:{config:Settings;view:View;rootRef:React.RefObject<Group|null>;rendererRef:React.RefObject<WebGLRenderer|null>;ready:(r:boolean)=>void}){
-  return <Canvas orthographic dpr={[1,2]} shadows camera={{position:[14,17,34],zoom:21,near:.1,far:180}} gl={{alpha:true,antialias:true,preserveDrawingBuffer:true}}
+  return <Canvas orthographic dpr={[1,2]} shadows camera={{position:[14,17,34],zoom:18,near:.1,far:180}} gl={{alpha:true,antialias:true,preserveDrawingBuffer:true}}
     onCreated={({gl})=>{rendererRef.current=gl;}}>
     <Environment files={`${base}environments/catalog-studio.hdr`} background={false}/>
-    <ambientLight intensity={.9}/>
-    <hemisphereLight args={['#fff9ee','#b4ac9f',1.35]}/>
-    <directionalLight position={[-8,16,17]} intensity={3.1} color="#fff5df" castShadow shadow-mapSize={[1024,1024]}/>
-    <directionalLight position={[8,7,-7]} intensity={2.5} color="#dbe6ff"/>
-    <directionalLight position={[0,-8,15]} intensity={1.1} color="#fff7e9"/>
+    <ambientLight intensity={.52}/>
+    <hemisphereLight args={['#fff9ee','#b4ac9f',.85]}/>
+    <directionalLight position={[-8,16,17]} intensity={2.3} color="#fff5df" castShadow shadow-mapSize={[1024,1024]}/>
+    <directionalLight position={[8,7,-7]} intensity={1.65} color="#dbe6ff"/>
+    <directionalLight position={[0,-8,15]} intensity={.65} color="#fff7e9"/>
     <Suspense fallback={null}>
       <Assembly key={config.motif} config={config} rootRef={rootRef} onReady={ready}/>
     </Suspense>
@@ -275,6 +252,7 @@ export function MotifCaseStudio(){
       units:'mm',settings:config,source:profiles[config.motif].src,
       parts:PARTS.map(p=>({code:p.no,name:p.name,independent:true})),
       productionStatus:'VISUAL_PROTOTYPE_ONLY',ring:config.product==='ring'?ringSizing(config.ringDiameter):null,
+      geometryScreening:config.product==='ring'?comfortFitDiagnostics(config.ringDiameter):null,
       chain:{referenceLengthCm:42,representation:'visible articulated segment only'},
       notes:['OBJ source is unitless and normalized to 15 mm by visual span','The shank has a continuous geometric bore, but fit and manufacture have not been certified','No casting tolerances, inlay retention, or Boolean union validated']};
     download(new Blob([JSON.stringify(recipe,null,2)],{type:'application/json'}),'xiangyan-motif-recipe.json');setStatus('已导出参数化设计记录');
@@ -300,7 +278,7 @@ export function MotifCaseStudio(){
     <div className="motif-lab-heading">
       <div><p className="motif-kicker">XIANGYAN / DESIGN SYSTEM 001</p><h1>从一枚四叶草，拆解一套珠宝语言。</h1>
         <p className="motif-heading-sub">经典四叶草结构研究 · 可替换主题 × 可组装结构 × 实时三维预览</p></div>
-      <span className="motif-build-tag">内部案例 · 可佩戴结构 V0.2</span>
+      <span className="motif-build-tag">内部案例 · 材质与结构 V0.3</span>
     </div>
     <div className="motif-workspace">
       <aside className="motif-controls" aria-label="DIY 配置面板">
@@ -356,7 +334,7 @@ export function MotifCaseStudio(){
         <div className="motif-export-panel"><h3>保存这次设计</h3><button className="motif-main-download" type="button" disabled={!ready||busy} onClick={exportGlb}>{busy?'导出中…':'导出 3D GLB'} <span>↗</span></button>
           <div className="motif-secondary-downloads"><button type="button" onClick={downloadRecipe}>配置 JSON</button><button type="button" onClick={exportPng} disabled={!ready}>当前截图 PNG</button></div>
           <p className="motif-status" role="status">{status}</p></div>
-        <div className="motif-disclaimer">工程边界：本案例用于结构与外观评审，不代表梵克雅宝官方 CAD。戒圈为贯通几何、链节为独立网格；仍未完成铸造布尔、实体碰撞、佩戴适配、强度与工厂公差验证。</div>
+        <div className="motif-disclaimer">工程边界：本案例用于结构与外观评审，不代表梵克雅宝官方 CAD。戒圈为贯通几何、链节为独立网格；初步检查环形指孔与壁厚，但尚未完成铸造布尔、实体碰撞、佩戴舒适度、连接强度和工厂公差验证。</div>
       </aside>
     </div>
   </div>;
