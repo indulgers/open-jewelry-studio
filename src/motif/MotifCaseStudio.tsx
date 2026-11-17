@@ -360,7 +360,12 @@ export function MotifCaseStudio(){
           <button type="button" disabled={busy||!ready} onClick={screenMetal}>
             {busy?'检查中…':fusion?.diameter===config.ringDiameter?'重新检查金属连接':'运行布尔融合初筛'}
           </button>
-          <small>{fusion?.diameter===config.ringDiameter?'已生成独立金属网格 · 仅设计预览':'结果会列出连通体数量；失败时不会伪装成功'}</small>
+          {fusion?.diameter===config.ringDiameter&&<div className="motif-fusion-metrics">
+            <span>金属连通实体 <strong>{fusion.result.report.connectedComponents}</strong></span>
+            <span>指孔贯通 <strong>{fusion.result.report.fingerAxisClear?'是':'否'}</strong></span>
+            <span>戒臂最小径向壁厚 <strong>{fusion.result.report.radialWallMinimumMm.toFixed(2)} mm*</strong></span>
+          </div>}
+          <small>{fusion?.diameter===config.ringDiameter?'*壁厚为规则戒臂的解析值，不代表全部接点和镶座。仍未通过制造认证。':'结果会列出连通体数量；失败时不会伪装成功'}</small>
         </div>}
         <div className="motif-export-panel"><h3>保存这次设计</h3><button className="motif-main-download" type="button" disabled={!ready||busy} onClick={exportGlb}>{busy?'导出中…':'导出 3D GLB'} <span>↗</span></button>
           <div className="motif-secondary-downloads"><button type="button" onClick={downloadRecipe}>配置 JSON</button><button type="button" onClick={exportPng} disabled={!ready}>当前截图 PNG</button></div>
