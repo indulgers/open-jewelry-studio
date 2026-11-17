@@ -44,11 +44,12 @@ export function NecklaceAdapter({color,motif,scale,explode,mount='side'}:Omit<Pr
   const anchors=useMemo(()=>{
     if(mount==='side')return necklaceAnchors(motif,scale);
     const upper=Math.max(...profiles[motif].outline.map(p=>p[1]))*scale;
-    const top:[number,number,number]=[0,upper+.92,.58];
-    return {left:top,right:top};
+    const left:[number,number,number]=[-.73,upper+1.13,.58];
+    const right:[number,number,number]=[.73,upper+1.13,.58];
+    return {left,right};
   },[motif,scale,mount]);
   return <group name="04-necklace-assembly" position-z={-explode*.7}>
-    {mount==='bail'&&<mesh name="top-pendant-bail" position={new Vector3(...anchors.left)}
+    {mount==='bail'&&<mesh name="top-pendant-bail" position={[0,anchors.left[1]-.22,anchors.left[2]]}
       rotation={[0,0,0]} castShadow>
       <torusGeometry args={[.78,.19,14,36]}/>
       <meshPhysicalMaterial {...metalAppearanceProps(color,.18)}/>
