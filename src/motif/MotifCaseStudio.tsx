@@ -3,7 +3,7 @@ import {Canvas, useLoader, useThree} from '@react-three/fiber';
 import {Environment, OrbitControls} from '@react-three/drei';
 import {
   Box3, CanvasTexture, CatmullRomCurve3, Color, ExtrudeGeometry, Group, InstancedMesh, SRGBColorSpace,
-  Mesh, MeshPhysicalMaterial, Object3D, Shape, TubeGeometry, Vector3,
+  Float32BufferAttribute, Mesh, MeshPhysicalMaterial, Object3D, Shape, TubeGeometry, Vector3,
   type WebGLRenderer,
 } from 'three';
 import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader.js';
@@ -133,9 +133,22 @@ function InlayObject({id,appearance}:{id:MotifId;appearance:Inlay}){
   }),[appearance,finish,pearlMap]);
   const instance=useMemo(()=>{
     const clone=original.clone(true);
-    clone.traverse(child=>{if(child instanceof Mesh){child.material=material;child.castShadow=true;child.receiveShadow=true;}});
     const bounds=new Box3().setFromObject(original);
     const span=bounds.getSize(new Vector3());const center=bounds.getCenter(new Vector3());
+    // The uploaded ZBrush OBJ files contain no vt UVs. Project XY coordinates
+    // onto a clone, leaving useLoader's shared source geometry untouched.
+    clone.traverse(child=>{if(child instanceof Mesh){
+      const geometry=child.geometry.clone();
+      const position=geometry.getAttribute('position');
+      const uv=new Float32Array(position.count*2);
+      for(let i=0;i<position.count;i++){
+        uv[i*2]=(position.getX(i)-bounds.min.x)/Math.max(span.x,.001);
+        uv[i*2+1]=(position.getY(i)-bounds.min.y)/Math.max(span.y,.001);
+      }
+      geometry.setAttribute('uv',new Float32BufferAttribute(uv,2));
+      child.geometry=geometry;
+      child.material=material;child.castShadow=true;child.receiveShadow=true;
+    }});
     const scale=15/Math.max(span.x,span.y);
     const inset=.875;
     clone.scale.set(scale*inset,scale*inset,.46/Math.max(.01,span.z));
@@ -143,6 +156,7 @@ function InlayObject({id,appearance}:{id:MotifId;appearance:Inlay}){
     return clone;
   },[original,material]);
   useEffect(()=>()=>{material.dispose();pearlMap?.dispose();},[material,pearlMap]);
+  useEffect(()=>()=>instance.traverse(child=>{if(child instanceof Mesh)child.geometry.dispose();}),[instance]);
   return <group name="02-inlay"><primitive object={instance}/></group>;
 }
 function Assembly({config,rootRef,onReady}:{config:Settings;rootRef:React.RefObject<Group|null>;onReady:(ready:boolean)=>void}){
