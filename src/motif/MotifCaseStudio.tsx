@@ -2,12 +2,14 @@ import {Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import {Canvas, useLoader, useThree} from '@react-three/fiber';
 import {Environment, OrbitControls} from '@react-three/drei';
 import {
-  Box3, CatmullRomCurve3, Color, ExtrudeGeometry, Group, InstancedMesh,
+  Box3, CanvasTexture, CatmullRomCurve3, Color, ExtrudeGeometry, Group, InstancedMesh, SRGBColorSpace,
   Mesh, MeshPhysicalMaterial, Object3D, Shape, TubeGeometry, Vector3,
   type WebGLRenderer,
 } from 'three';
 import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader.js';
 import profiles from './profiles.json';
+import {NecklaceAdapter,RingAdapter} from './WearableAdapters';
+import {checkRingNominalClearance,ringSizing} from './wearableGeometry';
 import './MotifCaseStudio.css';
 
 type MotifId = keyof typeof profiles;
@@ -16,7 +18,7 @@ type Metal = 'yellow' | 'rose' | 'silver';
 type Inlay = 'pearl' | 'onyx' | 'malachite' | 'lapis';
 type Edge = 'double' | 'smooth' | 'none';
 type Part = 'all' | 'plate' | 'inlay' | 'edge' | 'adapter';
-type View = 'angle' | 'front' | 'side';
+type View = 'angle' | 'front' | 'side' | 'fit';
 type Settings = {product:Product;motif:MotifId;metal:Metal;inlay:Inlay;edge:Edge;size:number;ringDiameter:number;explode:number;part:Part};
 
 const MOTIFS: {id:MotifId; name:string;source:string}[] = [
@@ -29,7 +31,7 @@ const MOTIFS: {id:MotifId; name:string;source:string}[] = [
   {id:'feather',name:'孔雀羽毛',source:'孔雀羽毛.obj'},
 ];
 const METALS: Record<Metal,{name:string;color:string}> = {
-  yellow:{name:'18K 黄金色',color:'#d2ad64'},rose:{name:'玫瑰金色',color:'#d4a08b'},silver:{name:'银白金属',color:'#c3cbd0'},
+  yellow:{name:'18K 黄金色',color:'#d3a84a'},rose:{name:'玫瑰金色',color:'#ca9a80'},silver:{name:'银白金属',color:'#c2cad1'},
 };
 const INLAYS: Record<Inlay,{name:string;color:string;roughness:number;metalness:number}> = {
   pearl:{name:'白色珍珠母贝',color:'#f3ece0',roughness:.24,metalness:.03},
@@ -42,7 +44,7 @@ const PARTS:{id:Exclude<Part,'all'>;no:string;name:string;description:string}[] 
   {id:'plate',no:'01',name:'金属底托',description:'轮廓匹配的基座与结构层'},
   {id:'inlay',no:'02',name:'造型嵌片',description:'保留原 OBJ 三维表面'},
   {id:'edge',no:'03',name:'金珠包边',description:'独立环绕轮廓的珠粒与边线'},
-  {id:'adapter',no:'04',name:'装配接口',description:'项链挂耳 / 戒臂连接结构'},
+  {id:'adapter',no:'04',name:'佩戴与连接结构',description:'交错链节 / 连续戒臂与两侧肩部'},
 ];
 const base = import.meta.env.BASE_URL;
 const assetPath=(id:MotifId)=>`${base}motif-lab/assets/${id}.obj`;
@@ -78,109 +80,114 @@ function BeadLine({id,metal,factor,z,radius}:{id:MotifId;metal:string;factor:num
   </instancedMesh>;
 }
 function Rim({id,color,edge}:{id:MotifId;color:string;edge:Edge}){
-  const outer=useMemo(()=>new TubeGeometry(outlineCurve(id,.99,.72),240,.22,10,true),[id]);
-  const inner=useMemo(()=>new TubeGeometry(outlineCurve(id,.89,.80),240,.13,10,true),[id]);
+  const outer=useMemo(()=>new TubeGeometry(outlineCurve(id,.99,.51),260,.16,12,true),[id]);
+  const inner=useMemo(()=>new TubeGeometry(outlineCurve(id,.89,.56),260,.12,12,true),[id]);
   useEffect(()=>()=>{outer.dispose();inner.dispose();},[outer,inner]);
   if(edge==='none')return null;
-  return <group name="03-edge" position={[0,0,.28]}>
-    <mesh geometry={outer} castShadow><meshPhysicalMaterial color={color} metalness={.9} roughness={.19}/></mesh>
+  return <group name="03-layered-beaded-edge">
+    <mesh geometry={outer} castShadow><meshPhysicalMaterial color={color} metalness={.98} roughness={.17}/></mesh>
     {edge==='double'?<>
-      <mesh geometry={inner} castShadow><meshPhysicalMaterial color={color} metalness={.9} roughness={.20}/></mesh>
-      <BeadLine id={id} metal={color} factor={.98} z={.73} radius={.19}/>
-      <BeadLine id={id} metal={color} factor={.88} z={.81} radius={.13}/>
+      <mesh geometry={inner} castShadow><meshPhysicalMaterial color={color} metalness={.98} roughness={.19}/></mesh>
+      <BeadLine id={id} metal={color} factor={.985} z={.56} radius={.195}/>
+      <BeadLine id={id} metal={color} factor={.895} z={.62} radius={.14}/>
+      {id==='clover'&&[[-3.06,3.06],[3.06,3.06],[-3.06,-3.06],[3.06,-3.06]].map(([x,y],i)=><mesh key={i} position={[x,y,.67]} castShadow name="inlay-retaining-dot">
+        <sphereGeometry args={[.31,14,10]}/><meshPhysicalMaterial color={color} metalness={.98} roughness={.17}/>
+      </mesh>)}
     </>:null}
   </group>;
 }
 function Plate({id,color}:{id:MotifId;color:string}){
-  const geometry=useMemo(()=>new ExtrudeGeometry(profilePath(id),{depth:.64,steps:1,bevelEnabled:true,bevelThickness:.16,bevelSize:.17,bevelSegments:3,curveSegments:8}),[id]);
+  const geometry=useMemo(()=>new ExtrudeGeometry(profilePath(id),{depth:.7,steps:1,bevelEnabled:true,bevelThickness:.15,bevelSize:.14,bevelSegments:4,curveSegments:10}),[id]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
-  return <mesh name="01-metal-plate" geometry={geometry} position={[0,0,-.75]} castShadow receiveShadow>
-    <meshPhysicalMaterial color={color} metalness={.9} roughness={.22} clearcoat={.4}/>
+  return <mesh name="01-metal-seat" geometry={geometry} position={[0,0,-.52]} castShadow receiveShadow>
+    <meshPhysicalMaterial color={color} metalness={.98} roughness={.19} envMapIntensity={1.35}/>
   </mesh>;
+}
+/** A subtle deterministic satin texture, unlike a flat uniformly coloured plastic surface. */
+function pearlSurfaceTexture(){
+  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;
+  const ctx=canvas.getContext('2d');if(!ctx)return null;
+  const gradient=ctx.createLinearGradient(0,0,512,512);
+  gradient.addColorStop(0,'#f0e9df');gradient.addColorStop(.28,'#fffdf7');gradient.addColorStop(.54,'#e5e9e5');gradient.addColorStop(.78,'#f8f2e9');gradient.addColorStop(1,'#e8e2dc');
+  ctx.fillStyle=gradient;ctx.fillRect(0,0,512,512);
+  for(let i=0;i<74;i++){
+    const y=i*8-40;ctx.beginPath();
+    ctx.moveTo(-40,y+24*Math.sin(i*.23));
+    ctx.bezierCurveTo(120,y-36,295,y+37,560,y-9);
+    ctx.lineWidth=i%4===0?5:2;
+    ctx.strokeStyle=i%3===0?'rgba(185,201,210,.10)':i%3===1?'rgba(249,217,196,.09)':'rgba(255,255,255,.25)';
+    ctx.stroke();
+  }
+  const map=new CanvasTexture(canvas);
+  map.colorSpace=SRGBColorSpace;map.needsUpdate=true;
+  return map;
 }
 function InlayObject({id,appearance}:{id:MotifId;appearance:Inlay}){
   const original=useLoader(OBJLoader,assetPath(id));
   const finish=INLAYS[appearance];
+  const pearlMap=useMemo(()=>appearance==='pearl'?pearlSurfaceTexture():null,[appearance]);
   const material=useMemo(()=>new MeshPhysicalMaterial({
-    color:new Color(finish.color),metalness:finish.metalness,roughness:finish.roughness,
-    clearcoat:.68,clearcoatRoughness:.16,iridescence:appearance==='pearl'?.7:0,
-    iridescenceIOR:1.25,iridescenceThicknessRange:[120,420],side:2,
-  }),[appearance,finish]);
+    color:new Color(finish.color),map:pearlMap,metalness:finish.metalness,roughness:finish.roughness,
+    clearcoat:.62,clearcoatRoughness:.13,iridescence:appearance==='pearl'?.48:0,
+    iridescenceIOR:1.24,iridescenceThicknessRange:[150,360],side:2,
+  }),[appearance,finish,pearlMap]);
   const instance=useMemo(()=>{
     const clone=original.clone(true);
     clone.traverse(child=>{if(child instanceof Mesh){child.material=material;child.castShadow=true;child.receiveShadow=true;}});
     const bounds=new Box3().setFromObject(original);
     const span=bounds.getSize(new Vector3());const center=bounds.getCenter(new Vector3());
     const scale=15/Math.max(span.x,span.y);
-    const inset=.85;
-    clone.scale.set(scale*inset,scale*inset,.48/Math.max(.01,span.z));
-    clone.position.set(-center.x*scale*inset,-center.y*scale*inset,.72-bounds.min.z*clone.scale.z);
+    const inset=.875;
+    clone.scale.set(scale*inset,scale*inset,.46/Math.max(.01,span.z));
+    clone.position.set(-center.x*scale*inset,-center.y*scale*inset,.22-bounds.min.z*clone.scale.z);
     return clone;
   },[original,material]);
-  useEffect(()=>()=>material.dispose(),[material]);
+  useEffect(()=>()=>{material.dispose();pearlMap?.dispose();},[material,pearlMap]);
   return <group name="02-inlay"><primitive object={instance}/></group>;
-}
-function Wire({points,radius,color,name}:{points:Vector3[];radius:number;color:string;name:string}){
-  const tube=useMemo(()=>new TubeGeometry(new CatmullRomCurve3(points),100,radius,9,false),[points,radius]);
-  useEffect(()=>()=>tube.dispose(),[tube]);
-  return <mesh name={name} geometry={tube} castShadow><meshPhysicalMaterial color={color} metalness={.88} roughness={.19}/></mesh>;
-}
-function ProductAdapter({product,metal,diameter,explode}:{product:Product;metal:string;diameter:number;explode:number}){
-  const R=(diameter/2)+.8;
-  const left=useMemo(()=>[new Vector3(-5,4.8,-.5),new Vector3(-8,7,-.5),new Vector3(-11,12,-.6),new Vector3(-12,20,-.9),new Vector3(-8,26,-1.5)],[product]);
-  const right=useMemo(()=>left.map(p=>new Vector3(-p.x,p.y,p.z)),[left]);
-  const shoulderLeft=useMemo(()=>[new Vector3(-4.5,-4,-.7),new Vector3(-6.9,-5.8,-1.7),new Vector3(-R,-8,-3.1)],[R]);
-  const shoulderRight=useMemo(()=>shoulderLeft.map(p=>new Vector3(-p.x,p.y,p.z)),[shoulderLeft]);
-  return <group name="04-adapter" position-z={-explode*.6}>
-    {product==='necklace'?<>
-      <Wire points={left} radius={.22} color={metal} name="necklace-left-chain"/>
-      <Wire points={right} radius={.22} color={metal} name="necklace-right-chain"/>
-      {[ -1,1 ].map(sign=><mesh key={sign} position={[sign*5.1,4.8,-.5]} rotation={[0,0,.25*sign]} castShadow name="attachment-eyelet">
-        <torusGeometry args={[.77,.19,10,32]}/><meshPhysicalMaterial color={metal} metalness={.88} roughness={.22}/>
-      </mesh>)}
-    </>:<>
-      <mesh name="ring-shank" position={[0,-8,-3.1]} castShadow>
-        <torusGeometry args={[R,1.02,18,96]}/><meshPhysicalMaterial color={metal} metalness={.9} roughness={.21}/>
-      </mesh>
-      <Wire points={shoulderLeft} radius={.82} color={metal} name="left-ring-shoulder"/>
-      <Wire points={shoulderRight} radius={.82} color={metal} name="right-ring-shoulder"/>
-    </>}
-  </group>;
 }
 function Assembly({config,rootRef,onReady}:{config:Settings;rootRef:React.RefObject<Group|null>;onReady:(ready:boolean)=>void}){
   const color=METALS[config.metal].color;
   const scale=config.size/15;
+  const ring=config.product==='ring';
+  const mountHeight=ring?ringSizing(config.ringDiameter).motifSeatY:0;
   useEffect(()=>{onReady(true);return()=>onReady(false);},[config.motif,onReady]);
-  return <group ref={rootRef} name="xiangyan-motif-assembly" scale={[scale,scale,scale]}>
-    {showPart(config.part,'plate')&&<group position-z={-config.explode*2.3}><Plate id={config.motif} color={color}/></group>}
-    {showPart(config.part,'inlay')&&<group position-z={config.explode*1.6}><InlayObject id={config.motif} appearance={config.inlay}/></group>}
-    {showPart(config.part,'edge')&&<group position-z={config.explode*.65}><Rim id={config.motif} color={color} edge={config.edge}/></group>}
-    {showPart(config.part,'adapter')&&<ProductAdapter product={config.product} metal={color} diameter={config.ringDiameter/scale} explode={config.explode}/>}
+  return <group ref={rootRef} name="xiangyan-motif-assembly">
+    {/* The ring seat rotates 90 degrees to face away from the finger hole. */}
+    <group name="01-03-face-and-setting" scale={[scale,scale,scale]} position={[0,mountHeight,0]}
+      rotation={ring?[-Math.PI/2,0,0]:[0,0,0]}>
+      {showPart(config.part,'plate')&&<group position-z={-config.explode*2.3}><Plate id={config.motif} color={color}/></group>}
+      {showPart(config.part,'inlay')&&<group position-z={config.explode*1.6}><InlayObject id={config.motif} appearance={config.inlay}/></group>}
+      {showPart(config.part,'edge')&&<group position-z={config.explode*.65}><Rim id={config.motif} color={color} edge={config.edge}/></group>}
+    </group>
+    {showPart(config.part,'adapter')&&(ring
+      ?<RingAdapter color={color} diameter={config.ringDiameter} explode={config.explode}/>
+      :<NecklaceAdapter color={color} motif={config.motif} scale={scale} explode={config.explode}/>)}
   </group>;
 }
 function ViewRig({view,product}:{view:View;product:Product}){
   const {camera}=useThree();
   const controls=useRef<React.ComponentRef<typeof OrbitControls>>(null);
   useEffect(()=>{
-    const cy=product==='necklace'?6:-6;
-    const positions:Record<View,[number,number,number]>={angle:[14,cy+10,34],front:[0,cy,40],side:[37,cy+7,12]};
-    camera.position.set(...positions[view]);
-    camera.lookAt(0,cy,0);
-    camera.updateProjectionMatrix();
-    controls.current?.target.set(0,cy,0);
-    controls.current?.update();
+    const ring=product==='ring';
+    const target=new Vector3(0,ring?4.8:7,0);
+    const positions:Record<View,[number,number,number]>=ring?{
+      angle:[26,30,23],front:[0,46,10],side:[39,15,11],fit:[45,4.8,0],
+    }:{angle:[15,15,35],front:[0,7,42],side:[39,11,12],fit:[0,7,42]};
+    camera.position.set(...positions[view]);camera.lookAt(target);camera.updateProjectionMatrix();
+    controls.current?.target.copy(target);controls.current?.update();
   },[camera,view,product]);
-  return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={.08} target={[0,product==='necklace'?6:-6,0]} minZoom={12} maxZoom={47} enablePan={false}/>;
+  return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={.08}
+    target={[0,product==='ring'?4.8:7,0]} minZoom={11} maxZoom={60} enablePan={false}/>;
 }
 function ModelPreview({config,view,rootRef,rendererRef,ready}:{config:Settings;view:View;rootRef:React.RefObject<Group|null>;rendererRef:React.RefObject<WebGLRenderer|null>;ready:(r:boolean)=>void}){
   return <Canvas orthographic dpr={[1,2]} shadows camera={{position:[14,17,34],zoom:21,near:.1,far:180}} gl={{alpha:true,antialias:true,preserveDrawingBuffer:true}}
     onCreated={({gl})=>{rendererRef.current=gl;}}>
     <Environment files={`${base}environments/catalog-studio.hdr`} background={false}/>
-    <ambientLight intensity={1.35}/>
-    <hemisphereLight args={['#fff7e8','#c1b8a4',2]}/>
-    <directionalLight position={[-8,16,17]} intensity={4.5} color="#fff5df" castShadow shadow-mapSize={[1024,1024]}/>
-    <directionalLight position={[8,7,-7]} intensity={3.4} color="#dbe6ff"/>
-    <directionalLight position={[0,-8,15]} intensity={1.7} color="#fff7e9"/>
+    <ambientLight intensity={.9}/>
+    <hemisphereLight args={['#fff9ee','#b4ac9f',1.35]}/>
+    <directionalLight position={[-8,16,17]} intensity={3.1} color="#fff5df" castShadow shadow-mapSize={[1024,1024]}/>
+    <directionalLight position={[8,7,-7]} intensity={2.5} color="#dbe6ff"/>
+    <directionalLight position={[0,-8,15]} intensity={1.1} color="#fff7e9"/>
     <Suspense fallback={null}>
       <Assembly key={config.motif} config={config} rootRef={rootRef} onReady={ready}/>
     </Suspense>
@@ -207,7 +214,9 @@ export function MotifCaseStudio(){
     const recipe={schema:'xiangyan.motif-case/0.1',reference:'Vintage Alhambra structural study (not a production replica)',
       units:'mm',settings:config,source:profiles[config.motif].src,
       parts:PARTS.map(p=>({code:p.no,name:p.name,independent:true})),
-      productionStatus:'VISUAL_PROTOTYPE_ONLY',notes:['OBJ source is unitless and normalized to 15 mm by visual span','No manufacturing tolerances, prong retention, casting minimums or Boolean union validated']};
+      productionStatus:'VISUAL_PROTOTYPE_ONLY',ring:config.product==='ring'?ringSizing(config.ringDiameter):null,
+      chain:{referenceLengthCm:42,representation:'visible articulated segment only'},
+      notes:['OBJ source is unitless and normalized to 15 mm by visual span','The shank has a continuous geometric bore, but fit and manufacture have not been certified','No casting tolerances, inlay retention, or Boolean union validated']};
     download(new Blob([JSON.stringify(recipe,null,2)],{type:'application/json'}),'xiangyan-motif-recipe.json');setStatus('已导出参数化设计记录');
   };
   const exportGlb=async()=>{
@@ -231,7 +240,7 @@ export function MotifCaseStudio(){
     <div className="motif-lab-heading">
       <div><p className="motif-kicker">XIANGYAN / DESIGN SYSTEM 001</p><h1>从一枚四叶草，拆解一套珠宝语言。</h1>
         <p className="motif-heading-sub">经典四叶草结构研究 · 可替换主题 × 可组装结构 × 实时三维预览</p></div>
-      <span className="motif-build-tag">内部案例 · 结构演示 V0.1</span>
+      <span className="motif-build-tag">内部案例 · 可佩戴结构 V0.2</span>
     </div>
     <div className="motif-workspace">
       <aside className="motif-controls" aria-label="DIY 配置面板">
@@ -256,22 +265,28 @@ export function MotifCaseStudio(){
         </div>
         <div className="motif-section-caption"><span>04</span> 尺寸参数</div>
         <label className="motif-range-label">主题直径 <strong>{config.size} mm</strong><input type="range" min="11" max="20" step="1" value={config.size} onChange={e=>update('size',Number(e.target.value))}/></label>
-        {config.product==='ring'&&<label className="motif-range-label">戒指内径（示意） <strong>{config.ringDiameter} mm</strong><input type="range" min="16" max="21" step=".5" value={config.ringDiameter} onChange={e=>update('ringDiameter',Number(e.target.value))}/></label>}
+        {config.product==='ring'&&<label className="motif-range-label">戒指内径（名义） <strong>{config.ringDiameter} mm</strong><input type="range" min="16" max="21" step=".5" value={config.ringDiameter} onChange={e=>update('ringDiameter',Number(e.target.value))}/></label>}
+        <div className="motif-wear-check" role="status">
+          <strong>{config.product==='ring'?'贯通戒臂 · 名义指孔':'交错椭圆链节 · 双侧连接环'}</strong>
+          <p>{config.product==='ring'
+            ?'内径 '+config.ringDiameter+' mm，保守几何孔径下限 '+checkRingNominalClearance(config.ringDiameter).conservativeMinimum.toFixed(2)+' mm。可在「指孔」视角检查；尚未做实际佩戴与生产公差认证。'
+            :'每侧为独立可辨认的交错链节，不再用直杆替代。画面仅展示 42 cm 项链的局部链段。'}</p>
+        </div>
       </aside>
       <main className="motif-visual" aria-label="实时三维结构预览">
         <div className="motif-preview-title"><span>INTERACTIVE 3D / LIVE ASSEMBLY</span><h2>{label(config.motif)} <em>·</em> {config.product==='necklace'?'悬挂项链':'镶饰戒指'}</h2><p>拖动旋转、滚轮缩放，实时观察各独立结构的组合</p></div>
         <ModelPreview config={config} view={view} rootRef={rootRef} rendererRef={rendererRef} ready={setReady}/>
         {!ready&&<p className="motif-loader" role="status">正在装配 3D 模组…</p>}
         <div className="motif-view-tools" role="group" aria-label="三维视角">
-          {([['angle','45°'],['front','正面'],['side','侧面']] as const).map(([k,v])=><button type="button" key={k} aria-pressed={view===k} onClick={()=>setView(k)}>{v}</button>)}
+          {([['angle','45°'],['front','正面'],['side','侧面'],...(config.product==='ring'?[['fit','指孔'] as const]:[])] as const).map(([k,v])=><button type="button" key={k} aria-pressed={view===k} onClick={()=>setView(k)}>{v}</button>)}
         </div>
-        <div className="motif-visual-status"><span className="motif-live-dot"/>真实 OBJ 源模组 <span>·</span> 正交视图 <span>·</span> 独立几何组件</div>
+        <div className="motif-visual-status"><span className="motif-live-dot"/>真实 OBJ 源模组 <span>·</span> 正交视图 <span>·</span> {config.product==='ring'?'环形指孔 / 双肩连接':'独立链节 / 双侧连接环'}</div>
       </main>
       <aside className="motif-anatomy" aria-label="结构拆解与输出">
         <div className="motif-anatomy-head"><p className="motif-kicker">STRUCTURE / 结构</p><h2>拆开来看。</h2><p>点击一个零件单独查看它与整体的关系。</p></div>
         <button className="motif-all-parts" aria-pressed={config.part==='all'} type="button" onClick={()=>update('part','all')}>完整装配 <span>ALL PARTS ↗</span></button>
         <div className="motif-part-list">{PARTS.map(p=><button type="button" key={p.id} aria-pressed={config.part===p.id} onClick={()=>update('part',config.part===p.id?'all':p.id)}>
-          <span className="motif-part-no">{p.no}</span><span><strong>{p.name}</strong><small>{p.id==='adapter'?(config.product==='necklace'?'连接耳、链条':'戒臂、肩部接口'):p.description}</small></span><span className="motif-part-arrow">↗</span>
+          <span className="motif-part-no">{p.no}</span><span><strong>{p.name}</strong><small>{p.id==='adapter'?(config.product==='necklace'?'独立椭圆链节与双侧连接环':'贯通指孔、舒适戒臂与双侧肩部'):p.description}</small></span><span className="motif-part-arrow">↗</span>
         </button>)}</div>
         <div className="motif-explode"><div className="motif-explode-label"><span>爆炸视图</span><b>{Math.round(config.explode*100)}%</b></div>
           <input aria-label="结构爆炸程度" type="range" min="0" max="1.5" step=".05" value={config.explode} onChange={e=>update('explode',Number(e.target.value))}/>
@@ -279,7 +294,7 @@ export function MotifCaseStudio(){
         <div className="motif-export-panel"><h3>保存这次设计</h3><button className="motif-main-download" type="button" disabled={!ready||busy} onClick={exportGlb}>{busy?'导出中…':'导出 3D GLB'} <span>↗</span></button>
           <div className="motif-secondary-downloads"><button type="button" onClick={downloadRecipe}>配置 JSON</button><button type="button" onClick={exportPng} disabled={!ready}>当前截图 PNG</button></div>
           <p className="motif-status" role="status">{status}</p></div>
-        <div className="motif-disclaimer">工程边界：本案例展示独立零件与连接逻辑，不代表梵克雅宝官方结构。网格虽闭合，仍未完成公差、牢固度、金属布尔融合和生产可制造性验证。</div>
+        <div className="motif-disclaimer">工程边界：本案例用于结构与外观评审，不代表梵克雅宝官方 CAD。戒圈为贯通几何、链节为独立网格；仍未完成铸造布尔、实体碰撞、佩戴适配、强度与工厂公差验证。</div>
       </aside>
     </div>
   </div>;
