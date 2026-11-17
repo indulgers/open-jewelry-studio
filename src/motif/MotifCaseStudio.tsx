@@ -183,8 +183,8 @@ function CenterStone({metal}:{metal:string}){
   useEffect(()=>()=>diamond.dispose(),[diamond]);
   return <group name="center-diamond-and-retaining-prongs">
     <mesh name="small-faceted-center-stone" geometry={diamond} castShadow>
-      <meshPhysicalMaterial color="#f5faff" metalness={0} roughness={.035} transmission={.85}
-        thickness={.65} ior={2.4} clearcoat={.85} clearcoatRoughness={.02} envMapIntensity={2.1} flatShading/>
+      <meshPhysicalMaterial color="#d8effb" metalness={.04} roughness={.025} transmission={.08}
+        thickness={.65} ior={2.4} clearcoat={1} clearcoatRoughness={.01} envMapIntensity={2.4} flatShading/>
     </mesh>
     <mesh name="center-stone-metal-seat" position={[0,0,.74]} castShadow>
       <torusGeometry args={[.97,.11,12,40]}/><meshPhysicalMaterial color={metal} metalness={.98} roughness={.17}/>
