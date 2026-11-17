@@ -62,7 +62,7 @@ export function NecklaceAdapter({color,motif,scale,explode,mount='side'}:Omit<Pr
 export const createRingShankGeometry=createComfortFitShank;
 
 export function RingAdapter({color,diameter,explode,fusedGeometry,shank='classic'}:Pick<Props,'color'|'diameter'|'explode'>&{fusedGeometry?:BufferGeometry|null;shank?:ShankStyle}){
-  const shank=useMemo(()=>createRingShankGeometry(diameter),[diameter]);
+  const shankGeometry=useMemo(()=>createRingShankGeometry(diameter),[diameter]);
   const arms=useMemo(()=>ringShoulders(diameter).map(points=>new TubeGeometry(
     new CatmullRomCurve3(points.map(vec),false,'centripetal'),44,.44,16,false,
   )),[diameter]);
@@ -74,11 +74,11 @@ export function RingAdapter({color,diameter,explode,fusedGeometry,shank='classic
     m.metalness=.76;m.envMapIntensity=.63;m.anisotropy=0;
     return m;
   },[color]);
-  useEffect(()=>()=>{shank.dispose();arms.forEach(a=>a.dispose());material.dispose();},[shank,arms,material]);
+  useEffect(()=>()=>{shankGeometry.dispose();arms.forEach(a=>a.dispose());material.dispose();},[shankGeometry,arms,material]);
   return <group name="04-ring-shank-and-shoulders" position-y={-explode*.5}>
     {fusedGeometry?<mesh name="manifold-fused-ring-metal" geometry={fusedGeometry}
         material={material} castShadow receiveShadow/>:<>
-      <mesh name="wearable-continuous-ring-band" geometry={shank} material={material} castShadow receiveShadow/>
+      <mesh name="wearable-continuous-ring-band" geometry={shankGeometry} material={material} castShadow receiveShadow/>
       {arms.map((geo,i)=><mesh key={i} name={'shoulder-'+(i+1)} geometry={geo}
         material={material} castShadow/>)}
       <mesh name="underside-gallery-bridge" position={[0,ringSizing(diameter).motifSeatY-.70,0]}
