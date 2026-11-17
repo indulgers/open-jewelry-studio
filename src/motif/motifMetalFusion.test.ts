@@ -11,8 +11,8 @@ describe('actual solid parts and optional Manifold metal fusion',()=>{
     }
     p.dispose();
   });
-  it('runs the vendored Manifold Boolean engine and checks a single metal component',async()=>{
-    const result=await fuseWearableRing(18);
+  it.each([16,18,21])('fuses the %s mm ring to one metal body without blocking the bore',async(diameter)=>{
+    const result=await fuseWearableRing(diameter);
     try{
       expect(result.report.closedTriangleSurface).toBe(true);
       expect(result.report.triangles).toBeGreaterThan(500);
