@@ -11,6 +11,7 @@ import profiles from './profiles.json';
 import {NecklaceAdapter,RingAdapter} from './WearableAdapters';
 import {checkRingNominalClearance,ringSizing} from './wearableGeometry';
 import {createNacreTextureSet} from './nacreMaterials';
+import {createMineralTexture} from './mineralInlays';
 import {createSmallBrilliantGeometry} from './brilliantGeometry';
 import {metalAppearanceProps,DISPLAY_ALLOYS} from './metalMaterials';
 import {comfortFitDiagnostics} from './comfortFitGeometry';
@@ -119,9 +120,10 @@ function InlayObject({id,appearance}:{id:MotifId;appearance:Inlay}){
   const original=useLoader(OBJLoader,assetPath(id));
   const finish=INLAYS[appearance];
   const nacreMaps=useMemo(()=>appearance==='pearl'?createNacreTextureSet(512):null,[appearance]);
+  const mineralMap=useMemo(()=>appearance==='pearl'?null:createMineralTexture(appearance),[appearance]);
   const material=useMemo(()=>new MeshPhysicalMaterial({
-    color:new Color(appearance==='pearl'?'#ffffff':finish.color),
-    map:nacreMaps?.albedo??null,
+    color:new Color('#ffffff'),
+    map:nacreMaps?.albedo??mineralMap,
     bumpMap:nacreMaps?.bump??null,bumpScale:nacreMaps ? .075 : 0,
     roughnessMap:nacreMaps?.roughness??null,
     metalness:appearance==='pearl'?0:finish.metalness,roughness:nacreMaps?1:finish.roughness,
@@ -129,7 +131,7 @@ function InlayObject({id,appearance}:{id:MotifId;appearance:Inlay}){
     iridescence:appearance==='pearl'?.19:0,
     iridescenceIOR:1.27,iridescenceThicknessRange:[165,275],
     envMapIntensity:1.35,side:2,
-  }),[appearance,finish,nacreMaps]);
+  }),[appearance,finish,nacreMaps,mineralMap]);
   const instance=useMemo(()=>{
     const clone=original.clone(true);
     const bounds=new Box3().setFromObject(original);
@@ -154,7 +156,7 @@ function InlayObject({id,appearance}:{id:MotifId;appearance:Inlay}){
     clone.position.set(-center.x*scale*inset,-center.y*scale*inset,.22-bounds.min.z*clone.scale.z);
     return clone;
   },[original,material]);
-  useEffect(()=>()=>{material.dispose();nacreMaps?.dispose();},[material,nacreMaps]);
+  useEffect(()=>()=>{material.dispose();nacreMaps?.dispose();mineralMap?.dispose();},[material,nacreMaps,mineralMap]);
   useEffect(()=>()=>instance.traverse(child=>{if(child instanceof Mesh)child.geometry.dispose();}),[instance]);
   return <group name="02-inlay"><primitive object={instance}/></group>;
 }
