@@ -4,7 +4,7 @@ import {
   PRESETS,allowedTechniques,compatibleTechnique,settingPlan,
   inSilhouette,distanceToOutline,validatePreset,minimumMotifSize,normalizeMotifSize,
 } from './designGrammar';
-import {buildRadialEngraving,createPetalSolid,petalFaceZAt} from './designGeometry';
+import {buildRadialEngraving,createPetalSolid,petalFaceZAt,onSculptedPetal} from './designGeometry';
 import {triangleEdgeCounts} from './brilliantGeometry';
 import {mineralPixel} from './mineralInlays';
 
@@ -62,6 +62,17 @@ describe('Xiayngyan artisan design grammar',()=>{
     expect(atMiddle).toBeGreaterThan(atCenter);
     expect(atMiddle).toBeGreaterThan(atTip);
     expect(atTip).toBeGreaterThan(0);
+  });
+  it('never places a raised floral gem in the gaps between sculpted petals',()=>{
+    const plan=settingPlan('flower','pave');
+    const supported=plan.sites.filter(p=>onSculptedPetal(p.x,p.y));
+    expect(supported.length).toBeGreaterThan(10);
+    expect(supported.length).toBeLessThan(plan.sites.length);
+    expect(onSculptedPetal(0,3)).toBe(true);
+    expect(onSculptedPetal(5,5)).toBe(false);
+    for(const point of supported){
+      expect(petalFaceZAt(point.x,point.y)).toBeGreaterThan(.2);
+    }
   });
   it('sculpted petals are watertight 3D metals, not a white overlay',()=>{
     for(let i=0;i<5;i++){
