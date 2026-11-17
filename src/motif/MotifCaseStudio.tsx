@@ -96,8 +96,8 @@ function Rim({id,color,edge}:{id:MotifId;color:string;edge:Edge}){
     <mesh geometry={outer} castShadow><meshPhysicalMaterial {...metalAppearanceProps(color,.15)}/></mesh>
     {edge==='double'?<>
       <mesh geometry={inner} castShadow><meshPhysicalMaterial {...metalAppearanceProps(color,.17)}/></mesh>
-      <BeadLine id={id} metal={color} factor={.985} z={.55} radius={.185}/>
-      <BeadLine id={id} metal={color} factor={.935} z={.59} radius={.12}/>
+      <BeadLine id={id} metal={color} factor={.985} z={.57} radius={.255}/>
+      <BeadLine id={id} metal={color} factor={.936} z={.63} radius={.178}/>
       {id==='clover'&&[[-3.06,3.06],[3.06,3.06],[-3.06,-3.06],[3.06,-3.06]].map(([x,y],i)=><mesh key={i} position={[x,y,.67]} castShadow name="inlay-retaining-dot">
         <sphereGeometry args={[.31,14,10]}/><meshPhysicalMaterial {...metalAppearanceProps(color,.17)}/>
       </mesh>)}
