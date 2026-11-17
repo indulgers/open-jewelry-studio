@@ -31,3 +31,7 @@
 .motif-fusion-panel button:hover{background:#586e5c}
 .motif-fusion-panel button:disabled{background:#9ba6a0;cursor:not-allowed}
 .motif-fusion-panel small{display:block;margin-top:8px;color:#939489;font-size:10px;line-height:1.4}
+
+.motif-fusion-metrics{display:grid;grid-template-columns:1fr;gap:5px;margin-top:10px;padding:9px 10px;background:#fffefa;border:1px solid #e6e4d7;border-radius:6px}
+.motif-fusion-metrics span{display:flex;justify-content:space-between;gap:5px;font-size:10px;color:#7d8178}
+.motif-fusion-metrics strong{font-size:11px;color:#34453b;white-space:nowrap}
