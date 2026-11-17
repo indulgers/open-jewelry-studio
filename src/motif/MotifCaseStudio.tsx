@@ -116,7 +116,7 @@ function InlayObject({id,appearance}:{id:MotifId;appearance:Inlay}){
   const material=useMemo(()=>new MeshPhysicalMaterial({
     color:new Color(appearance==='pearl'?'#ffffff':finish.color),
     map:nacreMaps?.albedo??null,
-    bumpMap:nacreMaps?.bump??null,bumpScale:nacreMaps?.bump?.075:0,
+    bumpMap:nacreMaps?.bump??null,bumpScale:nacreMaps ? .075 : 0,
     roughnessMap:nacreMaps?.roughness??null,
     metalness:appearance==='pearl'?0:finish.metalness,roughness:nacreMaps?1:finish.roughness,
     clearcoat:appearance==='pearl'?.38:.7,clearcoatRoughness:appearance==='pearl'?.24:.12,
