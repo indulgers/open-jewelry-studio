@@ -263,7 +263,7 @@ export function MotifCaseStudio(){
     setConfig(old=>{
       const technique=compatibleTechnique(motif,old.technique);
       return {...old,motif,technique,edge:technique==='inlay'&&old.edge==='none'?'double':old.edge};
-    });setReady(false);
+    });if(config.motif!==motif)setReady(false);
   };
   const chooseTechnique=(technique:Technique)=>{
     if(!allowedTechniques(config.motif).includes(technique))return;
@@ -274,7 +274,8 @@ export function MotifCaseStudio(){
     setConfig(old=>({...old,product:preset.product,motif:preset.motif,technique:preset.technique,
       metal:preset.metal,inlay:preset.inlay,edge:preset.edge,shank:preset.shank,
       necklaceMount:preset.necklaceMount,centerStone:preset.centerStone,explode:0,part:'all'}));
-    setView('angle');setReady(false);setStatus('已应用原创构型方案：'+preset.name);
+    setView('angle');if(config.motif!==preset.motif)setReady(false);
+    setStatus('已应用原创构型方案：'+preset.name);
   };
   const screenMetal=async()=>{
     if(config.product!=='ring'||busy)return;
