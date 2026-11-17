@@ -62,6 +62,9 @@ export function createPetalSolid(angle:number,length=6.4,width=2.4):BufferGeomet
     const a=i*stride+j,b=i*stride+j+1,c=offset+b,d=offset+a;
     if(i===0)tri.push(a,b,c,a,c,d);else tri.push(a,c,b,a,d,c);
   }
+  // Vertex ordering of the parameterized side walls is inward-facing.
+  // Flip once across the whole closed shell so the external normal faces the light.
+  for(let k=0;k<tri.length;k+=3){const tmp=tri[k+1];tri[k+1]=tri[k+2];tri[k+2]=tmp;}
   const geometry=new BufferGeometry();
   geometry.setAttribute('position',new Float32BufferAttribute(verts,3));
   geometry.setIndex(tri);
@@ -69,6 +72,24 @@ export function createPetalSolid(angle:number,length=6.4,width=2.4):BufferGeomet
   return geometry;
 }
 
+/** Top height of a closed five-petal relief at arbitrary motif-space XY.
+ * Used to seat gems on the actual sculptural surface rather than a flat decal.
+ */
+export function petalFaceZAt(x:number,y:number):number{
+  let upper=-Infinity;
+  for(let i=0;i<5;i++){
+    const a=i*Math.PI*2/5,c=Math.cos(a),s=Math.sin(a);
+    const localX=x*c+y*s,localY=-x*s+y*c;
+    const t=(localY-.4)/6.4;
+    if(t<0||t>1)continue;
+    const envelope=.08+.92*Math.pow(Math.sin(Math.PI*t),.72);
+    const u=localX/(2.4*envelope);
+    if(Math.abs(u)>1)continue;
+    const z=.14+.24+.58*Math.sin(Math.PI*t)*(1-u*u)+.11*Math.sin(2*Math.PI*t);
+    upper=Math.max(upper,z);
+  }
+  return Number.isFinite(upper)?upper:.71;
+}
 export function suggestSettingSize(motif:MotifId,style:'pave'|'cluster'){
   const poly=profiles[motif].outline;
   const bounds=poly.reduce((b,p)=>({
