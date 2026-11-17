@@ -162,8 +162,13 @@ function InlayObject({id,appearance}:{id:MotifId;appearance:Inlay}){
 /** The small central stone on the ring reference is a separate setting, not part of the pearl mesh. */
 function CenterStone({metal}:{metal:string}){
   const diamond=useMemo(()=>{
-    const n=16,points:number[]=[];
-    const tri=(a:number[],b:number[],c:number[])=>points.push(...a,...b,...c);
+    const n=16,points:number[]=[],colors:number[]=[];
+    const palette=[new Color('#a9c2db'),new Color('#f7fbff'),new Color('#c4d7e7'),new Color('#d8e7f3'),new Color('#8fb3cb')];
+    const tri=(a:number[],b:number[],c:number[],shade=0)=>{
+      points.push(...a,...b,...c);
+      const col=palette[Math.abs(shade)%palette.length];
+      for(let j=0;j<3;j++)colors.push(col.r,col.g,col.b);
+    };
     const girdle=Array.from({length:n},(_,i)=>{
       const a=i*Math.PI*2/n;return [Math.cos(a)*.99,Math.sin(a)*.99,.78];
     });
@@ -172,19 +177,21 @@ function CenterStone({metal}:{metal:string}){
     });
     for(let i=0;i<n;i++){
       const next=(i+1)%n;
-      tri([0,0,1.14],table[i],table[next]);
-      tri(table[i],girdle[i],girdle[next]);tri(table[i],girdle[next],table[next]);
-      tri([0,0,.51],girdle[next],girdle[i]);
+      tri([0,0,1.14],table[i],table[next],i+1);
+      tri(table[i],girdle[i],girdle[next],i+2);
+      tri(table[i],girdle[next],table[next],i+3);
+      tri([0,0,.51],girdle[next],girdle[i],i);
     }
     const mesh=new BufferGeometry();
     mesh.setAttribute('position',new Float32BufferAttribute(points,3));
+    mesh.setAttribute('color',new Float32BufferAttribute(colors,3));
     mesh.computeVertexNormals();return mesh;
   },[]);
   useEffect(()=>()=>diamond.dispose(),[diamond]);
   return <group name="center-diamond-and-retaining-prongs">
     <mesh name="small-faceted-center-stone" geometry={diamond} castShadow>
-      <meshPhysicalMaterial color="#d8effb" metalness={.04} roughness={.025} transmission={.08}
-        thickness={.65} ior={2.4} clearcoat={1} clearcoatRoughness={.01} envMapIntensity={2.4} flatShading/>
+      <meshPhysicalMaterial vertexColors color="#ffffff" metalness={.04} roughness={.055} transmission={0}
+        thickness={.65} ior={2.4} clearcoat={1} clearcoatRoughness={.01} envMapIntensity={2.6} flatShading/>
     </mesh>
     <mesh name="center-stone-metal-seat" position={[0,0,.74]} castShadow>
       <torusGeometry args={[.97,.11,12,40]}/><meshPhysicalMaterial color={metal} metalness={.98} roughness={.17}/>
