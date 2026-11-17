@@ -2,7 +2,7 @@ import {Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import {Canvas, useLoader, useThree} from '@react-three/fiber';
 import {Environment, OrbitControls} from '@react-three/drei';
 import {
-  Box3, CanvasTexture, CatmullRomCurve3, Color, ExtrudeGeometry, Group, InstancedMesh, SRGBColorSpace,
+  Box3, BufferGeometry, CanvasTexture, CatmullRomCurve3, Color, ExtrudeGeometry, Group, InstancedMesh, SRGBColorSpace,
   Float32BufferAttribute, Mesh, MeshPhysicalMaterial, Object3D, Shape, TubeGeometry, Vector3,
   type WebGLRenderer,
 } from 'three';
@@ -19,7 +19,7 @@ type Inlay = 'pearl' | 'onyx' | 'malachite' | 'lapis';
 type Edge = 'double' | 'smooth' | 'none';
 type Part = 'all' | 'plate' | 'inlay' | 'edge' | 'adapter';
 type View = 'angle' | 'front' | 'side' | 'fit';
-type Settings = {product:Product;motif:MotifId;metal:Metal;inlay:Inlay;edge:Edge;size:number;ringDiameter:number;explode:number;part:Part};
+type Settings = {product:Product;motif:MotifId;metal:Metal;inlay:Inlay;edge:Edge;size:number;ringDiameter:number;centerStone:boolean;explode:number;part:Part};
 
 const MOTIFS: {id:MotifId; name:string;source:string}[] = [
   {id:'clover',name:'四叶草',source:'四叶草.obj'},
@@ -39,7 +39,7 @@ const INLAYS: Record<Inlay,{name:string;color:string;roughness:number;metalness:
   malachite:{name:'孔雀石效果',color:'#176a59',roughness:.25,metalness:.03},
   lapis:{name:'青金石效果',color:'#294f91',roughness:.24,metalness:.03},
 };
-const INIT:Settings = {product:'necklace',motif:'clover',metal:'yellow',inlay:'pearl',edge:'double',size:15,ringDiameter:18,explode:0,part:'all'};
+const INIT:Settings = {product:'necklace',motif:'clover',metal:'yellow',inlay:'pearl',edge:'double',size:15,ringDiameter:18,centerStone:true,explode:0,part:'all'};
 const PARTS:{id:Exclude<Part,'all'>;no:string;name:string;description:string}[] = [
   {id:'plate',no:'01',name:'金属底托',description:'轮廓匹配的基座与结构层'},
   {id:'inlay',no:'02',name:'造型嵌片',description:'保留原 OBJ 三维表面'},
@@ -159,6 +159,41 @@ function InlayObject({id,appearance}:{id:MotifId;appearance:Inlay}){
   useEffect(()=>()=>instance.traverse(child=>{if(child instanceof Mesh)child.geometry.dispose();}),[instance]);
   return <group name="02-inlay"><primitive object={instance}/></group>;
 }
+/** The small central stone on the ring reference is a separate setting, not part of the pearl mesh. */
+function CenterStone({metal}:{metal:string}){
+  const diamond=useMemo(()=>{
+    const n=16,points:number[]=[];
+    const tri=(a:number[],b:number[],c:number[])=>points.push(...a,...b,...c);
+    const girdle=Array.from({length:n},(_,i)=>{
+      const a=i*Math.PI*2/n;return [Math.cos(a)*.99,Math.sin(a)*.99,.78];
+    });
+    const table=Array.from({length:n},(_,i)=>{
+      const a=i*Math.PI*2/n;return [Math.cos(a)*.54,Math.sin(a)*.54,1.14];
+    });
+    for(let i=0;i<n;i++){
+      const next=(i+1)%n;
+      tri([0,0,1.14],table[i],table[next]);
+      tri(table[i],girdle[i],girdle[next]);tri(table[i],girdle[next],table[next]);
+      tri([0,0,.51],girdle[next],girdle[i]);
+    }
+    const mesh=new BufferGeometry();
+    mesh.setAttribute('position',new Float32BufferAttribute(points,3));
+    mesh.computeVertexNormals();return mesh;
+  },[]);
+  useEffect(()=>()=>diamond.dispose(),[diamond]);
+  return <group name="center-diamond-and-retaining-prongs">
+    <mesh name="small-faceted-center-stone" geometry={diamond} castShadow>
+      <meshPhysicalMaterial color="#f5faff" metalness={0} roughness={.035} transmission={.85}
+        thickness={.65} ior={2.4} clearcoat={.85} clearcoatRoughness={.02} envMapIntensity={2.1} flatShading/>
+    </mesh>
+    <mesh name="center-stone-metal-seat" position={[0,0,.74]} castShadow>
+      <torusGeometry args={[.97,.11,12,40]}/><meshPhysicalMaterial color={metal} metalness={.98} roughness={.17}/>
+    </mesh>
+    {[[1,0],[-1,0],[0,1],[0,-1]].map(([x,y],i)=><mesh key={i} name="center-stone-prong" position={[x*.94,y*.94,.84]} castShadow>
+      <sphereGeometry args={[.17,12,10]}/><meshPhysicalMaterial color={metal} metalness={.98} roughness={.18}/>
+    </mesh>)}
+  </group>;
+}
 function Assembly({config,rootRef,onReady}:{config:Settings;rootRef:React.RefObject<Group|null>;onReady:(ready:boolean)=>void}){
   const color=METALS[config.metal].color;
   const scale=config.size/15;
@@ -170,7 +205,10 @@ function Assembly({config,rootRef,onReady}:{config:Settings;rootRef:React.RefObj
     <group name="01-03-face-and-setting" scale={[scale,scale,scale]} position={[0,mountHeight,0]}
       rotation={ring?[-Math.PI/2,0,0]:[0,0,0]}>
       {showPart(config.part,'plate')&&<group position-z={-config.explode*2.3}><Plate id={config.motif} color={color}/></group>}
-      {showPart(config.part,'inlay')&&<group position-z={config.explode*1.6}><InlayObject id={config.motif} appearance={config.inlay}/></group>}
+      {showPart(config.part,'inlay')&&<group position-z={config.explode*1.6}>
+        <InlayObject id={config.motif} appearance={config.inlay}/>
+        {ring&&config.motif==='clover'&&config.centerStone&&<CenterStone metal={color}/>}
+      </group>}
       {showPart(config.part,'edge')&&<group position-z={config.explode*.65}><Rim id={config.motif} color={color} edge={config.edge}/></group>}
     </group>
     {showPart(config.part,'adapter')&&(ring
@@ -274,6 +312,8 @@ export function MotifCaseStudio(){
         <p className="motif-label">嵌片效果 <span>{INLAYS[config.inlay].name}</span></p>
         <div className="motif-inlay-options">{(Object.keys(INLAYS) as Inlay[]).map(k=><button key={k} type="button" aria-pressed={config.inlay===k} onClick={()=>update('inlay',k)}>
           <span style={{background:INLAYS[k].color}}/>{INLAYS[k].name}</button>)}</div>
+        {config.product==='ring'&&config.motif==='clover'&&<label className="motif-center-toggle"><input type="checkbox" checked={config.centerStone} onChange={e=>update('centerStone',e.target.checked)}/>
+          <span>中央小钻 <small>独立爪镶视觉结构，可关闭</small></span></label>}
         <p className="motif-label">包边样式</p>
         <div className="motif-edge-row" role="group" aria-label="包边样式">
           {([['double','双排金珠'],['smooth','光面包边'],['none','不加包边']] as const).map(([k,v])=><button type="button" key={k} aria-pressed={config.edge===k} onClick={()=>update('edge',k)}>{v}</button>)}
