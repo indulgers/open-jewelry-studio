@@ -53,7 +53,14 @@ export function RingAdapter({color,diameter,explode,fusedGeometry}:Pick<Props,'c
   const arms=useMemo(()=>ringShoulders(diameter).map(points=>new TubeGeometry(
     new CatmullRomCurve3(points.map(vec),false,'centripetal'),44,.44,16,false,
   )),[diameter]);
-  const material=useMemo(()=>polishedGoldLikeMaterial(color,.255),[color]);
+  const material=useMemo(()=>{
+    const m=polishedGoldLikeMaterial(color,.34);
+    // The stock studio HDR contains hard black/white cards. Use a small
+    // non-metallic diffuse contribution for stable preview instead of clipping
+    // the broad comfort-fit band to pure white/black on software WebGL.
+    m.metalness=.76;m.envMapIntensity=.63;m.anisotropy=0;
+    return m;
+  },[color]);
   useEffect(()=>()=>{shank.dispose();arms.forEach(a=>a.dispose());material.dispose();},[shank,arms,material]);
   return <group name="04-ring-shank-and-shoulders" position-y={-explode*.5}>
     {fusedGeometry?<mesh name="manifold-fused-ring-metal" geometry={fusedGeometry}
