@@ -2,6 +2,7 @@ import {existsSync,mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {spawn} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {chromium} from 'playwright-core';
+import {Matrix4,Quaternion,Vector3} from 'three';
 
 const chrome=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium','/snap/bin/chromium'].find(existsSync);
 if(!chrome)throw new Error('Chromium/Chrome not installed on CI runner');
@@ -90,6 +91,10 @@ try{
     await page.getByRole('button',{name:'配置 JSON'}).click();
     const recipe=JSON.parse(readFileSync(await (await jsonDownload).path(),'utf8'));
     if(recipe.pattern.copies.length!==2||recipe.pattern.mode!==(preset===0?'axis':'center'))throw new Error('Wrong exported pattern');
+    if(preset===0){
+      if(!await page.locator('.motif-fusion-panel button').isDisabled()||recipe.metalFusion!==null||recipe.metalFusionScope!==null)
+        throw new Error('Single-ring screening incorrectly applied to the paired bridge');
+    }
     const modelDownload=page.waitForEvent('download');
     await page.getByRole('button',{name:'导出 3D GLB'}).click();
     const glb=readFileSync(await (await modelDownload).path());
@@ -97,6 +102,20 @@ try{
     for(const name of ['pattern-motif-1','pattern-motif-2','paired-motif-bridge']){
       if(!json.nodes.some(node=>node.name===name))throw new Error('Missing paired GLB node: '+name);
     }
+    const copies=recipe.pattern.copies.map((expected,index)=>{
+      const node=json.nodes.find(node=>node.name==='pattern-motif-'+(index+1));
+      const matrix=node.matrix?new Matrix4().fromArray(node.matrix):new Matrix4().compose(
+        new Vector3(...(node.translation??[0,0,0])),new Quaternion(...(node.rotation??[0,0,0,1])),
+        new Vector3(...(node.scale??[1,1,1])),
+      );
+      if(matrix.elements.some((value,i)=>Math.abs(value-expected[i])>1e-5))throw new Error('GLB/recipe motif transform mismatch');
+      return matrix;
+    });
+    const symmetry=preset===0?new Matrix4().makeScale(-1,1,1):new Matrix4().makeRotationZ(Math.PI);
+    const expectedRight=symmetry.multiply(copies[0]);
+    if(copies[1].elements.some((value,i)=>Math.abs(value-expectedRight.elements[i])>1e-5)
+      ||Math.sign(copies[1].determinant())!==(preset===0?-1:1))throw new Error('GLB symmetry or handedness changed');
+
   }
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>scrollTo(0,0));

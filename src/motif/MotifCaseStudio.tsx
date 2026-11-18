@@ -240,7 +240,7 @@ function Assembly({config,rootRef,onReady,fusedMetal}:{config:Settings;rootRef:R
     </group>
     {showPart(config.part,'adapter')&&(ring
       ?<RingAdapter color={color} diameter={config.ringDiameter} explode={config.explode} shank={config.shank} fusedGeometry={config.shank==='classic'?fusedMetal:null}/>
-      :<NecklaceAdapter layout={layout} color={color} motif={config.motif} scale={scale} explode={config.explode} mount={config.necklaceMount}/>)}
+      :<NecklaceAdapter technique={config.technique} layout={layout} color={color} motif={config.motif} scale={scale} explode={config.explode} mount={config.necklaceMount}/>)}
   </group>;
 }
 function ViewRig({shot,config,rootRef}:{shot:Shot;config:Settings;rootRef:React.RefObject<Group|null>}){
@@ -309,7 +309,7 @@ export function MotifCaseStudio(){
   useEffect(()=>()=>fusion?.result.dispose(),[fusion]);
   const rootRef=useRef<Group>(null);
   const rendererRef=useRef<WebGLRenderer>(null);
-  const update=<K extends keyof Settings>(key:K,value:Settings[K])=>setConfig(old=>({...old,[key]:value}));
+  const update=<K extends keyof Settings>(key:K,value:Settings[K])=>{setStatus('');setConfig(old=>({...old,[key]:value}));};
   const chooseMotif=(motif:MotifId)=>{
     setConfig(old=>{
       const technique=compatibleTechnique(motif,old.technique);
@@ -328,13 +328,17 @@ export function MotifCaseStudio(){
     setView('angle');if(config.motif!==preset.motif)setReady(false);
     setStatus('已应用原创构型方案：'+preset.name);
   };
+  const singleClassic=config.product==='ring'&&config.pattern==='single'&&config.shank==='classic';
+  const screenedMetal=singleClassic&&fusion?.diameter===config.ringDiameter?fusion.result:null;
+  const activeScreening=useRef<number|null>(null);
+  useLayoutEffect(()=>{activeScreening.current=singleClassic?config.ringDiameter:null;return()=>{activeScreening.current=null;};},[singleClassic,config.ringDiameter]);
   const screenMetal=async()=>{
-    if(config.product!=='ring'||busy)return;
-    if(config.shank!=='classic'){setStatus('目前仅“经典素圈”完成 Manifold 初筛。分叉戒臂和侧石戒臂需要专用金属布尔与镶座校验。');return;}
+    if(!singleClassic||busy)return;
     setBusy(true);setStatus('正在进行封闭金属实体布尔并集与连通性检查…');
     try{
       const {fuseWearableRing}=await import('./motifMetalFusion');
       const result=await fuseWearableRing(config.ringDiameter);
+      if(activeScreening.current!==config.ringDiameter){result.dispose();return;}
       if(result.report.status==='fused'&&result.report.closedTriangleSurface&&result.report.fingerAxisClear){
         setFusion({diameter:config.ringDiameter,result});
         setStatus('金属布尔初筛通过：'+result.report.connectedComponents+' 个连通体，'+result.report.triangles+' 个三角面。仍非制造认证。');
@@ -343,7 +347,7 @@ export function MotifCaseStudio(){
         setStatus('金属布尔初筛未通过：'+result.report.warnings.join('；'));
       }
     }catch(error){
-      setStatus('金属布尔初筛失败：'+(error instanceof Error?error.message:String(error)));
+      if(activeScreening.current===config.ringDiameter)setStatus('金属布尔初筛失败：'+(error instanceof Error?error.message:String(error)));
     }finally{setBusy(false);}
   };
   const layout=useMemo(()=>patternLayout(config.motif,config.pattern),[config.motif,config.pattern]);
@@ -356,9 +360,10 @@ export function MotifCaseStudio(){
       pattern:{mode:config.pattern,copies:layout.copies.map(matrix=>matrix.toArray())},
       parts:activeParts.map(p=>({code:p.no,name:p.name,independent:true})),
       productionStatus:'VISUAL_PROTOTYPE_ONLY',ring:config.product==='ring'?ringSizing(config.ringDiameter):null,
+      metalFusionScope:screenedMetal?'classic shank, shoulders and underside support only':null,
       geometryScreening:config.product==='ring'?comfortFitDiagnostics(config.ringDiameter):null,
       gemstoneSetting:{...setting,perMotif:setting,modeledAccentStones:accentStoneCount,additionalCenterStones:config.centerStone&&config.technique!=='cluster'?layout.copies.length:0},
-      metalFusion:config.product==='ring'&&config.shank==='classic'&&fusion?.diameter===config.ringDiameter?fusion.result.report:null,
+      metalFusion:screenedMetal?.report??null,
       chain:config.product==='necklace'?{referenceLengthCm:42,mount:config.necklaceMount,representation:'visible articulated segment only'}:null,
       notes:['OBJ source is unitless and normalized to 15 mm by visual span','The shank has a continuous geometric bore, but fit and manufacture have not been certified','Manufacturing validation is technique-specific; painted or pavé stone seats are not certified']};
     download(new Blob([JSON.stringify(recipe,null,2)],{type:'application/json'}),'xiangyan-motif-recipe.json');setStatus('已导出参数化设计记录');
@@ -471,7 +476,7 @@ export function MotifCaseStudio(){
           <h2>{label(config.motif)} <em>·</em> {config.product==='necklace'?'悬挂项链':'镶饰戒指'}</h2>
           <p>{TECHNIQUES[config.technique].name} / {config.product==='ring'?({classic:'经典素圈',split:'分叉肩位',pave:'戒臂侧石'}[config.shank]):config.necklaceMount==='side'?'双侧链环':'顶部吊环'} · {PATTERNS[config.pattern]}</p></div>
         <div className="motif-model-surface"><ModelPreview config={config} shot={shot} rootRef={rootRef} rendererRef={rendererRef} ready={setReady}
-          fusedMetal={config.shank==='classic'&&fusion?.diameter===config.ringDiameter?fusion.result.geometry:null}/></div>
+          fusedMetal={screenedMetal?.geometry??null}/></div>
         {!ready&&<p className="motif-loader" role="status">正在装配 3D 模组…</p>}
         <div className="motif-view-tools" role="group" aria-label="三维视角">
           {([['angle','45°'],['front','正面'],['side','侧面'],['detail','近看'],...(config.product==='ring'?[['fit','指孔'] as const]:[])] as const).map(([k,v])=><button type="button" key={k} aria-pressed={shot.view===k} onClick={()=>setView(k)}>{v}</button>)}
@@ -498,14 +503,14 @@ export function MotifCaseStudio(){
           <p>沿镶面法向分离嵌片、边框与底托</p></div>
         {config.product==='ring'&&<div className="motif-fusion-panel" aria-label="金属实体初筛">
           <div className="motif-fusion-title"><strong>金属实体检查</strong><span>MANIFOLD / PRECHECK</span></div>
-          <p>检查戒臂、两侧肩部和底部支撑能否融合为单个闭合金属实体。嵌片和宝石仍独立。</p>
-          <button type="button" disabled={busy||!ready||config.shank!=='classic'} onClick={screenMetal}>
-            {busy?'检查中…':config.shank!=='classic'?'此戒臂尚无独立布尔规则':fusion?.diameter===config.ringDiameter?'重新检查金属连接':'运行布尔融合初筛'}
+          <p>{config.pattern==='single'?'检查戒臂、两侧肩部和底部支撑的连通性。嵌片及宝石单独装配。':'双枚图样的桥接与戒臂尚无联合检测规则。'}</p>
+          <button type="button" disabled={busy||!ready||!singleClassic} onClick={screenMetal}>
+            {busy?'检查中…':config.pattern!=='single'?'双枚结构待检查':config.shank!=='classic'?'此戒臂尚无独立布尔规则':fusion?.diameter===config.ringDiameter?'重新检查金属连接':'运行布尔融合初筛'}
           </button>
-          {config.shank==='classic'&&fusion?.diameter===config.ringDiameter&&<div className="motif-fusion-metrics">
-            <span>金属连通实体 <strong>{fusion.result.report.connectedComponents}</strong></span>
-            <span>指孔贯通 <strong>{fusion.result.report.fingerAxisClear?'是':'否'}</strong></span>
-            <span>戒臂最小径向壁厚 <strong>{fusion.result.report.radialWallMinimumMm.toFixed(2)} mm*</strong></span>
+          {screenedMetal&&<div className="motif-fusion-metrics">
+            <span>金属连通实体 <strong>{screenedMetal.report.connectedComponents}</strong></span>
+            <span>指孔贯通 <strong>{screenedMetal.report.fingerAxisClear?'是':'否'}</strong></span>
+            <span>戒臂最小径向壁厚 <strong>{screenedMetal.report.radialWallMinimumMm.toFixed(2)} mm*</strong></span>
           </div>}
           <small>{config.shank!=='classic'?'分叉及侧石戒臂目前仅是独立可视模型，尚未进行此构型的完整布尔验证。':fusion?.diameter===config.ringDiameter?'*壁厚为素圈的解析值，不代表全部接点和镶座。仍未通过制造认证。':'结果会列出连通体数量；失败时不会伪装成功'}</small>
         </div>}

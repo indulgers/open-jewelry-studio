@@ -1,3 +1,5 @@
+import {petalTips} from './designGeometry';
+import type {Technique} from './designGrammar';
 import {Matrix4, Vector3} from 'three';
 import profiles from './profiles.json';
 import {necklaceAnchors, type MotifId, type Point3} from './wearableGeometry';
@@ -34,4 +36,22 @@ export function patternLayout(motif: MotifId, mode: PatternMode) {
   });
   const topY = Math.max(...rotated.map(point => mode === 'axis' ? point.y : Math.abs(point.y)));
   return {copies, bridgeHalfWidth, anchors: {left: shoulders[0], right: shoulders[1]}, topY};
+}
+
+export const jumpRingRadius=.46;
+export function sideChainAnchors(motif:MotifId,technique:Technique,layout:ReturnType<typeof patternLayout>,scale:number){
+  const sculpted=(motif==='flower'||motif==='blossom')&&['sculpted','pave','cluster'].includes(technique);
+  if(!sculpted){
+    const scaled=([x,y,z]:Point3):Point3=>[x*scale,y*scale,layout.copies.length===1?z:z*scale];
+    return {left:scaled(layout.anchors.left),right:scaled(layout.anchors.right)};
+  }
+  function eyelet(side:-1|1):Point3{
+    const transform=side===-1?layout.copies[0]:(layout.copies[1]??layout.copies[0]);
+    const direction=new Vector3(side,1,0).normalize();
+    const tips=petalTips.map(point=>new Vector3(...point).applyMatrix4(transform));
+    const tip=tips.reduce((best,p)=>p.dot(direction)>best.dot(direction)?p:best);
+    // The torus centreline passes through this petal vertex regardless of the user's size.
+    return tip.multiplyScalar(scale).addScaledVector(direction,jumpRingRadius).toArray();
+  }
+  return {left:eyelet(-1),right:eyelet(1)};
 }

@@ -2,8 +2,8 @@ import {useEffect,useMemo} from 'react';
 import {CatmullRomCurve3,Quaternion,TorusGeometry,TubeGeometry,Vector3,type BufferGeometry} from 'three';
 import {createComfortFitShank} from './comfortFitGeometry';
 import {ShankAdornment} from './ShankStyles';
-import type {ShankStyle,NecklaceMount} from './designGrammar';
-import type {patternLayout} from './patternLayout';
+import type {ShankStyle,NecklaceMount,Technique} from './designGrammar';
+import {jumpRingRadius,sideChainAnchors,type patternLayout} from './patternLayout';
 import {polishedGoldLikeMaterial,metalAppearanceProps} from './metalMaterials';
 import {
   ringShoulders,ringSizing,visibleChainPoints,
@@ -18,7 +18,7 @@ function ChainSide({anchor,side,color}:{anchor:Point3;side:-1|1;color:string}){
   const material=useMemo(()=>polishedGoldLikeMaterial(color,.14),[color]);
   // Each individual link is an oval wire: slim compared with the 15 mm motif.
   const geometry=useMemo(()=>new TorusGeometry(.42,.072,12,32),[]);
-  const jumpRing=useMemo(()=>new TorusGeometry(.46,.115,12,40),[]);
+  const jumpRing=useMemo(()=>new TorusGeometry(jumpRingRadius,.115,12,40),[]);
   const links=useMemo(()=>{
     const curve=new CatmullRomCurve3(visibleChainPoints(anchor,side).map(vec),false,'centripetal');
     const count=Math.max(10,Math.ceil(curve.getLength()/.86));
@@ -51,17 +51,14 @@ function SuspensionStrut({x,y,color}:{x:number;y:number;color:string}){
     <meshPhysicalMaterial {...metalAppearanceProps(color,.22)}/>
   </mesh>;
 }
-export function NecklaceAdapter({color,motif,scale,explode,mount='side',layout}:Omit<Props,'diameter'>&{mount?:NecklaceMount;layout:ReturnType<typeof patternLayout>}){
+export function NecklaceAdapter({color,motif,scale,explode,mount='side',layout,technique}:Omit<Props,'diameter'>&{mount?:NecklaceMount;layout:ReturnType<typeof patternLayout>;technique:Technique}){
   const anchors=useMemo(()=>{
-    if(mount==='side'){
-      const scaleAnchor=([x,y,z]:Point3):Point3=>[x*scale,y*scale,layout.copies.length===1?z:z*scale];
-      return {left:scaleAnchor(layout.anchors.left),right:scaleAnchor(layout.anchors.right)};
-    }
+    if(mount==='side')return sideChainAnchors(motif,technique,layout,scale);
     const upper=layout.topY*scale;
     const left:Point3=[-.73,upper+1.13,.58];
     const right:Point3=[.73,upper+1.13,.58];
     return {left,right};
-  },[layout,scale,mount]);
+  },[layout,scale,mount,motif,technique]);
   return <group name="04-necklace-assembly" position-z={-explode*.7}>
     {mount==='bail'&&<>
       {layout.bridgeHalfWidth>0&&[-1,1].map(side=><SuspensionStrut key={side} color={color}
