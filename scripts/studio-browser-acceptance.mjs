@@ -37,8 +37,10 @@ async function previewPixels(locator){
 
 async function checkInspectionLayout(){
   const canvas=page.locator('.stone-first-preview canvas').first();
+  await canvas.waitFor({state:'visible',timeout:90000});
   const drawing=await canvas.boundingBox();
   for(const control of [page.getByRole('group',{name:'戒指观察视角'}),page.getByRole('group',{name:'三维画布操作'})]){
+    await control.waitFor({state:'visible',timeout:90000});
     const box=await control.boundingBox();
     assert.ok(box&&drawing&&box.y+box.height<=drawing.y+1,'canvas controls must precede the drawing');
   }
@@ -175,6 +177,7 @@ try{
   await capture('04-editor-mobile-detail');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'mobile editor overflow');
   await page.goto(origin+'/#/stonefirst/precision/ring-02');
+  await page.locator('[aria-label="戒指 02 三维预览"] canvas').waitFor({state:'visible',timeout:90000});
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
   const precision=await checkInspectionLayout();
   await page.getByLabel('刻字文字').fill('A & B');
@@ -196,7 +199,10 @@ try{
   await capture('05-mobile-fit');
   assert.deepEqual(errors,[],'uncaught browser errors');
 } catch(error){
-  if(page)await capture('failure').catch(()=>{});
+  if(page){
+    console.error('Failed page',page.url(), await page.locator('[role=alert]').allTextContents().catch(()=>[]));
+    await capture('failure').catch(()=>{});
+  }
   throw error;
 } finally{
   if(browser)await browser.close();
