@@ -1,9 +1,10 @@
 import {useEffect,useRef,type RefObject} from 'react';
 import {useFrame,useThree} from '@react-three/fiber';
-import {Box3,Color,Matrix4,Mesh,OrthographicCamera} from 'three';
+import {Box3,Color,DepthTexture,Matrix4,Mesh,OrthographicCamera,Quaternion,UnsignedIntType,type WebGLRenderTarget} from 'three';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {TAARenderPass} from 'three/addons/postprocessing/TAARenderPass.js';
+import {opticalHistory} from './gemOptics';
 import {liveResolve} from './liveResolve';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {movedSinceSample,nextRefinement,type RefinementState} from './progressiveState';
@@ -48,6 +49,18 @@ export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackgro
       moving.addPass(movingOutput);
       moving.addPass(movingResolve);
     }
+    // Keep linear scene radiance and matching depth together. Each new moving
+    // frame writes into a different target from the one read by the gem shader.
+    function addDepth(target:WebGLRenderTarget){
+      target.depthTexture=new DepthTexture(target.width,target.height,UnsignedIntType);
+    }
+    const spare=moving?moving.readBuffer.clone():null;
+    if(moving&&spare){
+      addDepth(composer.readBuffer);addDepth(moving.readBuffer);addDepth(spare);
+    }
+    const firstMotionTarget=moving?.readBuffer;
+    let lastTarget:WebGLRenderTarget|null=null,lastRevision:object|undefined,phase=0;
+    const lastProjection=new Matrix4(),lastLens=new Matrix4(),lastOrientation=new Quaternion();
     const viewProjection=new Matrix4(),cachedProjection=new Matrix4(),meshProjection=new Matrix4();
     const bounds=new Box3(),meshBounds=new Box3();
     let cachedRevision:object|undefined;
@@ -75,6 +88,18 @@ export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackgro
         }
       }
       const active=inMotion&&moving?moving:composer;
+      if(active===moving&&moving&&spare&&firstMotionTarget){
+        const next=lastTarget===firstMotionTarget?spare:firstMotionTarget;
+        moving.readBuffer=next;
+        opticalHistory.delete(next);
+        if(cacheable&&lastTarget&&lastRevision===revision&&lastLens.equals(camera.projectionMatrix)){
+          const degrees=lastOrientation.angleTo(camera.quaternion)*180/Math.PI;
+          // Larger angular steps reveal more new lighting; discontinuous camera
+          // changes trace every sample. Small steps spread the work across frames.
+          const refreshGroups=Math.max(1,Math.min(8,Math.floor(12/Math.max(1,degrees))));
+          if(refreshGroups>1)opticalHistory.set(next,{target:lastTarget,projection:lastProjection,phase:phase++,refreshGroups});
+        }
+      }
       const background=scene.background;
       if(whiteBackground)scene.background=null;
       try{active.render(delta);}finally{scene.background=background;}
@@ -82,6 +107,8 @@ export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackgro
         gl.domElement.dataset.inspectionFrame=inMotion?'moving':'settled';
         gl.domElement.dataset.inspectionDraw=inMotion?'traced-motion':'traced-full';
       }
+      lastRevision=revision;lastTarget=cacheable?active.readBuffer:null;
+      lastProjection.copy(viewProjection);lastLens.copy(camera.projectionMatrix);lastOrientation.copy(camera.quaternion);
       if(active===composer){
         cachedRevision=cacheable?revision:undefined;
         if(cachedRevision){
@@ -100,7 +127,7 @@ export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackgro
       if(gl.domElement.dataset.inspectionFrame==='moving')renderLive(0,false);
     };
     const owned={composer,taa,moving,renderLive,dispose(){
-      movingScene?.dispose();movingOutput?.dispose();movingResolve?.dispose();moving?.dispose();
+      spare?.dispose();movingScene?.dispose();movingOutput?.dispose();movingResolve?.dispose();moving?.dispose();
       scenePass.dispose();output.dispose();resolve?.dispose();composer.dispose();
     }};
     pipeline.current=owned;state.current={stableFrames:0,samples:0};previous.current.key='';invalidate();

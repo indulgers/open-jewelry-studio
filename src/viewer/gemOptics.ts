@@ -1,4 +1,4 @@
-import {Color,Vector2,Vector3,type BufferGeometry,type Camera,type ShaderMaterial,type Texture,type WebGLRenderer} from 'three';
+import {Color,Matrix4,Vector2,Vector3,type BufferGeometry,type Camera,type ShaderMaterial,type Texture,type WebGLRenderTarget,type WebGLRenderer} from 'three';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {MeshRefractionMaterial as BaseRefractionMaterial} from '@react-three/drei/materials/MeshRefractionMaterial';
 import {MeshBVH,MeshBVHUniformStruct,SAH,shaderStructs,shaderIntersectFunction} from 'three-mesh-bvh';
@@ -13,6 +13,9 @@ export function attenuationCoefficients(color:Color,distance:number){
 export type GemOpticsOptions={sample?:{ior:number;transmittance:string;absorptionDistance:number;dispersionScale:number};environmentRotation?:number;environmentIntensity?:number;dispersion?:number;appearance?:StoneAppearance;
   mount?:{bvh:MeshBVHUniformStruct;color:Color;roughness:number}};
 
+export type OpticalHistory={target:WebGLRenderTarget;projection:Matrix4;phase:number;refreshGroups:number};
+export const opticalHistory=new WeakMap<WebGLRenderTarget,OpticalHistory>();
+
 // Based on drei's MIT MeshRefractionMaterial (N8Programs). Bounded deterministic
 // internal reflection with exit-energy accumulation, plus optional static mount hits.
 const fragmentShader=/* glsl */`
@@ -25,6 +28,11 @@ uniform float bounces;
 uniform float ior;
 uniform float aberrationStrength;
 uniform float stoneDiameter;
+uniform int refreshGroups;
+uniform int refreshPhase;
+uniform mat4 historyProjection;
+uniform sampler2D historyColor;
+uniform sampler2D historyDepth;
 uniform float environmentIntensity;
 uniform float environmentRotation;
 uniform bool hasMount;
@@ -125,6 +133,22 @@ void main(){
   // Give the parallel rays a continuous filter footprint across the image.
   if(isOrthographic)smoothRay.z=-1.0;
   smoothRay=normalize((viewMatrixInverse*vec4(smoothRay,0.0)).xyz);
+  // Reproject actual traced radiance onto the current stone surface. Depth rejects
+  // newly revealed facets and prongs. Refresh coherent tiles with fresh spectral paths.
+  if(refreshGroups>1){
+    vec4 clip=historyProjection*vec4(vWorldPosition,1.0);
+    vec3 previous=clip.xyz/clip.w*.5+.5;
+    ivec2 historySize=textureSize(historyDepth,0);
+    ivec2 pixel=ivec2(floor(previous.xy*vec2(historySize)));
+    float tolerance=0.000012+min(0.00022,fwidth(previous.z));
+    ivec2 tile=ivec2(gl_FragCoord.xy)/4;
+    if((tile.x+3*tile.y+refreshPhase)%refreshGroups!=0
+      &&all(greaterThanEqual(pixel,ivec2(0)))&&all(lessThan(pixel,historySize))
+      &&abs(texelFetch(historyDepth,pixel,0).r-previous.z)<tolerance){
+      vec4 cached=texelFetch(historyColor,pixel,0);
+      if(cached.a>0.99){gl_FragColor=cached;return;}
+    }
+  }
   float scale=max(length(modelMatrix[0].xyz),max(length(modelMatrix[1].xyz),length(modelMatrix[2].xyz)));
   float pixelDiameter=stoneDiameter*scale*detailResolution.y*0.5*gl_FragCoord.w/projectionMatrixInverse[1][1];
   // A small accent samples the studio; resolve the nearby prongs as their reflection becomes visible.
@@ -150,6 +174,14 @@ void main(){
 
 export function syncGemDraw(material:ShaderMaterial,renderer:WebGLRenderer,camera:Camera){
   const uniforms=material.uniforms,target=renderer.getRenderTarget();
+  const history=target?opticalHistory.get(target):undefined;
+  uniforms.refreshGroups.value=history?.refreshGroups??0;
+  uniforms.historyColor.value=history?.target.texture??null;
+  uniforms.historyDepth.value=history?.target.depthTexture??null;
+  if(history){
+    uniforms.historyProjection.value.copy(history.projection);
+    uniforms.refreshPhase.value=history.phase;
+  }
   uniforms.viewMatrixInverse.value.copy(camera.matrixWorld);
   // Reflector oblique clipping changes projectionMatrix without updating its inverse.
   uniforms.projectionMatrixInverse.value.copy(camera.projectionMatrix).invert();
@@ -195,6 +227,9 @@ export function createGemOptics(geometry:BufferGeometry,environment:Texture,qual
   material.uniforms.ior.value=2.42;
   if(!geometry.boundingSphere)geometry.computeBoundingSphere();
   material.uniforms.detailResolution={value:new Vector2()};
+  material.uniforms.refreshPhase={value:0};material.uniforms.refreshGroups={value:0};
+  material.uniforms.historyProjection={value:new Matrix4()};
+  material.uniforms.historyColor={value:null};material.uniforms.historyDepth={value:null};
   material.uniforms.stoneDiameter={value:geometry.boundingSphere!.radius*2};
   material.uniforms.aberrationStrength.value=settings.aberrationStrength;
   material.uniforms.environmentIntensity={value:1.0};
