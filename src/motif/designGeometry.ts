@@ -25,23 +25,29 @@ export function buildRadialEngraving(motif:MotifId,count=90):RayStroke[]{
   return paths;
 }
 
+// Both the attachment points and petal mesh use the same crown surface.
+const petalLength=6.4,petalWidth=2.4;
+function petalVertex(angle:number,length:number,width:number,t:number,u:number,back:boolean):[number,number,number]{
+  const envelope=.08+.92*Math.pow(Math.sin(Math.PI*t),.72);
+  const x=u*width*envelope;
+  const y=.4+t*length;
+  const crown=.24+.58*Math.sin(Math.PI*t)*(1-u*u)+.11*Math.sin(Math.PI*t*2);
+  const z=(back?-.16:crown)+.14;
+  const c=Math.cos(angle),s=Math.sin(angle);
+  return [x*c-y*s,x*s+y*c,z];
+}
+
+export const petalTips=Array.from({length:5},(_,i)=>
+  petalVertex(i*2*Math.PI/5,petalLength,petalWidth,1,0,false));
+
 /** Closed sculpted petal mesh — 5 independent solids, not a flat decal. */
-export function createPetalSolid(angle:number,length=6.4,width=2.4):BufferGeometry{
+export function createPetalSolid(angle:number,length=petalLength,width=petalWidth):BufferGeometry{
   const radial=22,lateral=10;
   const verts:number[]=[],tri:number[]=[];
-  const sample=(t:number,u:number,back:boolean)=>{
-    const envelope=.08+.92*Math.pow(Math.sin(Math.PI*t),.72);
-    const x=u*width*envelope;
-    const y=.4+t*length;
-    const crown=.24+.58*Math.sin(Math.PI*t)*(1-u*u)+.11*Math.sin(Math.PI*t*2);
-    const z=(back?-.16:crown)+.14;
-    const c=Math.cos(angle),s=Math.sin(angle);
-    return [x*c-y*s,x*s+y*c,z];
-  };
   const stride=lateral+1;
   for(let layer=0;layer<2;layer++)for(let i=0;i<=radial;i++){
     const t=i/radial;
-    for(let j=0;j<=lateral;j++)verts.push(...sample(t,2*j/lateral-1,layer===1));
+    for(let j=0;j<=lateral;j++)verts.push(...petalVertex(angle,length,width,t,2*j/lateral-1,layer===1));
   }
   const offset=(radial+1)*stride;
   for(let i=0;i<radial;i++)for(let j=0;j<lateral;j++){

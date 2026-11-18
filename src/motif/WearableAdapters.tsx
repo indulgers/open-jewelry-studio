@@ -2,11 +2,11 @@ import {useEffect,useMemo} from 'react';
 import {CatmullRomCurve3,Quaternion,TorusGeometry,TubeGeometry,Vector3,type BufferGeometry} from 'three';
 import {createComfortFitShank} from './comfortFitGeometry';
 import {ShankAdornment} from './ShankStyles';
-import type {ShankStyle,NecklaceMount} from './designGrammar';
-import profiles from './profiles.json';
+import type {ShankStyle,NecklaceMount,Technique} from './designGrammar';
+import {jumpRingRadius,sideChainAnchors,type patternLayout} from './patternLayout';
 import {polishedGoldLikeMaterial,metalAppearanceProps} from './metalMaterials';
 import {
-  necklaceAnchors,ringShoulders,ringSizing,visibleChainPoints,
+  ringShoulders,ringSizing,visibleChainPoints,
   type MotifId,type Point3,
 } from './wearableGeometry';
 
@@ -18,7 +18,7 @@ function ChainSide({anchor,side,color}:{anchor:Point3;side:-1|1;color:string}){
   const material=useMemo(()=>polishedGoldLikeMaterial(color,.14),[color]);
   // Each individual link is an oval wire: slim compared with the 15 mm motif.
   const geometry=useMemo(()=>new TorusGeometry(.42,.072,12,32),[]);
-  const jumpRing=useMemo(()=>new TorusGeometry(.46,.115,12,40),[]);
+  const jumpRing=useMemo(()=>new TorusGeometry(jumpRingRadius,.115,12,40),[]);
   const links=useMemo(()=>{
     const curve=new CatmullRomCurve3(visibleChainPoints(anchor,side).map(vec),false,'centripetal');
     const count=Math.max(10,Math.ceil(curve.getLength()/.86));
@@ -40,17 +40,30 @@ function ChainSide({anchor,side,color}:{anchor:Point3;side:-1|1;color:string}){
   </group>;
 }
 
-export function NecklaceAdapter({color,motif,scale,explode,mount='side'}:Omit<Props,'diameter'>&{mount?:NecklaceMount}){
+/** Rear struts meet both motif seats below the shared top bail. */
+function SuspensionStrut({x,y,color}:{x:number;y:number;color:string}){
+  const start=new Vector3(x,0,-.32);
+  const end=new Vector3(0,y,.48);
+  const delta=end.clone().sub(start);
+  return <mesh name="paired-pendant-strut" position={start.clone().lerp(end,.5)}
+    quaternion={new Quaternion().setFromUnitVectors(Y,delta.clone().normalize())} castShadow>
+    <capsuleGeometry args={[.22,delta.length(),6,12]}/>
+    <meshPhysicalMaterial {...metalAppearanceProps(color,.22)}/>
+  </mesh>;
+}
+export function NecklaceAdapter({color,motif,scale,explode,mount='side',layout,technique}:Omit<Props,'diameter'>&{mount?:NecklaceMount;layout:ReturnType<typeof patternLayout>;technique:Technique}){
   const anchors=useMemo(()=>{
-    if(mount==='side')return necklaceAnchors(motif,scale);
-    const upper=Math.max(...profiles[motif].outline.map(p=>p[1]))*scale;
-    const left:[number,number,number]=[-.73,upper+1.13,.58];
-    const right:[number,number,number]=[.73,upper+1.13,.58];
+    if(mount==='side')return sideChainAnchors(motif,technique,layout,scale);
+    const upper=layout.topY*scale;
+    const left:Point3=[-.73,upper+1.13,.58];
+    const right:Point3=[.73,upper+1.13,.58];
     return {left,right};
-  },[motif,scale,mount]);
+  },[layout,scale,mount,motif,technique]);
   return <group name="04-necklace-assembly" position-z={-explode*.7}>
     {mount==='bail'&&<>
-      {(motif==='flower'||motif==='blossom')&&<mesh name="formed-floral-bail-stem"
+      {layout.bridgeHalfWidth>0&&[-1,1].map(side=><SuspensionStrut key={side} color={color}
+        x={side*layout.bridgeHalfWidth*scale} y={anchors.left[1]-.84}/>)}
+      {layout.bridgeHalfWidth===0&&(motif==='flower'||motif==='blossom')&&<mesh name="formed-floral-bail-stem"
         position={[0,anchors.left[1]-1.27,anchors.left[2]]} castShadow>
         <capsuleGeometry args={[.16,1.18,8,12]}/>
         <meshPhysicalMaterial {...metalAppearanceProps(color,.2)}/>
