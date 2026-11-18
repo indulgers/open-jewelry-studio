@@ -1,6 +1,6 @@
 import {useEffect,useRef,type RefObject} from 'react';
 import {useFrame,useThree} from '@react-three/fiber';
-import {Color,Matrix4,Mesh} from 'three';
+import {Box3,Color,Matrix4,Mesh,OrthographicCamera} from 'three';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {TAARenderPass} from 'three/addons/postprocessing/TAARenderPass.js';
@@ -10,9 +10,9 @@ import {movedSinceSample,nextRefinement,type RefinementState} from './progressiv
 import {qualitySettings,type Quality} from './quality';
 
 type IdlePass=TAARenderPass&{accumulateIndex:number};
-type Pipeline={composer:EffectComposer;moving:EffectComposer|null;taa:IdlePass|null;dispose:()=>void};
+type Pipeline={composer:EffectComposer;moving:EffectComposer|null;taa:IdlePass|null;renderLive:(delta:number,moving:boolean,revision?:object)=>void;dispose:()=>void};
 
-export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackground=false,motion}:{motion?:RefObject<{active:boolean;restore:()=>void}>;quality:Quality;contentKey:string;capturing:boolean;whiteBackground?:boolean}){
+export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackground=false,motion,sceneRevision}:{sceneRevision?:object;motion?:RefObject<{active:boolean;restore:()=>void}>;quality:Quality;contentKey:string;capturing:boolean;whiteBackground?:boolean}){
   const {gl,scene,camera,size,viewport,invalidate}=useThree();
   const pipeline=useRef<Pipeline|null>(null),state=useRef<RefinementState>({stableFrames:0,samples:0});
   const previous=useRef({key:'',world:new Matrix4(),projection:new Matrix4()});
@@ -41,23 +41,65 @@ export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackgro
     const movingOutput=moving?new OutputPass():null;
     let movingResolve:ReturnType<typeof liveResolve>|undefined;
     if(moving&&movingScene&&movingOutput){
-      moving.setPixelRatio(Math.min(1,pixelRatio*.7));
+      moving.setPixelRatio(Math.min(.85,pixelRatio*.55));
       moving.setSize(size.width,size.height);
-      moving.readBuffer.texture.userData.movingInspection=true;
-      moving.writeBuffer.texture.userData.movingInspection=true;
       movingResolve=liveResolve(moving.readBuffer.width,moving.readBuffer.height,whiteBackground);
       moving.addPass(movingScene);
       moving.addPass(movingOutput);
       moving.addPass(movingResolve);
     }
-    if(motion)motion.current.restore=()=>{
-      if(gl.domElement.dataset.inspectionFrame!=='moving')return;
+    const viewProjection=new Matrix4(),cachedProjection=new Matrix4(),meshProjection=new Matrix4();
+    const bounds=new Box3(),meshBounds=new Box3();
+    let cachedRevision:object|undefined;
+    function renderLive(delta:number,inMotion:boolean,revision?:object){
+      camera.updateMatrixWorld();
+      viewProjection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);
+      const pan=resolve?.uniforms.panOffset.value;
+      const cacheable=!!(moving&&resolve&&whiteBackground&&revision&&camera instanceof OrthographicCamera);
+      if(inMotion&&cacheable&&cachedRevision===revision){
+        const old=cachedProjection.elements,now=viewProjection.elements;
+        // Orthographic translation adds a constant screen offset at every depth.
+        const dx=(old[12]-now[12])*.5,dy=(old[13]-now[13])*.5;
+        const translationOnly=old.every((value,i)=>i===12||i===13||Math.abs(value-now[i])<1e-7);
+        // A clipped mesh might enter from the newly exposed strip. Trace it normally.
+        const covered=(dx<=0||bounds.max.x<1)&&(dx>=0||bounds.min.x>-1)
+          &&(dy<=0||bounds.max.y<1)&&(dy>=0||bounds.min.y>-1);
+        if(translationOnly&&covered){
+          pan.set(dx,dy);
+          // The two swapping passes leave the tone-mapped image in writeBuffer.
+          try{resolve!.render(gl,composer.readBuffer,composer.writeBuffer,delta,false);}
+          finally{pan.set(0,0);}
+          gl.domElement.dataset.inspectionFrame='moving';
+          gl.domElement.dataset.inspectionDraw='cached-pan';
+          return;
+        }
+      }
+      const active=inMotion&&moving?moving:composer;
       const background=scene.background;
       if(whiteBackground)scene.background=null;
-      try{composer.render(0);}finally{scene.background=background;}
-      gl.domElement.dataset.inspectionFrame='settled';
+      try{active.render(delta);}finally{scene.background=background;}
+      if(motion){
+        gl.domElement.dataset.inspectionFrame=inMotion?'moving':'settled';
+        gl.domElement.dataset.inspectionDraw=inMotion?'traced-motion':'traced-full';
+      }
+      if(active===composer){
+        cachedRevision=cacheable?revision:undefined;
+        if(cachedRevision){
+          cachedProjection.copy(viewProjection);
+          bounds.makeEmpty();
+          scene.traverseVisible(object=>{
+            if(!(object instanceof Mesh))return;
+            if(!object.geometry.boundingBox)object.geometry.computeBoundingBox();
+            meshProjection.multiplyMatrices(viewProjection,object.matrixWorld);
+            bounds.union(meshBounds.copy(object.geometry.boundingBox!).applyMatrix4(meshProjection));
+          });
+        }
+      }
+    }
+    if(motion)motion.current.restore=()=>{
+      if(gl.domElement.dataset.inspectionFrame==='moving')renderLive(0,false);
     };
-    const owned={composer,taa,moving,dispose(){
+    const owned={composer,taa,moving,renderLive,dispose(){
       movingScene?.dispose();movingOutput?.dispose();movingResolve?.dispose();moving?.dispose();
       scenePass.dispose();output.dispose();resolve?.dispose();composer.dispose();
     }};
@@ -70,11 +112,7 @@ export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackgro
     const current=pipeline.current;
     if(!current){gl.render(scene,camera);invalidate();return;}
     if(!current.taa){
-      const background=scene.background;
-      if(whiteBackground)scene.background=null;
-      const moving=motion?.current.active?current.moving:null;
-      try{(moving??current.composer).render(delta);}finally{scene.background=background;}
-      if(motion)gl.domElement.dataset.inspectionFrame=moving?'moving':'settled';
+      current.renderLive(delta,!!motion?.current.active,sceneRevision);
       gl.domElement.dataset.refinementSamples='0';
       return;
     }

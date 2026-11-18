@@ -98,7 +98,7 @@ export function SourceRingStage({ring,design,template,view,reset,captureRef,onCa
             return design.styling&&design.styling.cut!=='original'?<CutScene {...props} cut={design.styling.cut}/>:<SourceScene {...props}/>;
           }}</JewelryLighting>
         </Suspense>
-        <JewelryPostprocessing motion={inspection.motion} quality="high" capturing={false} whiteBackground contentKey="source-ring"/>
+        <JewelryPostprocessing motion={inspection.motion} sceneRevision={ready&&rendered?rendered:undefined} quality="high" capturing={false} whiteBackground contentKey="source-ring"/>
         <RingCamera view={view} reset={reset} frames={ring.frames} engravingView={engravingView} inspection={inspection}/><RingThumbnail motion={inspection.motion} size={captureSize} captureRef={captureRef} ready={ready&&!failed} frames={ring.frames} onCaptureReady={reportCapture}/>
       </Canvas>
     </ViewerBoundary>

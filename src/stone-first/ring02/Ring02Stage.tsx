@@ -226,7 +226,7 @@ export function Ring02Stage({view,reset,design,captureRef,onCaptureReady,engravi
         <color attach="background" args={['#ffffff']}/>
         <StudioFillLights neutral/>
         <Suspense fallback={null}><RingScene {...scene} studio={inspection.studio} design={design} onReady={ready?undefined:()=>setRendered(frame)}/></Suspense>
-        <JewelryPostprocessing motion={inspection.motion} quality="high" capturing={false} whiteBackground contentKey="precision-ring"/>
+        <JewelryPostprocessing motion={inspection.motion} sceneRevision={ready?frame:undefined} quality="high" capturing={false} whiteBackground contentKey="precision-ring"/>
         <RingCamera view={view} reset={reset} engravingView={engravingView} inspection={inspection}/>
         <RingThumbnail motion={inspection.motion} captureRef={captureRef} ready={ready&&!failed} onCaptureReady={reportReady}/>
       </Canvas>

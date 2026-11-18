@@ -35,6 +35,23 @@ async function previewPixels(locator){
   });
 }
 
+// Weigh the jewelry itself and compare small patches to catch a washed-out center stone.
+function compareInspectionFrame(moving,settled,mode){
+  let worstLoss=0,totalError=0,mass=0;
+  for(let y=0;y<64;y+=4)for(let x=0;x<96;x+=4){
+    let reference=0,actual=0;
+    for(let j=0;j<4;j++)for(let i=0;i<4;i++){
+      const n=(y+j)*96+x+i;
+      reference+=settled.shade[n];actual+=moving.shade[n];
+      totalError+=Math.abs(moving.shade[n]-settled.shade[n]);mass+=settled.shade[n];
+    }
+    if(reference>16*24)worstLoss=Math.max(worstLoss,1-actual/reference);
+  }
+  console.log('DRAG_FIDELITY',JSON.stringify({mode,worstPatchLoss:worstLoss,relativeError:totalError/mass}));
+  assert.ok(mass>0&&totalError/mass<(mode==='pan'?.09:.25),'visible jewelry must retain its appearance during '+mode);
+  assert.ok(worstLoss<(mode==='pan'?.22:.48),'a shaded patch washed out during '+mode);
+}
+
 async function checkInspectionLayout(){
   const canvas=page.locator('.stone-first-preview canvas').first();
   await canvas.waitFor({state:'visible',timeout:90000});
@@ -64,12 +81,16 @@ async function checkDesktopInspection(){
   console.log('DRAG_PROFILE',JSON.stringify({frames:frames.length,medianMs:intervals[Math.floor(intervals.length*.5)],
     p95Ms:intervals[Math.ceil(intervals.length*.95)-1],scenePixels:frames.at(-1).pixels}));
   const surfacePixels=await canvas.evaluate(el=>el.width*el.height);
-  assert.ok(frames.at(-1).pixels<surfacePixels*.55,'drag must use the smaller scene target');
+  assert.equal(frames.at(-1).pixels,0,'cached pan must avoid all jewelry draw calls');
   assert.equal(await canvas.getAttribute('data-inspection-frame'),'moving');
+  assert.equal(await canvas.getAttribute('data-inspection-draw'),'cached-pan');
+  const movingPan=await previewPixels(canvas);
+  await capture('03-main-pan-held');
   await page.mouse.up();
   await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionFrame==='settled');
   await twoFrames();
   const panned=await previewPixels(canvas);
+  compareInspectionFrame(movingPan,panned,'pan');
   assert.ok(panned.centroid>before.centroid+2,'primary drag must shift visible silver right');
   await page.mouse.move(x+box.width*.2,y);
   await page.mouse.wheel(0,-240);await twoFrames();
@@ -84,6 +105,22 @@ async function checkDesktopInspection(){
   assert.equal(Number.parseInt(await zoom.innerText(),10),magnification);
   assert.ok(Math.abs((await previewPixels(canvas)).centroid-enlarged.centroid)<1.5,'theme change must retain the pan');
   await capture('03-editor-desktop-inspection');
+  await page.getByRole('button',{name:'旋转',exact:true}).click();
+  await page.mouse.move(x,y);await page.mouse.down();
+  await page.evaluate(()=>{window.dragFrames=[];});
+  await page.mouse.move(x+box.width*.06,y+box.height*.03,{steps:12});
+  await twoFrames();
+  const rotation=await page.evaluate(()=>{const result=window.dragFrames;window.dragFrames=null;return result;});
+  assert.ok(rotation.length>=2&&rotation.at(-1).pixels>0&&rotation.at(-1).pixels<surfacePixels*.55);
+  const times=rotation.slice(1).map((frame,i)=>frame.time-rotation[i].time).sort((a,b)=>a-b);
+  console.log('ROTATE_PROFILE',JSON.stringify({frames:rotation.length,medianMs:times[Math.floor(times.length*.5)],p95Ms:times[Math.ceil(times.length*.95)-1]}));
+  assert.equal(await canvas.getAttribute('data-inspection-draw'),'traced-motion');
+  const movingRotation=await previewPixels(canvas);
+  await capture('03-main-rotation-held');
+  await page.mouse.up();
+  await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionFrame==='settled');
+  compareInspectionFrame(movingRotation,await previewPixels(canvas),'rotation');
+  await capture('03-main-rotation-settled');
   return canvas;
 }
 
@@ -142,11 +179,21 @@ try{
       areas.set(this,width*height);
       return viewport.call(this,x,y,width,height);
     };
+    let lastSceneTime=-1,lastSceneArea=0;
     gl.drawElements=function(mode,count,type,offset){
-      if(window.dragFrames&&count>12&&this.canvas.closest?.('.stone-first-preview')&&window.dragFrames.at(-1)?.time!==frameTime){
-        window.dragFrames.push({time:frameTime,pixels:areas.get(this)});
+      if(window.dragFrames&&count>12&&this.canvas.closest?.('.stone-first-preview')){
+        lastSceneTime=frameTime;lastSceneArea=areas.get(this);
       }
       return draw.call(this,mode,count,type,offset);
+    };
+    const drawArrays=gl.drawArrays;
+    gl.drawArrays=function(mode,first,count){
+      const result=drawArrays.call(this,mode,first,count);
+      if(window.dragFrames&&this.canvas.closest?.('.stone-first-preview')&&!this.getParameter(this.DRAW_FRAMEBUFFER_BINDING)
+        &&window.dragFrames.at(-1)?.time!==frameTime){
+        window.dragFrames.push({time:frameTime,pixels:lastSceneTime===frameTime?lastSceneArea:0});
+      }
+      return result;
     };
     let held=false;
     window.requestAnimationFrame=callback=>next(function run(time){
