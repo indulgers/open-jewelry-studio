@@ -1,4 +1,6 @@
 // @vitest-environment node
+import {readFile} from 'node:fs/promises';
+import {inflateSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
 import {expect,it} from 'vitest';
 import {stockSources,assetKeys} from './templates.ts';
@@ -129,7 +131,10 @@ it('serves only confirmed template revisions while keeping earlier releases read
   await store.put(modelRoot+'job.json',JSON.stringify({id:jobId,filename:'戒指6.obj',createdAt:new Date().toISOString(),size:12}),'application/json');
   const partAssets={...stockSources[0].assets,head:'/models/parts/heads/ring-aaaaaaaaaaaa.glb',band:'/models/parts/bands/ring-bbbbbbbbbbbb.glb',headStones:'/models/parts/stones/ring-head-cccccccccccc.glb',pave:'/models/parts/stones/ring-pave-dddddddddddd.glb',adapter:undefined};
   await store.put(modelRoot+'versions/'+versionId+'/manifest.json',JSON.stringify({id:versionId,createdAt:new Date().toISOString(),parts:partAssets}),'application/json');
-  for(const kind of assetKeys){const path=partAssets[kind];if(path)await store.put(modelRoot+'versions/'+versionId+'/'+path.replace('/models/parts/','parts/'),'mesh','model/gltf-binary');}
+  for(const kind of assetKeys){
+    const path=partAssets[kind],source=stockSources[0].assets[kind];
+    if(path&&source)await store.put(modelRoot+'versions/'+versionId+'/'+path.replace('/models/parts/','parts/'),await readFile('public'+source),'model/gltf-binary');
+  }
   const imported={name:'上传版',head:versionId,headStones:versionId,band:versionId,pave:versionId,basePrice:2000};
   const importedDraft=await (await request('templates',imported,true)).json();
   const importedPath=importedDraft.id+'/'+importedDraft.revision;
@@ -153,6 +158,21 @@ it('serves only confirmed template revisions while keeping earlier releases read
   expect(beforeRing.listed).toBe(true);
   expect(beforeRing.automaticPave).toBe(true);
   expect(beforeRing.revision).toBe(importedDraft.revision);
+  const views=beforeRing.partViews as {head:string;band:string};
+  expect(views).toEqual({head:'/api/model-admin/public/'+importedPath+'/head-top.png',band:'/api/model-admin/public/'+importedPath+'/band-side.png'});
+  const previews=await Promise.all(Object.values(views).map(async url=>{
+    const result=await request(url.replace('/api/model-admin/',''));
+    expect(result.status).toBe(302);
+    const object=objects.get(result.headers.get('location')!.replace('https://bucket.invalid/',''))!;
+    expect(object.type).toBe('image/png');
+    const png=Buffer.from(object.bytes);
+    expect(png.subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
+    expect([png.readUInt32BE(16),png.readUInt32BE(20)]).toEqual([256,256]);
+    const pixels=inflateSync(png.subarray(41,41+png.readUInt32BE(33)));
+    expect(pixels.filter((value,index)=>index%769!==0&&value<230).length).toBeGreaterThan(1000);
+    return pixels;
+  }));
+  expect(previews[0].equals(previews[1])).toBe(false);
   expect(before.parts[beforeRing.headSourceId].head).toContain('/public/'+importedPath+'/');
   expect(before.parts[beforeRing.bandSourceId].sourceId).toBe(versionId);
   const query=new URLSearchParams({head:beforeRing.id,band:beforeRing.id,headRevision:beforeRing.revision,bandRevision:beforeRing.revision});

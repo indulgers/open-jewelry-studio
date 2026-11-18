@@ -75,6 +75,29 @@ async function checkDesktopInspection(){
   return canvas;
 }
 
+async function checkTouchZoom(canvas){
+  await canvas.scrollIntoViewIfNeeded();
+  const box=await canvas.boundingBox();
+  const x=box.x+box.width*.58,y=box.y+box.height*.45;
+  const zoom=page.locator('.ring-inspection-zoom span');
+  const before=Number.parseInt(await zoom.innerText(),10);
+  const client=await page.context().newCDPSession(page);
+  const touches=distance=>[{x:x-distance,y,id:1},{x:x+distance,y,id:2}];
+  try{
+    await client.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:2});
+    await client.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:touches(28)});
+    for(const gap of [34,41,48]){
+      await client.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:touches(gap)});
+    }
+    await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    await twoFrames();
+    assert.ok(Number.parseInt(await zoom.innerText(),10)>before,'a two-finger pinch must magnify the ring');
+  }finally{
+    await client.send('Emulation.setTouchEmulationEnabled',{enabled:false});
+    await client.detach();
+  }
+}
+
 async function assertCurrentSnapshot(canvas,save){
   const displayed=await previewPixels(canvas);
   assert.ok(Number.isFinite(displayed.centroid),'displayed frame contains jewelry');
@@ -172,7 +195,8 @@ try{
   assert.equal(saved?.published,false);
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>scrollTo(0,0));await twoFrames();
-  await checkInspectionLayout();
+  const mobileCanvas=await checkInspectionLayout();
+  await checkTouchZoom(mobileCanvas);
   await page.getByRole('button',{name:'镶嵌特写'}).click();await twoFrames();
   await capture('04-editor-mobile-detail');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'mobile editor overflow');

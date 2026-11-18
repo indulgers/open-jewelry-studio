@@ -1,3 +1,4 @@
+import type {PartViews} from '../catalog';
 import type {ComponentPrices,TemplatePrice} from '../pricing';
 import type {ReferenceAssets} from './part-library';
 
@@ -39,6 +40,7 @@ export type TemplateSelection = ProductPresentation&{
 };
 export type TemplateDraft = TemplateSelection & {id: string; revision: string; updatedAt: string;componentMetadata?:{head:string;band:string}};
 export type ManagedTemplate = ProductPresentation&{
+  partViews?:PartViews;
   id: string;
   revision: string;
   name: string;

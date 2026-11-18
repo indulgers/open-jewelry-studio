@@ -1,3 +1,4 @@
+import {publishPartViews} from './publish-part-views.ts';
 import {randomUUID} from 'node:crypto';
 import {copyFile,mkdir,readFile,readdir,rename,rm,stat,writeFile} from 'node:fs/promises';
 import {basename,join} from 'node:path';
@@ -176,6 +177,9 @@ export function createTemplateLibrary(storage:string,publicDir:string){
             assets[key]=url+filename;
           }
         }
+        const partViews=await publishPartViews(template,url,name=>readFile(join(stage,name)),
+          (name,bytes)=>writeFile(join(stage,name),bytes));
+        if(Object.keys(partViews).length)template.partViews=partViews;
         await writeFile(join(stage,'cover.jpg'),image);
         await writeFile(join(stage,'template.json'),JSON.stringify({...template,publishedAt:new Date().toISOString()},null,2)+'\n');
         await rename(stage,release);

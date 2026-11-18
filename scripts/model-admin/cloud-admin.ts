@@ -1,3 +1,4 @@
+import {publishPartViews} from './publish-part-views.ts';
 import {createHash,randomUUID} from 'node:crypto';
 import {mkdir,mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -208,6 +209,15 @@ function cloudLibrary(store:CloudStore){
           files.push(file);
         }
       }
+      const partViews=await publishPartViews(template,base,async name=>{
+        const asset=await store.get(release+name);
+        if(!asset)return fail(422,'发布部件文件缺失。');
+        return new Uint8Array(await asset.arrayBuffer());
+      },async (name,bytes)=>{
+        await store.put(release+name,bytes,'image/png',{etag:null});
+        files.push(name);
+      });
+      if(Object.keys(partViews).length)template.partViews=partViews;
       if(template.cover){
         const cover=await store.get(uuid.test(template.cover)?root+'covers/'+template.cover+'.jpg':root+'assets/'+template.cover.slice(1));
         if(!cover)fail(422,'封面文件缺失，请重新上传。');
@@ -246,7 +256,7 @@ function cloudLibrary(store:CloudStore){
         editor:product.catalogId?'#/stonefirst/'+id:'#/stonefirst/template/'+product.id+'/'+product.revision,
         legacyRevision:original?.revision,revision:product.revision,model:'',image:product.image,campaign:product.campaign??'',
         price:{base:release.pricing?.base??original?.price.base??0,version:product.revision,leadTime:'7–10 个工作日'},
-        headSourceId,bandSourceId,headLabel:product.headName,bandLabel:product.bandName,
+        headSourceId,bandSourceId,partViews:release.partViews,headLabel:product.headName,bandLabel:product.bandName,
         headStructures:release.headSettings?.headStructure?[release.headSettings.headStructure]:original?.headStructures??[],
         bandStructure:release.bandSettings?.bandStructure,bandFinish:release.bandSettings?.bandFinish,
         automaticPave:release.bandSettings?.automaticPave!==false,

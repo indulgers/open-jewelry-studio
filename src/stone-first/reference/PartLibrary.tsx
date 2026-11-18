@@ -5,6 +5,7 @@ import {BAND_STYLES,bandStyle,headName} from './parts';
 
 type PartChoice={id:string;name:string;image:string;detail?:string};
 export const bandImage=(id:string)=>partCardImage(RING_CATALOG.find(ring=>ring.id===id)!,'band');
+const ringCovers=new Set(RING_CATALOG.map(ring=>ring.image).filter(Boolean));
 const HEAD_STRUCTURES={
   'ring-02':['围镶'],
   'ring-floral':['围镶','花形'],
@@ -26,8 +27,11 @@ const bandFinishes=BAND_STYLES.flatMap(style=>style.finishes.map(finish=>({
 const finishes=[...new Set(bandFinishes.map(item=>item.detail))];
 
 export function PartCard({item,selected,pending,onSelect}:{item:PartChoice;selected:boolean;pending?:boolean;onSelect:(id:string)=>void}){
+  const [failedImage,setFailedImage]=useState<string>();
+  const showImage=Boolean(item.image)&&failedImage!==item.image;
   return <button type="button" className="source-part-card" aria-pressed={selected} onClick={()=>onSelect(item.id)}>
-    <span className="source-part-image"><img src={item.image} alt="" decoding="async" loading="lazy"/></span>
+    <span className="source-part-image">{showImage?<img src={item.image} alt="" decoding="async" loading="lazy" onError={()=>setFailedImage(item.image)}/>:<small>暂无部件图</small>}</span>
+    {showImage&&ringCovers.has(item.image)&&<small className="source-cover-note">款式参考图</small>}
     <span className="source-part-name">{item.name}{pending&&selected&&<span className="ring02-spinner" aria-hidden="true"/>}</span>
     {item.detail&&<span className="source-part-detail">{item.detail}</span>}
   </button>;
