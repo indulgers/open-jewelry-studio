@@ -1,3 +1,4 @@
+import {SaveCommunityDesign} from '../../community/SaveCommunityDesign';
 import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {Mesh} from 'three';
@@ -324,7 +325,8 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
       <p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p>
       <small>示例交期 {quote.leadTime} · 待工艺确认</small>
     </div>
-    {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:
+    <SaveCommunityDesign title="围钻戒指" templateId="ring-02" revision={draft.revision} design={current} capture={()=>captureThumbnail.current?.()} disabled={compare||engravingDirty}/>
+      {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:
       !RING02_TEMPLATE.listed?<span>该款式已停售</span>:
       part==='head'?<button className="shop-button" onClick={()=>jumpTo('shoulder')}>下一步 · 配置戒圈</button>:
       <button className="shop-button" disabled={compare} onClick={openReview}>查看方案</button>}

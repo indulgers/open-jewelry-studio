@@ -1,3 +1,4 @@
+import {SaveCommunityDesign} from '../../community/SaveCommunityDesign';
 import {EngravingEditor} from '../engraving/EngravingEditor';
 import {DEFAULT_ENGRAVING_STYLE,type EngravingStyle} from '../engraving/style';
 import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
@@ -209,6 +210,7 @@ function Editor({template}:{template:CatalogRing}){
     </section>
   </div>
     <section className="ring02-purchase" aria-label="估价与演示加购"><div><p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p><small>示例交期 {quote.leadTime} · 待工艺确认</small></div>
+      <SaveCommunityDesign title={displayName} templateId={template.id} revision={revision} design={design} capture={()=>capture.current?.()} disabled={compare||engravingDirty||!canCapture}/>
       {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:part==='head'?<button className="shop-button" onClick={()=>setPart('shank')}>下一步 · 配置戒圈</button>:<button className="shop-button" disabled={compare||engravingDirty||!canCapture} onClick={()=>{setMessage('');setCartFeedback(undefined);setReview(true);}}>查看方案</button>}
     </section>
     {library&&<PartLibrary kind={library} trigger={libraryTrigger} selected={library==='head'?head.id:band.id}
