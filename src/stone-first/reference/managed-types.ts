@@ -67,5 +67,5 @@ export async function fetchManaged<T>(path:string,signal:AbortSignal):Promise<T>
 export const templateRoute = (id: string, revision: string) => '#/stonefirst/template/'+id+'/'+revision;
 
 export const productRoute=(product:PublishedTemplate)=>product.catalogId?'#/stonefirst/'+product.catalogId:templateRoute(product.id,product.revision);
-export function orderedProducts(products:PublishedTemplate[]){return [...products].sort((a,b)=>(a.order??100)-(b.order??100)||a.id.localeCompare(b.id));}
-export const featuredProducts=(products:PublishedTemplate[])=>orderedProducts(products).filter(product=>product.featured).slice(0,5);
+export function orderedProducts<T extends PublishedTemplate>(products:T[]){return [...products].sort((a,b)=>(a.order??100)-(b.order??100)||a.id.localeCompare(b.id));}
+export const featuredProducts=<T extends PublishedTemplate>(products:T[])=>orderedProducts(products).filter(product=>product.featured).slice(0,5);

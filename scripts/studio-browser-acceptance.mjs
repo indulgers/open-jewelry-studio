@@ -131,12 +131,6 @@ try{
   });
   const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
-  // The clean local store starts empty. Seed the published catalog response only;
-  // preview geometry, account, uploads, private saves and orders use the actual app.
-  await page.route('**/models/managed/index.json',route=>route.fulfill({json:[
-    {id:'ring-02',revision:'review',name:'围钻戒指',catalogId:'ring-02',featured:true,collection:'相映系列',
-     image:'/media/diy/ring-02.jpg',campaign:'/media/campaign/halo-on-model.jpg',pricing:{base:2180,head:0,band:0,pave:0}},
-  ]}));
   await page.goto(origin);
   await page.getByRole('button',{name:'原款图'}).waitFor();
   await page.locator('.hero-photo img').evaluate(img=>img.decode());

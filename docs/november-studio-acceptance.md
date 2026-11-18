@@ -28,6 +28,6 @@
 
 ## 验收入口
 
-主站设计、社区与资料分别在 `/#/stonefirst/combine/ring-02`、`/#/community`、`/#/diy/fit`。实验入口为实验分支的 `/#/motif-case`。Chromium 验收使用隔离的本地存储、测试账号和真实模型。首页使用测试上架目录。截图存于对应 GitHub Actions 运行的 artifacts。
+主站设计、社区与资料分别在 `/#/stonefirst/combine/ring-02`、`/#/community`、`/#/diy/fit`。实验入口为实验分支的 `/#/motif-case`。Chromium 验收使用隔离的本地存储、测试账号和真实模型。本地首页直接读取随仓库提供的演示款式。截图存于对应 GitHub Actions 运行的 artifacts。
 
 精调围钻编辑器保留其可验证的几何选项，历史发布模板按各自发布版本展示。真实商品上线、收款、履约与制造验证需要对应业务系统和工艺参数。浏览器手机尺寸验收不等同于在 iPhone、安卓或微信内实测。

@@ -1,4 +1,4 @@
-import {purchasePublished} from './purchase';
+import {purchaseOriginal,purchasePublished} from './purchase';
 import {templateQuote} from './pricing';
 import {useEffect,useState} from 'react';
 import {formatYuan} from './ring02/demoOrder';
@@ -6,6 +6,14 @@ import {RING_CATALOG} from './catalog';
 import {loadReferenceRing} from './reference/entry';
 import {fetchManaged,productRoute,featuredProducts,orderedProducts,type PublishedTemplate} from './reference/managed-types';
 import './diy-home.css';
+
+type StorefrontProduct=PublishedTemplate&{demo?:typeof RING_CATALOG[number]};
+const localDemoProducts:StorefrontProduct[]=RING_CATALOG.filter(ring=>ring.listed).map((ring,order)=>({
+    id:ring.id,catalogId:ring.id,revision:ring.revision,name:ring.name,
+    image:ring.image,campaign:ring.campaign,collection:ring.collection,description:ring.description,
+    url:ring.editor,headName:ring.headLabel??ring.name,bandName:ring.bandLabel??ring.name,order,featured:order<5,pricing:{base:ring.price.base,head:0,band:0,pave:0},
+    demo:ring,
+  }));
 
 function warmEditor(product:PublishedTemplate){const source=RING_CATALOG.find(item=>item.id===product.catalogId);if(source)void loadReferenceRing(source).catch(()=>{});}
 const Arrow=()=> <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>;
@@ -42,19 +50,23 @@ function FeaturedImage({product, purchasing, onPurchase}:{
 export function DiyHome({section}:{section?:'collection'|'story'}){
   const [error,setError]=useState('');
   const [purchasing,setPurchasing]=useState('');
-  async function purchase(product:PublishedTemplate){
+  async function purchase(product:StorefrontProduct){
     setPurchasing(product.id);setError('');
-    try{await purchasePublished(product);window.location.hash='#/diy/cart';}
+    try{
+      if(product.demo)purchaseOriginal(product.demo);
+      else await purchasePublished(product);
+      window.location.hash='#/diy/cart';
+    }
     catch(error){setError(error instanceof Error?error.message:'购物车暂时无法保存，请重试。');}
     finally{setPurchasing('');}
   }
   const all=section==='collection';
-  const [published,setPublished]=useState<PublishedTemplate[]>();
+  const [published,setPublished]=useState<StorefrontProduct[]>();
   const [attempt,setAttempt]=useState(0);
   useEffect(()=>{
     const controller=new AbortController();
     fetchManaged<PublishedTemplate[]>('index.json',controller.signal)
-      .then(items=>{setPublished(orderedProducts(items));setError('');}).catch(()=>{if(!controller.signal.aborted)setError('商品暂时无法读取，请重试。');});
+      .then(items=>{setPublished(orderedProducts(!items.length&&import.meta.env.DEV&&!import.meta.env.VITE_CLOUD_MODE?localDemoProducts:items));setError('');}).catch(()=>{if(!controller.signal.aborted)setError('商品暂时无法读取，请重试。');});
     return ()=>controller.abort();
   },[attempt,section]);
   const homeSelection=featuredProducts(published??[]);
