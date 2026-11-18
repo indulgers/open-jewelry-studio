@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {communityRequest,errorText,type Account} from './client';
 
-export function AccountForm({onSuccess}:{onSuccess:(account:Account)=>void}){
+export function AccountForm({onSuccess,deferLocalAccountNotice=false}:{onSuccess:(account:Account)=>void;deferLocalAccountNotice?:boolean}){
   const [register,setRegister]=useState(false);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
@@ -12,7 +12,7 @@ export function AccountForm({onSuccess}:{onSuccess:(account:Account)=>void}){
     setBusy(true);setError('');
     try{
       const result=await communityRequest<{account:Account}>(register?'register':'login',
-        {name:String(data.get('name')).trim(),password:data.get('password')});
+        {name:String(data.get('name')).trim(),password:data.get('password')},undefined,undefined,deferLocalAccountNotice);
       onSuccess(result.account);
     }catch(cause){setError(errorText(cause));}finally{setBusy(false);}
   }}>

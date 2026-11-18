@@ -9,7 +9,7 @@ import {chromium} from 'playwright-core';
 const origin='http://127.0.0.1:5188';
 const directory='visual-artifacts';
 mkdirSync(directory,{recursive:true});
-const server=spawn('npm',['run','dev','--','--port','5188','--strictPort'],{
+const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','5188','--strictPort'],{
   stdio:'inherit',env:{...process.env,XIANGYAN_MODEL_DIR:mkdtempSync(join(tmpdir(),'studio-acceptance-'))},
 });
 let browser,page;
@@ -146,10 +146,28 @@ try{
   await save.waitFor({timeout:90000});
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
   const canvas=await checkDesktopInspection();
+  const originalFace=await previewPixels(canvas);
+  await page.getByLabel('主石切形').selectOption('pear');
+  await page.getByLabel('宝石类别').selectOption('培育钻石');
+  await page.getByRole('button',{name:'粉色',exact:true}).click();
+  await page.getByRole('button',{name:'1.5 ct',exact:true}).click();
+  await page.getByRole('button',{name:'戒圈与铺钻',exact:true}).click();
+  await page.getByRole('group',{name:'表面处理'}).getByRole('button',{name:'哑面'}).click();
+  await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
+  await twoFrames();
+  assert.notDeepEqual((await previewPixels(canvas)).shade,originalFace.shade,'custom styling must change visible pixels');
+  await capture('03-editor-pear-gem');
   await assertCurrentSnapshot(canvas,save);
   await page.getByLabel('作品名称').fill('围钻定制快照');
   await page.getByRole('button',{name:'保存到我的设计'}).click();
   await page.getByText(/已私密保存/).waitFor();
+  const privateSnapshot=await page.request.get(origin+'/api/model-admin/community/mine',{headers:{'X-Expected-Account':'studio_reviewer'}});
+  assert.equal(privateSnapshot.status(),200);
+  const saved=(await privateSnapshot.json()).find(item=>item.title==='围钻定制快照');
+  assert.equal(saved?.design?.styling?.cut,'pear');
+  assert.equal(saved?.design?.styling?.gem,'grown-pink');
+  assert.equal(saved?.design?.styling?.carat,1.5);
+  assert.equal(saved?.published,false);
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>scrollTo(0,0));await twoFrames();
   await checkInspectionLayout();

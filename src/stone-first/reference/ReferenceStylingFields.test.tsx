@@ -1,14 +1,16 @@
-import {beforeEach,expect,it,vi} from 'vitest';
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {fireEvent,render,screen,within} from '@testing-library/react';
+import {FitSession} from '../fit/FitSession';
 import {SourceRingStudio} from './SourceRingStudio';
 vi.mock('../../viewer/JewelryLighting',()=>({preloadJewelryLighting:()=>{}}));
 vi.mock('./part-library',()=>({createReferenceLibrary:()=>({load:()=>new Promise(()=>{}),dispose:()=>{}})}));
 vi.mock('../ring02/Ring02Stage',()=>({VIEWS:[['overall','整体']]}));
 vi.mock('./SourceRingStage',()=>({SourceRingStage:()=>null,SourceLoading:()=>null}));
-beforeEach(()=>localStorage.clear());
-it('edits and restores a bespoke finish and two-level center stone without offering the stock quote',()=>{
-  const first=render(<SourceRingStudio templateId="ring-floral"/>);
-  expect(screen.getByLabelText('主石切形').querySelectorAll('option')).toHaveLength(20);
+beforeEach(()=>{localStorage.clear();vi.stubGlobal('fetch',async()=>Response.json({account:null}));});
+afterEach(()=>vi.unstubAllGlobals());
+it('edits and restores a bespoke finish and two-level center stone without offering the stock quote',async()=>{
+  const first=render(<FitSession><SourceRingStudio templateId="ring-floral"/></FitSession>);
+  expect((await screen.findByLabelText('主石切形')).querySelectorAll('option')).toHaveLength(20);
   fireEvent.change(screen.getByLabelText('主石切形'),{target:{value:'heart'}});
   fireEvent.change(screen.getByLabelText('宝石类别'),{target:{value:'培育钻石'}});
   fireEvent.click(screen.getByRole('button',{name:'粉色'}));
@@ -20,8 +22,8 @@ it('edits and restores a bespoke finish and two-level center stone without offer
   expect(within(purchase).getByText('待核价')).toBeInTheDocument();
   expect(within(purchase).queryByText('参考估价')).toBeNull();
   first.unmount();
-  render(<SourceRingStudio templateId="ring-floral"/>);
-  expect(screen.getByLabelText('主石切形')).toHaveValue('heart');
+  render(<FitSession><SourceRingStudio templateId="ring-floral"/></FitSession>);
+  expect(await screen.findByLabelText('主石切形')).toHaveValue('heart');
   expect(screen.getByRole('button',{name:'粉色'})).toHaveAttribute('aria-pressed','true');
   expect(screen.getByText('培育钻石 · 粉色 · 心形 · 2 ct')).toBeInTheDocument();
   expect(screen.getByText('玫瑰金色 · 哑面')).toBeInTheDocument();

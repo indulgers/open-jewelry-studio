@@ -1,3 +1,4 @@
+import {useFitScope} from './FitSession';
 import {useState} from 'react';
 import {readFitProfile,saveFitProfile,type FitProfile} from './profile';
 import {RING_SIZES} from './sizing';
@@ -8,7 +9,8 @@ export function RingSizeOptions(){
 }
 
 export function FitProfileForm({onSaved}:{onSaved?:(profile:FitProfile)=>void}){
-  const [values,setValues]=useState<FitProfile>(readFitProfile);
+  const scope=useFitScope();
+  const [values,setValues]=useState<FitProfile>(()=>readFitProfile(scope));
   const [notice,setNotice]=useState('');
   const [failed,setFailed]=useState(false);
   function change(key:keyof FitProfile,value:string){
@@ -18,12 +20,13 @@ export function FitProfileForm({onSaved}:{onSaved?:(profile:FitProfile)=>void}){
   function save(clear=false){
     const next=clear?{}:values;
     try{
-      saveFitProfile(next);
+      saveFitProfile(next,scope);
       if(clear)setValues({});
       setFailed(false);setNotice(clear?'已清除本机佩戴资料。':'已保存至此浏览器。');
       onSaved?.(next);
     }catch{setFailed(true);setNotice('浏览器未能保存，请检查本机储存权限。');}
   }
+  if(scope===null)return null;
   return <form className="fit-profile" onSubmit={event=>{event.preventDefault();save();}}>
     <p>三项均可留空。新设计会预填常用圈号，身高和体重只保存在此浏览器。</p>
     <div className="fit-fields">

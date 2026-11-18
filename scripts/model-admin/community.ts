@@ -1,3 +1,5 @@
+import {verifyDesignBasis,type PublishedReleaseReader} from './design-basis.ts';
+import type {DesignBasis} from '../../src/community/design-basis.ts';
 import {createHash,randomUUID} from 'node:crypto';
 import {parseReferenceDesign} from '../../src/stone-first/reference/design.ts';
 import {parseDesign} from '../../src/stone-first/ring02/model.ts';
@@ -6,10 +8,10 @@ import type {CommunityStore} from './community-store.ts';
 import {accountAction,communityRoot,digest,fail,getJson,memberOf,putJson,reply} from './community-account.ts';
 import {previewJpeg} from './community-image.ts';
 
-type SavedDesign={id:string;title:string;author:string;templateId?:string;revision?:string;design?:object;createdAt:string};
+type SavedDesign={id:string;title:string;author:string;templateId?:string;revision?:string;design?:object;basis?:DesignBasis;details?:{label:string;value:string}[];createdAt:string};
 type PublicWork=Pick<SavedDesign,'id'|'title'|'author'|'createdAt'> & {image:string;published:boolean};
 type Published={owner:string;work:PublicWork};
-type Order={id:string;title:string;workId:string;owner:string;accountName:string;status:'待人工核价'|'已受理'|'已关闭';createdAt:string;templateId?:string;revision?:string;design?:object};
+type Order={id:string;title:string;workId:string;owner:string;accountName:string;status:'待人工核价'|'已受理'|'已关闭';createdAt:string;templateId?:string;revision?:string;design?:object;basis?:DesignBasis};
 const rootPath='/api/model-admin/community/';
 const jsonKey=(owner:string,id:string)=>'designs/'+owner+'/'+id+'.json';
 const publicKey=(id:string)=>'published/'+id+'.json';
@@ -49,18 +51,29 @@ function snapshot(input:Record<string,unknown>){
   if(templateId!==undefined&&(typeof templateId!=='string'||!/^[a-zA-Z0-9-]{1,100}$/.test(templateId)))return fail(422,'款式标识无效。');
   if(revision!==undefined&&(typeof revision!=='string'||!/^[a-zA-Z0-9._:-]{1,128}$/.test(revision)))return fail(422,'设计版本无效。');
   if((revision===undefined)!==(design===undefined)||design!==undefined&&!templateId)return fail(422,'设计缺少款式、版本或配置。');
+  let details:SavedDesign['details'];
+  if(input.details!==undefined){
+    if(!design||!Array.isArray(input.details)||input.details.length>32)return fail(422,'保存的配置摘要无效。');
+    details=input.details.map(row=>{
+      if(!row||typeof row.label!=='string'||row.label.length>64||typeof row.value!=='string'||row.value.length>512)return fail(422,'配置说明过长或缺少文字。');
+      return {label:row.label,value:row.value};
+    });
+  }
   // A previously published part may no longer be in this server's built-in catalog.
   // Its UUID is retained as a reference for manual review; it cannot set a price.
   const partIds=design&&typeof design==='object'
     ?[Reflect.get(design,'headId'),Reflect.get(design,'bandId')].filter((id):id is string=>typeof id==='string'&&uuid.test(id)):[];
   const parsed=design===undefined?undefined:parseReferenceDesign(design,partIds)??parseDesign(design);
   if(parsed===null)return fail(422,'设计配置无效，请回到编辑器重新保存。');
-  return {title:title.trim(),...(typeof templateId==='string'?{templateId}:{}),...(typeof revision==='string'?{revision}:{}),...(parsed?{design:parsed}:{})};
+  return {title:title.trim(),...(typeof templateId==='string'?{templateId}:{}),...(typeof revision==='string'?{revision}:{}),...(parsed?{design:parsed}:{}),...(details?{details}:{})};
 }
 type SaveReservation={id:string;fingerprint:string;createdAt:string};
-async function saveDesign(input:Record<string,unknown>,owner:string,admin:boolean,store:CommunityStore){
+async function saveDesign(input:Record<string,unknown>,owner:string,admin:boolean,store:CommunityStore,localReader?:PublishedReleaseReader){
   if(typeof input.requestId!=='string'||!uuid.test(input.requestId))return fail(422,'保存请求编号无效，请重新打开保存窗口。');
-  const data=snapshot(input),image=previewJpeg(input.image);
+  const snapshotData=snapshot(input),image=previewJpeg(input.image);
+  const basis=snapshotData.design?await verifyDesignBasis(store,input.basis,snapshotData.templateId!,snapshotData.design,localReader):undefined;
+  if(!snapshotData.design&&input.basis!==undefined)return fail(422,'独立图片作品不能指定模型版本。');
+  const data={...snapshotData,basis};
   const canonical=JSON.stringify(data,(_key,value)=>value&&typeof value==='object'&&!Array.isArray(value)
     ?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b))):value);
   const fingerprint=createHash('sha256').update(canonical).update(image).digest('hex');
@@ -87,9 +100,9 @@ async function imageResponse(store:CommunityStore,id:string){
   if(!image)return fail(404,'找不到作品预览。');
   return new Response(image.body,{headers:{'Content-Type':'image/jpeg','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
 }
-const orderSummary=(o:Order)=>({id:o.id,workId:o.workId,title:o.title,status:o.status,createdAt:o.createdAt});
+const orderSummary=(o:Order)=>({id:o.id,workId:o.workId,title:o.title,status:o.status,createdAt:o.createdAt,basis:o.basis,templateId:o.templateId});
 
-export async function communityApi(req:Request,path:string,store:CommunityStore,isAdmin:boolean):Promise<Response>{
+export async function communityApi(req:Request,path:string,store:CommunityStore,isAdmin:boolean,localReader?:PublishedReleaseReader):Promise<Response>{
   try{
     const segments=path.split('/');
     const admin=segments[0]==='admin';
@@ -102,7 +115,7 @@ export async function communityApi(req:Request,path:string,store:CommunityStore,
     if(!get&&!post)return fail(405,'请求方法无效。');
     if(!admin&&post&&['register','login'].includes(route))return await accountAction(req,store,route,await inputOf(req));
     const member=await memberOf(req,store);
-    if(!admin&&get&&route==='session')return reply({account:member?{name:member.name}:null});
+    if(!admin&&get&&route==='session')return reply(member?{account:{name:member.name},localProfileId:member.id}:{account:null});
     if(!admin&&get&&route==='works')return reply(newest((await list<Published>(store,'published/')).map(entry=>entry.work)));
     const posted=post?await inputOf(req):{};
     const expected=get?req.headers.get('X-Expected-Account'):posted.expectedAccount;
@@ -117,7 +130,7 @@ export async function communityApi(req:Request,path:string,store:CommunityStore,
       return await imageResponse(store,id);
     }
     if(!owner)return fail(401,'请先登录消费者账号。');
-    if(post&&route==='designs')return await saveDesign(posted,owner,admin,store);
+    if(post&&route==='designs')return await saveDesign(posted,owner,admin,store,localReader);
     if(get&&route===(admin?'designs':'mine')){
       const items=await list<SavedDesign>(store,'designs/'+owner+'/');
       return reply(newest(await Promise.all(items.map(async item=>({...item,...publicWork(item,!!await getJson(store,publicKey(item.id)))})))));
@@ -140,7 +153,7 @@ export async function communityApi(req:Request,path:string,store:CommunityStore,
       const item=await getJson<SavedDesign>(store,jsonKey(published.owner,id));
       if(!item)return fail(404,'作品不存在。');
       const order:Order={id:receiptId,title:item.title,workId:id,owner,accountName:member!.name,status:'待人工核价',createdAt:new Date().toISOString(),
-        templateId:item.templateId,revision:item.revision,design:orderDesign(item.design)};
+        templateId:item.templateId,revision:item.revision,design:orderDesign(item.design),basis:item.basis};
       if(!await putJson(store,key,order,{etag:null})){
         const winner=await getJson<Order>(store,key);
         if(!winner)return fail(409,'申请状态正在更新，请重试。');

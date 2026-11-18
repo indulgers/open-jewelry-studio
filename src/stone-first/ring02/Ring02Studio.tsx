@@ -1,4 +1,6 @@
+import {fixedDesignBasis} from '../../community/design-basis';
 import {SaveCommunityDesign} from '../../community/SaveCommunityDesign';
+import {useFitScope} from '../fit/FitSession';
 import {RingFitField} from '../fit/RingFitField';
 import {ringSizeDescription} from '../fit/sizing';
 import {EngravingEditor} from '../engraving/EngravingEditor';
@@ -48,8 +50,9 @@ function describeGap(layout:ReturnType<typeof paveSpacing>){
 }
 
 function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
+  const scope=useFitScope();
   const [initial]=useState(()=>{
-    const saved=readDraft();
+    const saved=readDraft(scope);
     const conflict=findNewIntersection(template,fitStones(template,saved.design));
     return {draft:conflict?newDraft(BASE_DESIGN):saved,conflict};
   });
@@ -106,9 +109,9 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
 
   useEffect(()=>{
     if(initial.conflict&&draft.revision===initial.draft.revision)return;
-    try{writeDraft(draft);setSaveFailed(false);}
+    try{writeDraft(draft,scope);setSaveFailed(false);}
     catch{setSaveFailed(true);}
-  },[draft,initial]);
+  },[draft,initial,scope]);
 
   function apply(next:RingDesign){
     if(JSON.stringify(next)===JSON.stringify(current))return;
@@ -325,7 +328,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
       <p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p>
       <small>示例交期 {quote.leadTime} · 待工艺确认</small>
     </div>
-    <SaveCommunityDesign title="围钻戒指" templateId="ring-02" revision={draft.revision} design={current} capture={()=>captureThumbnail.current?.('inspection')} disabled={!canCapture}/>
+    <SaveCommunityDesign details={details} basis={fixedDesignBasis({id:'ring-02',revision:TEMPLATE_REVISION})} title="围钻戒指" templateId="ring-02" revision={draft.revision} design={current} capture={()=>captureThumbnail.current?.('inspection')} disabled={!canCapture}/>
       {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:
       !RING02_TEMPLATE.listed?<span>该款式已停售</span>:
       part==='head'?<button className="shop-button" onClick={()=>jumpTo('shoulder')}>下一步 · 配置戒圈</button>:

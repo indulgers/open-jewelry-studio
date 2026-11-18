@@ -1,3 +1,4 @@
+import {fixedDesignBasis} from './design-basis';
 import {fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {afterEach,beforeAll,expect,it,vi} from 'vitest';
 import {SaveCommunityDesign} from './SaveCommunityDesign';
@@ -9,7 +10,7 @@ beforeAll(()=>{
 });
 afterEach(()=>vi.unstubAllGlobals());
 
-const snapshot={title:'围钻戒指',templateId:'ring-02',revision:'r1',design:{kind:'reference'},capture:()=>'/snapshot.jpg'};
+const snapshot={basis:fixedDesignBasis({id:'ring-02',revision:'ring-02-source-split-1'}),title:'围钻戒指',templateId:'ring-02',revision:'r1',design:{kind:'reference'},capture:()=>'/snapshot.jpg'};
 it('reuses the same private-save request after a lost response, but gives an edited title a new request',async()=>{
   const saves:Record<string,unknown>[]=[];
   vi.stubGlobal('fetch',vi.fn(async(path:string,init?:RequestInit)=>{

@@ -64,7 +64,11 @@ export function modelAdmin():Plugin{
       if(publicDir&&(storage===publicDir||storage.startsWith(publicDir+sep))){
         throw new Error('XIANGYAN_MODEL_DIR 必须在网站公共素材目录之外。');
       }
-      const community=localCommunity(storage,process.env.XIANGYAN_ADMIN_PASSWORD);
+      const community=localCommunity(storage,process.env.XIANGYAN_ADMIN_PASSWORD,async ({id,revision})=>{
+        const manifest=join(publicDir,'models/managed',id,revision,'template.json');
+        try{return JSON.parse(await readFile(manifest,'utf8'));}
+        catch(error){if((error as NodeJS.ErrnoException).code==='ENOENT')return;throw error;}
+      });
       const worker=join(server.config.root,'scripts/model-admin/run.mjs');
       const templates=createTemplateLibrary(storage,publicDir);
       const r2=createR2(loadEnv(server.config.mode,server.config.envDir,'XIANGYAN_R2_'));

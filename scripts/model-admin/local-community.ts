@@ -1,3 +1,4 @@
+import type {PublishedReleaseReader} from './design-basis.ts';
 import {randomBytes} from 'node:crypto';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
@@ -7,7 +8,7 @@ import {reply} from './community-account.ts';
 import {localCommunityStore} from './community-store.ts';
 import {RequestError} from './templates.ts';
 
-export function localCommunity(directory:string,configuredPassword?:string){
+export function localCommunity(directory:string,configuredPassword?:string,readRelease?:PublishedReleaseReader){
   const store=localCommunityStore(join(directory,'community'));
   function password(){
     if(configuredPassword)return configuredPassword;
@@ -21,12 +22,12 @@ export function localCommunity(directory:string,configuredPassword?:string){
   return async(req:Request,path:string)=>{
     const gate=path==='local-admin-session';
     const signed=req.headers.get('cookie')?.split(';').some(c=>c.trim().startsWith(localAdminCookie+'='));
-    if(!gate&&!signed)return communityApi(req,path,store,false);
+    if(!gate&&!signed)return communityApi(req,path,store,false,readRelease);
     try{
       const secret=password();
       if(secret.length<32)return reply({error:'本机社区管理员口令至少需要 32 个字符。'},503);
       const admin=adminSessionValid(req,secret,localAdminCookie);
-      if(!gate)return communityApi(req,path,store,admin);
+      if(!gate)return communityApi(req,path,store,admin,readRelease);
       if(req.method==='GET')return reply({admin,generated:!configuredPassword});
       if(req.method!=='POST')return reply({error:'请求方法无效。'},405);
       if(req.headers.get('origin')!==new URL(req.url).origin)return reply({error:'请从本站后台操作。'},403);

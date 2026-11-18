@@ -21,10 +21,11 @@ it('keeps drafts private and freezes idempotent orders across withdrawal',async(
       expect(res.status).toBe(201);return res.headers.get('set-cookie')!.split(';')[0];
     };
     const author=await register('designer01'),buyer=await register('customer02');
-    expect(await (await api('session',undefined,author)).json()).toEqual({account:{name:'designer01'}});
+    expect(await (await api('session',undefined,author)).json()).toEqual({account:{name:'designer01'},localProfileId:expect.stringMatching(/^[0-9a-f]{32}$/)});
     expect((await api('login',{name:'designer01',password:'wrong-password'})).status).toBe(401);
     const image='data:image/jpeg;base64,'+(await readFile('public/media/diy/ring-floral.jpg')).toString('base64');
-    const input={title:'花环',image,requestId:randomUUID(),expectedAccount:'designer01',revision:'ring-floral-source-1',templateId:'ring-floral',
+    const source={id:'ring-floral',revision:'ring-floral-source-1'};
+    const input={basis:{template:source,head:source,band:source},title:'花环',image,details:[{label:'刻字',value:'PRIVATE-NOTE'}],requestId:randomUUID(),expectedAccount:'designer01',revision:'ring-floral-source-1',templateId:'ring-floral',
       design:{kind:'reference',center:'diamond',halo:'diamond',shoulder:'diamond',engraving:'PERSONAL'}};
     const changedRead=await communityApi(new Request(origin+'/api/model-admin/community/mine',{headers:{cookie:buyer,'X-Expected-Account':'designer01'}}),'mine',store,false);
     expect(changedRead.status).toBe(409);
@@ -40,7 +41,8 @@ it('keeps drafts private and freezes idempotent orders across withdrawal',async(
     expect(await (await api('mine',undefined,author)).json()).toEqual([]);
     const [one,two]=await Promise.all([api('designs',input,author),api('designs',{...input,expectedAccount:'DESIGNER01'},author)]);
     expect([one.status,two.status].sort()).toEqual([200,201]);
-    const {id}=await one.json();expect((await two.json()).id).toBe(id);
+    const saved=await one.json();expect(saved.details).toEqual(input.details);
+    const {id}=saved;expect((await two.json()).id).toBe(id);
     const conflict=await api('designs',{...input,title:'新内容'},author);expect(conflict.status).toBe(409);
     expect(await conflict.json()).toMatchObject({code:'REQUEST_CONFLICT'});
     expect((await api('designs',{...input,requestId:undefined},author)).status).toBe(422);
@@ -53,13 +55,14 @@ it('keeps drafts private and freezes idempotent orders across withdrawal',async(
     const works=await (await api('works')).json();
     expect(works[0]).toMatchObject({title:'花环',published:true});
     expect(works[0]).not.toHaveProperty('design');
+    expect(works[0]).not.toHaveProperty('details');
     expect(JSON.stringify(works)).not.toContain('designer01');
     expect((await api('works/'+id+'/orders',{})).status).toBe(401);
     const [first,retry]=await Promise.all([api('works/'+id+'/orders',{expectedAccount:'customer02'},buyer),api('works/'+id+'/orders',{expectedAccount:'customer02'},buyer)]);
     const receipt=await first.json();expect(receipt.status).toBe('待人工核价');expect((await retry.json()).id).toBe(receipt.id);
     expect((await api('admin/orders',undefined,buyer)).status).toBe(401);
     const orders=await (await api('admin/orders',undefined,'',true)).json();
-    expect(orders).toHaveLength(1);expect(JSON.stringify(orders)).not.toContain('PERSONAL');
+    expect(orders).toHaveLength(1);expect(JSON.stringify(orders)).not.toContain('PRIVATE-NOTE');expect(JSON.stringify(orders)).not.toContain('PERSONAL');
     const receiptPath=orders[0].image.replace('/api/model-admin/community/','').replace('/image','/status');
     expect((await api(receiptPath,{expected:'待人工核价',status:'已受理'},buyer)).status).toBe(401);
     expect((await api(receiptPath,{expected:'待人工核价',status:'已受理'},'',true)).status).toBe(200);

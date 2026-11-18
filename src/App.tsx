@@ -1,3 +1,5 @@
+import {FitSession} from './stone-first/fit/FitSession';
+import {Fragment} from 'react';
 import {HALO_COMBINATION_ROUTE} from './stone-first/reference/parts';
 import {lazy,Suspense,useCallback,useEffect,useLayoutEffect,useReducer,useState} from 'react';
 import {DEFAULT_CONFIGURATION,configurationReducer} from './configuration/configuration';
@@ -147,6 +149,7 @@ export default function App(){
   const [modulesVisited,setModulesVisited]=useState(()=>route.tab==='modules');
   const {tab}=route;
   const diyPage=route.tab==='stonefirst'?route.page:null;
+  const EditorSession=diyPage==='recipes'?Fragment:FitSession;
   useLayoutEffect(()=>{
     if(window.scrollY>0)window.scrollTo({top:0,behavior:'instant'});
   },[tab,diyPage,route.tab==='stonefirst'?route.section:null,route.tab==='stonefirst'?route.templateId:null]);
@@ -163,6 +166,6 @@ export default function App(){
     <ShopHeader page={route.tab==='stonefirst'?route.section??diyPage:null}/>
     <section id="panel-showroom" aria-label="珠宝展台" hidden={tab!=='showroom'}><JewelryStudio active={tab==='showroom'}/></section>
     <section id="panel-modules" aria-label="模组 DIY" hidden={tab!=='modules'}>{modulesVisited&&<ModuleStudio active={tab==='modules'}/>}</section>
-    <section id="panel-stonefirst" aria-label="戒指定制" hidden={tab!=='stonefirst'}>{tab==='stonefirst'&&(diyPage==='catalog'?<DiyHome section={route.section}/>:diyPage==='cart'?<DiyCart/>:diyPage==='community'||diyPage==='mine'?<Suspense fallback={<p role="status">正在打开作品…</p>}><CommunityStudio key={diyPage} mode={diyPage}/></Suspense>:<Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='fit'?<FitPage/>:diyPage==='ring02'?<Ring02Studio/>:diyPage==='reference'?<SourceRingStudio key={route.templateId} templateId={route.templateId!}/>:diyPage==='published'?<PublishedTemplateStudio key={route.revision} id={route.templateId!} revision={route.revision!}/>:<StoneFirstStudio/>}</Suspense>)}</section>
+    <section id="panel-stonefirst" aria-label="戒指定制" hidden={tab!=='stonefirst'}>{tab==='stonefirst'&&(diyPage==='catalog'?<DiyHome section={route.section}/>:diyPage==='cart'?<DiyCart/>:diyPage==='community'||diyPage==='mine'?<Suspense fallback={<p role="status">正在打开作品…</p>}><CommunityStudio key={diyPage} mode={diyPage}/></Suspense>:<EditorSession><Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='fit'?<FitPage/>:diyPage==='ring02'?<Ring02Studio/>:diyPage==='reference'?<SourceRingStudio key={route.templateId} templateId={route.templateId!}/>:diyPage==='published'?<PublishedTemplateStudio key={route.revision} id={route.templateId!} revision={route.revision!}/>:<StoneFirstStudio/>}</Suspense></EditorSession>)}</section>
   </div>;
 }

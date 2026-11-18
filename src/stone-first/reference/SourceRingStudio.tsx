@@ -1,6 +1,8 @@
+import {referenceDesignBasis} from '../../community/design-basis';
 import {SaveCommunityDesign} from '../../community/SaveCommunityDesign';
 import {RingFitField} from '../fit/RingFitField';
-import {newDesignFit} from '../fit/profile';
+import {useFitScope} from '../fit/FitSession';
+import {fitStorageKey,newDesignFit} from '../fit/profile';
 import {ReferenceStylingFields} from './ReferenceStylingFields';
 import {PLATING,isCustomStyling,type ReferenceStyling} from './styling';
 import {EngravingEditor} from '../engraving/EngravingEditor';
@@ -53,17 +55,20 @@ function PartChoices({kind,label,choices,selected,disabled,pending,onSelect}:{
 }
 
 function Editor({template}:{template:CatalogRing}){
+  const scope=useFitScope();
   const originalKey='open-jewelry-studio:'+template.revision;
-  const key='open-jewelry-studio:combination:'+template.id;
+  const key=fitStorageKey('open-jewelry-studio:combination:'+template.id,scope);
   const legacyKey='open-jewelry-studio:'+(template.legacyRevision??template.revision)+(template.kind==='parametric'?':combination':'');
   const [history,setHistory]=useState(()=>{
     try{
       // Earlier combination previews used the precision editor's key. Only migrate reference drafts.
-      const saved=JSON.parse(localStorage.getItem(key)??localStorage.getItem(legacyKey)??localStorage.getItem(originalKey)??'null');
+      const stored=key?localStorage.getItem(key):null;
+      const legacy=scope==='guest'&&!stored?localStorage.getItem(legacyKey)??localStorage.getItem(originalKey):null;
+      const saved=JSON.parse(stored??legacy??'null');
       const design=parseReferenceDesign(saved?.design);
       if(design&&typeof saved.revision==='string'&&saved.revision.length<=128)return {design,revision:saved.revision,past:[] as ReferenceDesign[]};
     }catch{}
-    return {design:{...ORIGINAL_REFERENCE,...newDesignFit()},revision:crypto.randomUUID() as string,past:[] as ReferenceDesign[]};
+    return {design:{...ORIGINAL_REFERENCE,...newDesignFit(scope)},revision:crypto.randomUUID() as string,past:[] as ReferenceDesign[]};
   });
   const {design,revision,past}=history;
   const [part,setPart]=useState<'head'|'shank'>('head');
@@ -110,6 +115,7 @@ function Editor({template}:{template:CatalogRing}){
   const engravingDirty=engraving!==design.engraving||engravingStyle.font!==(design.engravingStyle??DEFAULT_ENGRAVING_STYLE).font||engravingStyle.align!==(design.engravingStyle??DEFAULT_ENGRAVING_STYLE).align;
   const added=hasDemoOrder(revision);
   useEffect(()=>{
+    if(!key){setSaveError(true);return;}
     try{localStorage.setItem(key,JSON.stringify({design,revision}));setSaveError(false);}
     catch{setSaveError(true);}
   },[key,design,revision]);
@@ -237,7 +243,7 @@ function Editor({template}:{template:CatalogRing}){
     </section>
   </div>
     <section className="ring02-purchase" aria-label="估价与演示加购"><div>{styled?<><p>改款方案 <strong>待核价</strong></p><small>主石、镶座与金属工艺需另行确认</small></>:<><p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p><small>示例交期 {quote.leadTime} · 待工艺确认</small></>}</div>
-      <SaveCommunityDesign title={displayName} templateId={template.id} revision={revision} design={design} capture={()=>capture.current?.('inspection')} disabled={compare||engravingDirty||!canCapture}/>
+      <SaveCommunityDesign details={details} basis={referenceDesignBasis(template,head,band)} title={displayName} templateId={template.id} revision={revision} design={design} capture={()=>capture.current?.('inspection')} disabled={compare||engravingDirty||!canCapture}/>
       {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:part==='head'?<button className="shop-button" onClick={()=>setPart('shank')}>下一步 · 配置戒圈</button>:<button className="shop-button" disabled={compare||engravingDirty||!canCapture} onClick={()=>{setMessage('');setCartFeedback(undefined);setReview(true);}}>查看方案</button>}
     </section>
     {library&&<PartLibrary kind={library} trigger={libraryTrigger} selected={library==='head'?head.id:band.id}

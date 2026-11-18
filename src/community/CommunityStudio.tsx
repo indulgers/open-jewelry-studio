@@ -1,9 +1,11 @@
-import {useEffect,useState} from 'react';
+import {lazy,Suspense,useEffect,useState} from 'react';
 import {ReviewDialog} from '../stone-first/ring02/ReviewDialog';
 import {AccountForm} from './AccountForm';
 import {UploadWork} from './UploadWork';
 import {CommunityAccountChanged,communityRequest,errorText,type Account,type Order,type Work} from './client';
 import './community.css';
+
+const PrivateDesignSummary=lazy(()=>import('./PrivateDesignSummary'));
 
 type Mode='community'|'mine';
 export default function CommunityStudio({mode}:{mode:Mode}){
@@ -98,7 +100,7 @@ export default function CommunityStudio({mode}:{mode:Mode}){
       <button className="shop-text-link" onClick={()=>setAuth(false)}>返回社区</button></ReviewDialog>}
     {preview&&<ReviewDialog title={preview.title} onClose={()=>setPreview(undefined)}>
       <img className="community-large-preview" src={preview.image} alt={preview.title}/>
-      {mine&&preview.design&&<details><summary>查看保存的配置</summary><pre className="community-config">{JSON.stringify(preview.design,null,2)}</pre></details>}
+      {mine&&account&&preview.design&&<Suspense fallback={<p role="status">正在读取配置…</p>}><PrivateDesignSummary work={preview}/></Suspense>}
       <button className="shop-text-link" onClick={()=>setPreview(undefined)}>关闭预览</button></ReviewDialog>}
     {publish&&<ReviewDialog title="发布到设计社区" busy={busy} onClose={()=>setPublish(undefined)}>
       <img className="community-dialog-preview" src={publish.image} alt={publish.title}/>

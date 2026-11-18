@@ -24,3 +24,21 @@ it('submits the displayed work and shows the persisted request number', async()=
   expect(await screen.findByText(/request-one/)).toBeInTheDocument();
   await waitFor(()=>expect(calls).toContain('POST works/work-one/orders'));
 });
+
+it('reads the owner’s saved Chinese configuration independently of the current catalog',async()=>{
+  HTMLDialogElement.prototype.showModal=function(){this.open=true;};
+  HTMLDialogElement.prototype.close=function(){this.open=false;};
+  const work={id:'past',title:'试制戒指',image:'/past.jpg',author:'消费者',published:false,design:{kind:'reference'},
+    details:[{label:'戒头',value:'原始花瓣镶座'}]};
+  vi.stubGlobal('fetch',vi.fn(async(path:string)=>{
+    if(path.endsWith('/session'))return Response.json({account:{name:'designer'}});
+    if(path.endsWith('/mine'))return Response.json([work]);
+    return Response.json([]);
+  }));
+  render(<CommunityStudio mode="mine"/>);
+  await userEvent.click(await screen.findByRole('button',{name:'预览试制戒指'}));
+  await userEvent.click(await screen.findByText('查看保存的配置'));
+  expect(screen.getByText('原始花瓣镶座')).toBeVisible();
+  expect(screen.getByText('历史版本未记录。')).toBeVisible();
+  expect(screen.queryByText(/"kind"/)).toBeNull();
+});

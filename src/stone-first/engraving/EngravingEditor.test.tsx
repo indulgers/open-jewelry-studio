@@ -1,15 +1,17 @@
-import {beforeEach,expect,it,vi} from 'vitest';
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 import {fireEvent,render,screen} from '@testing-library/react';
+import {FitSession} from '../fit/FitSession';
 import {SourceRingStudio} from '../reference/SourceRingStudio';
 vi.mock('../../viewer/JewelryLighting',()=>({preloadJewelryLighting:()=>{}}));
 vi.mock('../reference/part-library',()=>({createReferenceLibrary:()=>({load:()=>new Promise(()=>{}),dispose:()=>{}})}));
 vi.mock('../ring02/Ring02Stage',()=>({VIEWS:[['overall','整体']]}));
 vi.mock('../reference/SourceRingStage',()=>({SourceRingStage:()=>null,SourceLoading:()=> <p>正在加载预览</p>}));
-beforeEach(()=>localStorage.clear());
+beforeEach(()=>{localStorage.clear();vi.stubGlobal('fetch',async()=>Response.json({account:null}));});
+afterEach(()=>vi.unstubAllGlobals());
 const saved=()=>JSON.parse(localStorage.getItem('open-jewelry-studio:combination:ring-starlight')!).design;
-it('confirms all engraving settings together and restores them after reopening',()=>{
-  const first=render(<SourceRingStudio templateId="ring-starlight"/>);
-  expect(screen.getByRole('button',{name:'确认刻字'})).toBeInTheDocument();
+it('confirms all engraving settings together and restores them after reopening',async()=>{
+  const first=render(<FitSession><SourceRingStudio templateId="ring-starlight"/></FitSession>);
+  expect(await screen.findByRole('button',{name:'确认刻字'})).toBeInTheDocument();
   const views=screen.getByRole('group',{name:'戒指观察视角'});
   const loading=screen.getByText('正在加载预览');
   expect(views.compareDocumentPosition(loading)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -22,8 +24,8 @@ it('confirms all engraving settings together and restores them after reopening',
   fireEvent.click(screen.getByRole('button',{name:'宋体'}));
   fireEvent.click(screen.getByRole('button',{name:'取消修改'}));
   expect(screen.getByRole('button',{name:'简洁黑体'})).toHaveAttribute('aria-pressed','true');
-  first.unmount();render(<SourceRingStudio templateId="ring-starlight"/>);
-  expect(screen.getByRole('button',{name:'确认刻字'})).toBeInTheDocument();
+  first.unmount();render(<FitSession><SourceRingStudio templateId="ring-starlight"/></FitSession>);
+  expect(await screen.findByRole('button',{name:'确认刻字'})).toBeInTheDocument();
   expect(screen.getByLabelText('刻字文字')).toHaveValue('相伴四季');
   expect(screen.getByText('简洁黑体 · 内圈中央')).toBeInTheDocument();
   fireEvent.compositionStart(screen.getByLabelText('刻字文字'));
