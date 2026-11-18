@@ -55,7 +55,15 @@ async function checkDesktopInspection(){
   await page.getByRole('button',{name:'平移',exact:true}).click();
   const before=await previewPixels(canvas);
   await page.mouse.move(x,y);await page.mouse.down();
-  await page.mouse.move(x+box.width*.08,y,{steps:5});await page.mouse.up();
+  await page.evaluate(()=>{window.dragFrames=[];});
+  await page.mouse.move(x+box.width*.08,y,{steps:32});
+  await twoFrames();
+  const frames=await page.evaluate(()=>{const result=window.dragFrames;window.dragFrames=null;return result;});
+  assert.ok(frames.length>=2,'drag must render successive jewelry frames');
+  const intervals=frames.slice(1).map((frame,i)=>frame.time-frames[i].time).sort((a,b)=>a-b);
+  console.log('DRAG_PROFILE',JSON.stringify({frames:frames.length,medianMs:intervals[Math.floor(intervals.length*.5)],
+    p95Ms:intervals[Math.ceil(intervals.length*.95)-1],scenePixels:frames.at(-1).pixels}));
+  await page.mouse.up();
   await twoFrames();
   const panned=await previewPixels(canvas);
   assert.ok(panned.centroid>before.centroid+2,'primary drag must shift visible silver right');
@@ -123,9 +131,22 @@ try{
   // Hold the next animation callback to verify a just-edited design cannot save an older frame.
   await page.addInitScript(()=>{
     const next=window.requestAnimationFrame.bind(window);
+    let frameTime=0;
+    const gl=WebGL2RenderingContext.prototype,areas=new WeakMap();
+    const draw=gl.drawElements,viewport=gl.viewport;
+    gl.viewport=function(x,y,width,height){
+      areas.set(this,width*height);
+      return viewport.call(this,x,y,width,height);
+    };
+    gl.drawElements=function(mode,count,type,offset){
+      if(window.dragFrames&&count>12&&this.canvas.closest?.('.stone-first-preview')&&window.dragFrames.at(-1)?.time!==frameTime){
+        window.dragFrames.push({time:frameTime,pixels:areas.get(this)});
+      }
+      return draw.call(this,mode,count,type,offset);
+    };
     let held=false;
     window.requestAnimationFrame=callback=>next(function run(time){
-      if(held)next(run);else callback(time);
+      if(held)next(run);else {frameTime=time;callback(time);}
     });
     window.holdTestFrames=value=>{held=value;};
   });
