@@ -3,10 +3,10 @@ import {CatmullRomCurve3,Quaternion,TorusGeometry,TubeGeometry,Vector3,type Buff
 import {createComfortFitShank} from './comfortFitGeometry';
 import {ShankAdornment} from './ShankStyles';
 import type {ShankStyle,NecklaceMount} from './designGrammar';
-import profiles from './profiles.json';
+import type {patternLayout} from './patternLayout';
 import {polishedGoldLikeMaterial,metalAppearanceProps} from './metalMaterials';
 import {
-  necklaceAnchors,ringShoulders,ringSizing,visibleChainPoints,
+  ringShoulders,ringSizing,visibleChainPoints,
   type MotifId,type Point3,
 } from './wearableGeometry';
 
@@ -40,17 +40,33 @@ function ChainSide({anchor,side,color}:{anchor:Point3;side:-1|1;color:string}){
   </group>;
 }
 
-export function NecklaceAdapter({color,motif,scale,explode,mount='side'}:Omit<Props,'diameter'>&{mount?:NecklaceMount}){
+/** Rear struts meet both motif seats below the shared top bail. */
+function SuspensionStrut({x,y,color}:{x:number;y:number;color:string}){
+  const start=new Vector3(x,0,-.32);
+  const end=new Vector3(0,y,.48);
+  const delta=end.clone().sub(start);
+  return <mesh name="paired-pendant-strut" position={start.clone().lerp(end,.5)}
+    quaternion={new Quaternion().setFromUnitVectors(Y,delta.clone().normalize())} castShadow>
+    <capsuleGeometry args={[.22,delta.length(),6,12]}/>
+    <meshPhysicalMaterial {...metalAppearanceProps(color,.22)}/>
+  </mesh>;
+}
+export function NecklaceAdapter({color,motif,scale,explode,mount='side',layout}:Omit<Props,'diameter'>&{mount?:NecklaceMount;layout:ReturnType<typeof patternLayout>}){
   const anchors=useMemo(()=>{
-    if(mount==='side')return necklaceAnchors(motif,scale);
-    const upper=Math.max(...profiles[motif].outline.map(p=>p[1]))*scale;
-    const left:[number,number,number]=[-.73,upper+1.13,.58];
-    const right:[number,number,number]=[.73,upper+1.13,.58];
+    if(mount==='side'){
+      const scaleAnchor=([x,y,z]:Point3):Point3=>[x*scale,y*scale,layout.copies.length===1?z:z*scale];
+      return {left:scaleAnchor(layout.anchors.left),right:scaleAnchor(layout.anchors.right)};
+    }
+    const upper=layout.topY*scale;
+    const left:Point3=[-.73,upper+1.13,.58];
+    const right:Point3=[.73,upper+1.13,.58];
     return {left,right};
-  },[motif,scale,mount]);
+  },[layout,scale,mount]);
   return <group name="04-necklace-assembly" position-z={-explode*.7}>
     {mount==='bail'&&<>
-      {(motif==='flower'||motif==='blossom')&&<mesh name="formed-floral-bail-stem"
+      {layout.bridgeHalfWidth>0&&[-1,1].map(side=><SuspensionStrut key={side} color={color}
+        x={side*layout.bridgeHalfWidth*scale} y={anchors.left[1]-.84}/>)}
+      {layout.bridgeHalfWidth===0&&(motif==='flower'||motif==='blossom')&&<mesh name="formed-floral-bail-stem"
         position={[0,anchors.left[1]-1.27,anchors.left[2]]} castShadow>
         <capsuleGeometry args={[.16,1.18,8,12]}/>
         <meshPhysicalMaterial {...metalAppearanceProps(color,.2)}/>

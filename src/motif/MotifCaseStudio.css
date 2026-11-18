@@ -70,3 +70,30 @@
 .motif-setting-spec small{font-size:9px;line-height:1.6;color:#a08d74;display:block}
 .motif-edge-row button:disabled{opacity:.35;cursor:not-allowed}
 @media(max-width:760px){.motif-techniques{grid-template-columns:repeat(2,1fr)}.motif-preset-grid{grid-template-columns:repeat(3,1fr)}.motif-preset-icon{height:60px}.motif-wear-styles{grid-template-columns:repeat(2,1fr)}}
+
+/* Give the orthographic camera the unobscured area between the caption and controls. */
+.motif-visual{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;isolation:isolate;background:radial-gradient(ellipse at 50% 44%,#fff 0%,#f4f4ee 64%,#e7e8e0 100%)}
+.motif-preview-title,.motif-view-tools,.motif-visual-status{position:static;max-width:none}
+.motif-preview-title{padding:22px 24px 0;background:none}
+.motif-preview-title h2{margin:0 0 5px;color:#303b32}
+.motif-preview-title p,.motif-visual-status{color:#646d62}
+.motif-model-surface{min-height:0;min-width:0;position:relative}
+.motif-view-tools{justify-self:center;align-self:center;margin:8px 10px 0;background:#fbfcf8;flex-wrap:wrap;justify-content:center}
+.motif-view-tools button{min-height:40px;color:#536250;padding:8px 12px;min-width:44px}
+.motif-view-tools button[aria-pressed=true]{background:#334438;color:#fff}
+.motif-visual-status{justify-content:center;padding:10px 12px 15px;line-height:1.45;letter-spacing:0}
+.motif-lab :is(button,input):focus-visible{outline:2px solid #365e49;outline-offset:2px}
+@media(max-width:700px){
+  .motif-lab-heading{display:flex;align-items:center;padding:16px 18px;gap:12px}
+  .motif-lab-heading h1{font-size:24px;margin:0 0 5px}
+  .motif-heading-sub{font-size:11px;line-height:1.5}
+  .motif-build-tag{margin:0;padding:5px 8px;font-size:10px}
+  .motif-visual{order:-1;height:clamp(298px,48dvh,440px);min-height:0;position:sticky;top:64px;z-index:5;border-bottom:1px solid #cbd0c4}
+  .motif-preview-title{padding:12px 18px 0}
+  .motif-preview-title h2{font-size:22px}
+  .motif-view-tools{gap:2px;padding:3px;margin-top:3px}
+  .motif-view-tools button{padding:6px 9px}
+  .motif-visual-status{padding:6px 8px 9px}
+}
+@media(max-width:700px) and (max-height:540px){.motif-visual{position:relative;height:300px}}
+@media(prefers-reduced-motion:reduce){.motif-lab *{transition:none!important}}

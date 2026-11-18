@@ -18,6 +18,8 @@ import {comfortFitDiagnostics} from './comfortFitGeometry';
 import {DesignedSurface,summarizeGemSetting} from './DesignedSurface';
 import {PRESETS,TECHNIQUES,allowedTechniques,compatibleTechnique,settingPlan,
   normalizeMotifSize,minimumMotifSize,type Technique,type ShankStyle,type NecklaceMount,type DesignPreset} from './designGrammar';
+import {PATTERNS, patternLayout, type PatternMode} from './patternLayout';
+import {frameMotifModel} from './previewFrame';
 import type {MetalFusionResult} from './motifMetalFusion';
 import type {BufferGeometry} from 'three';
 import './MotifCaseStudio.css';
@@ -28,8 +30,9 @@ type Metal = 'yellow' | 'rose' | 'silver';
 type Inlay = 'pearl' | 'onyx' | 'malachite' | 'lapis' | 'carnelian';
 type Edge = 'double' | 'smooth' | 'none';
 type Part = 'all' | 'plate' | 'inlay' | 'edge' | 'adapter';
-type View = 'angle' | 'front' | 'side' | 'fit';
-type Settings = {product:Product;motif:MotifId;metal:Metal;inlay:Inlay;edge:Edge;size:number;ringDiameter:number;centerStone:boolean;technique:Technique;shank:ShankStyle;necklaceMount:NecklaceMount;explode:number;part:Part};
+type View = 'angle' | 'front' | 'side' | 'fit' | 'detail';
+type Shot = {view: View; sequence: number};
+type Settings = {pattern:PatternMode;product:Product;motif:MotifId;metal:Metal;inlay:Inlay;edge:Edge;size:number;ringDiameter:number;centerStone:boolean;technique:Technique;shank:ShankStyle;necklaceMount:NecklaceMount;explode:number;part:Part};
 
 const MOTIFS: {id:MotifId; name:string;source:string}[] = [
   {id:'clover',name:'四叶草',source:'四叶草.obj'},
@@ -52,7 +55,7 @@ const INLAYS: Record<Inlay,{name:string;color:string;roughness:number;metalness:
   lapis:{name:'青金石效果',color:'#294f91',roughness:.24,metalness:.03},
   carnelian:{name:'红玉髓效果',color:'#9c261c',roughness:.20,metalness:.03},
 };
-const INIT:Settings = {product:'necklace',motif:'clover',metal:'yellow',inlay:'pearl',edge:'double',size:15,ringDiameter:18,centerStone:true,technique:'inlay',shank:'classic',necklaceMount:'side',explode:0,part:'all'};
+const INIT:Settings = {pattern:'single',product:'necklace',motif:'clover',metal:'yellow',inlay:'pearl',edge:'double',size:15,ringDiameter:18,centerStone:true,technique:'inlay',shank:'classic',necklaceMount:'side',explode:0,part:'all'};
 const PARTS:{id:Exclude<Part,'all'>;no:string;name:string;description:string}[] = [
   {id:'plate',no:'01',name:'金属底托',description:'轮廓匹配的基座与结构层'},
   {id:'inlay',no:'02',name:'主题镶面',description:'原 OBJ 嵌片 / 立体花瓣 / 密钉钻石'},
@@ -87,6 +90,8 @@ function BeadLine({id,metal,factor,z,radius}:{id:MotifId;metal:string;factor:num
     const obj=new Object3D();
     points.forEach((p,i)=>{obj.position.copy(p);obj.updateMatrix();ref.current!.setMatrixAt(i,obj.matrix);});
     ref.current.instanceMatrix.needsUpdate=true;
+    ref.current.computeBoundingBox();
+    ref.current.computeBoundingSphere();
   },[points]);
   return <instancedMesh ref={ref} args={[undefined,undefined,points.length]} name="granulated-bezel" castShadow>
     <sphereGeometry args={[radius,14,11]}/><meshPhysicalMaterial {...metalAppearanceProps(metal,.18)}/>
@@ -204,6 +209,7 @@ function CenterStone({metal}:{metal:string}){
 function Assembly({config,rootRef,onReady,fusedMetal}:{config:Settings;rootRef:React.RefObject<Group|null>;onReady:(ready:boolean)=>void;fusedMetal:BufferGeometry|null}){
   const color=METALS[config.metal].color;
   const scale=config.size/15;
+  const layout=useMemo(()=>patternLayout(config.motif,config.pattern),[config.motif,config.pattern]);
   const ring=config.product==='ring';
   const mountHeight=ring?ringSizing(config.ringDiameter).motifSeatY:0;
   useEffect(()=>{onReady(true);return()=>onReady(false);},[config.motif,onReady]);
@@ -211,6 +217,12 @@ function Assembly({config,rootRef,onReady,fusedMetal}:{config:Settings;rootRef:R
     {/* The ring seat rotates 90 degrees to face away from the finger hole. */}
     <group name="01-03-face-and-setting" scale={[scale,scale,scale]} position={[0,mountHeight,0]}
       rotation={ring?[-Math.PI/2,0,0]:[0,0,0]}>
+      {showPart(config.part,'plate')&&layout.bridgeHalfWidth>0&&
+        <mesh name="paired-motif-bridge" position={[0,0,-.4-config.explode*2.3]} rotation={[0,0,Math.PI/2]} castShadow>
+          <capsuleGeometry args={[.36,2*layout.bridgeHalfWidth,8,16]}/>
+          <meshPhysicalMaterial {...metalAppearanceProps(color,.22)}/>
+        </mesh>}
+      {layout.copies.map((matrix,index)=><group key={index} name={'pattern-motif-'+(index+1)} matrix={matrix} matrixAutoUpdate={false}>
       {showPart(config.part,'plate')&&<group position-z={-config.explode*2.3}>
         {(config.motif==='flower'||config.motif==='blossom')&&
           (config.technique==='sculpted'||config.technique==='pave'||config.technique==='cluster')
@@ -224,30 +236,48 @@ function Assembly({config,rootRef,onReady,fusedMetal}:{config:Settings;rootRef:R
         {config.centerStone&&config.technique!=='cluster'&&<CenterStone metal={color}/>}
       </group>}
       {showPart(config.part,'edge')&&<group position-z={config.explode*.65}><Rim id={config.motif} color={color} edge={config.edge}/></group>}
+      </group>)}
     </group>
     {showPart(config.part,'adapter')&&(ring
       ?<RingAdapter color={color} diameter={config.ringDiameter} explode={config.explode} shank={config.shank} fusedGeometry={config.shank==='classic'?fusedMetal:null}/>
-      :<NecklaceAdapter color={color} motif={config.motif} scale={scale} explode={config.explode} mount={config.necklaceMount}/>)}
+      :<NecklaceAdapter layout={layout} color={color} motif={config.motif} scale={scale} explode={config.explode} mount={config.necklaceMount}/>)}
   </group>;
 }
-function ViewRig({view,product}:{view:View;product:Product}){
-  const {camera}=useThree();
+function ViewRig({shot,config,rootRef}:{shot:Shot;config:Settings;rootRef:React.RefObject<Group|null>}){
+  const {camera,size}=useThree();
   const controls=useRef<React.ComponentRef<typeof OrbitControls>>(null);
+  const previous=useRef<{shot:Shot;product:Product;zoom:number}|null>(null);
   useEffect(()=>{
-    const ring=product==='ring';
-    const target=new Vector3(0,ring?4.8:11,0);
-    camera.up.set(0,1,0); // preserve world +Y as screen-up for the finger bore and setting
-    const positions:Record<View,[number,number,number]>=ring?{
-      angle:[26,43,15],front:[2,48,6],side:[39,15,11],fit:[45,4.8,0],
-    }:{angle:[15,15,35],front:[0,7,42],side:[39,11,12],fit:[0,7,42]};
-    camera.position.set(...positions[view]);camera.zoom=ring?21:17;camera.lookAt(target);camera.updateProjectionMatrix();
-    controls.current?.target.copy(target);controls.current?.update();
-  },[camera,view,product]);
-  return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={.08}
-    target={[0,product==='ring'?4.8:11,0]} minZoom={11} maxZoom={60} enablePan={false}/>;
+    const orbit=controls.current;
+    const root=rootRef.current;
+    if(!root||!orbit)return;
+    const ring=config.product==='ring';
+    const changedShot=previous.current?.shot!==shot||previous.current?.product!==config.product;
+    const directions:Record<View,[number,number,number]>=ring?{
+      angle:[26,38,15],front:[0,45,1],side:[3,2,42],fit:[45,0,0],detail:[1,12,3],
+    }:{angle:[14,6,35],front:[0,0,1],side:[40,2,8],fit:[0,0,1],detail:[4,5,26]};
+    const direction=changedShot ? new Vector3(...directions[shot.view]).normalize()
+      : camera.position.clone().sub(orbit.target).normalize();
+    const face=root.getObjectByName('01-03-face-and-setting');
+    const subject=shot.view==='detail'&&config.part!=='adapter'&&face ? face : root;
+    const frame=frameMotifModel(subject,direction,size.width,size.height);
+    if(!frame)return;
+    const zoomRatio=changedShot||!previous.current ? 1 : camera.zoom/previous.current.zoom;
+    orbit.minZoom=frame.zoom*.45;
+    orbit.maxZoom=frame.zoom*5;
+    camera.zoom=Math.min(orbit.maxZoom,Math.max(orbit.minZoom,frame.zoom*zoomRatio));
+    camera.position.copy(frame.target).addScaledVector(direction,82);
+    orbit.target.copy(frame.target);
+    camera.lookAt(frame.target);
+    camera.updateProjectionMatrix();
+    orbit.update();
+    previous.current={shot,product:config.product,zoom:frame.zoom};
+  },[shot,camera,size.width,size.height,rootRef,config.product,config.motif,config.technique,config.size,
+    config.ringDiameter,config.part,config.explode,config.pattern,config.necklaceMount,config.shank,config.edge,config.centerStone]);
+  return <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping={false}/>;
 }
-function ModelPreview({config,view,rootRef,rendererRef,ready,fusedMetal}:{config:Settings;view:View;rootRef:React.RefObject<Group|null>;rendererRef:React.RefObject<WebGLRenderer|null>;ready:(r:boolean)=>void;fusedMetal:BufferGeometry|null}){
-  return <Canvas orthographic dpr={[1,2]} shadows camera={{position:[14,17,34],zoom:18,near:.1,far:180}} gl={{alpha:true,antialias:true,preserveDrawingBuffer:true}}
+function ModelPreview({config,shot,rootRef,rendererRef,ready,fusedMetal}:{config:Settings;shot:Shot;rootRef:React.RefObject<Group|null>;rendererRef:React.RefObject<WebGLRenderer|null>;ready:(r:boolean)=>void;fusedMetal:BufferGeometry|null}){
+  return <Canvas orthographic dpr={[1,2]} shadows frameloop="demand" camera={{position:[14,17,34],zoom:18,near:.1,far:180}} gl={{alpha:true,antialias:true,preserveDrawingBuffer:true}}
     onCreated={({gl})=>{rendererRef.current=gl;}}>
     <Environment files={`${base}environments/catalog-studio.hdr`} background={false}/>
     <ambientLight intensity={.52}/>
@@ -257,8 +287,8 @@ function ModelPreview({config,view,rootRef,rendererRef,ready,fusedMetal}:{config
     <directionalLight position={[0,-8,15]} intensity={.65} color="#fff7e9"/>
     <Suspense fallback={null}>
       <Assembly key={config.motif} config={config} rootRef={rootRef} onReady={ready} fusedMetal={fusedMetal}/>
+      <ViewRig shot={shot} config={config} rootRef={rootRef}/>
     </Suspense>
-    <ViewRig view={view} product={config.product}/>
   </Canvas>;
 }
 function MotifThumbnail({id}:{id:MotifId}){
@@ -270,7 +300,8 @@ const label=(id:MotifId)=>MOTIFS.find(m=>m.id===id)?.name??id;
 
 export function MotifCaseStudio(){
   const [config,setConfig]=useState<Settings>(INIT);
-  const [view,setView]=useState<View>('angle');
+  const [shot,setShot]=useState<Shot>({view:'angle',sequence:0});
+  const setView=(view:View)=>setShot(old=>({view,sequence:old.sequence+1}));
   const [ready,setReady]=useState(false);
   const [status,setStatus]=useState('');
   const [busy,setBusy]=useState(false);
@@ -287,11 +318,11 @@ export function MotifCaseStudio(){
   };
   const chooseTechnique=(technique:Technique)=>{
     if(!allowedTechniques(config.motif).includes(technique))return;
-    setConfig(old=>({...old,technique,size:normalizeMotifSize(technique,old.size),edge:technique==='inlay'||technique==='guilloche'?'double':'none'}));
+    setConfig(old=>({...old,part:old.part==='edge'?'all':old.part,technique,size:normalizeMotifSize(technique,old.size),edge:technique==='inlay'||technique==='guilloche'?'double':'none'}));
     setStatus('');
   };
   const choosePreset=(preset:DesignPreset)=>{
-    setConfig(old=>({...old,product:preset.product,motif:preset.motif,technique:preset.technique,
+    setConfig(old=>({...old,pattern:'single',product:preset.product,motif:preset.motif,technique:preset.technique,
       metal:preset.metal,inlay:preset.inlay,edge:preset.edge,shank:preset.shank,
       necklaceMount:preset.necklaceMount,centerStone:preset.centerStone,size:normalizeMotifSize(preset.technique,old.size),explode:0,part:'all'}));
     setView('angle');if(config.motif!==preset.motif)setReady(false);
@@ -315,15 +346,20 @@ export function MotifCaseStudio(){
       setStatus('金属布尔初筛失败：'+(error instanceof Error?error.message:String(error)));
     }finally{setBusy(false);}
   };
+  const layout=useMemo(()=>patternLayout(config.motif,config.pattern),[config.motif,config.pattern]);
+  const setting=summarizeGemSetting(config.motif,config.technique,config.centerStone);
+  const accentStoneCount=setting.modeledAccentStones*layout.copies.length;
+  const activeParts=PARTS.filter(part=>part.id!=='edge'||config.edge!=='none');
   const downloadRecipe=()=>{
     const recipe={schema:'xiangyan.design-grammar/0.2',reference:'Structural jewelry research; independent original design recipes',
       units:'mm',settings:config,source:profiles[config.motif].src,
-      parts:PARTS.map(p=>({code:p.no,name:p.name,independent:true})),
+      pattern:{mode:config.pattern,copies:layout.copies.map(matrix=>matrix.toArray())},
+      parts:activeParts.map(p=>({code:p.no,name:p.name,independent:true})),
       productionStatus:'VISUAL_PROTOTYPE_ONLY',ring:config.product==='ring'?ringSizing(config.ringDiameter):null,
       geometryScreening:config.product==='ring'?comfortFitDiagnostics(config.ringDiameter):null,
-      gemstoneSetting:summarizeGemSetting(config.motif,config.technique,config.centerStone),
+      gemstoneSetting:{...setting,perMotif:setting,modeledAccentStones:accentStoneCount,additionalCenterStones:config.centerStone&&config.technique!=='cluster'?layout.copies.length:0},
       metalFusion:config.product==='ring'&&config.shank==='classic'&&fusion?.diameter===config.ringDiameter?fusion.result.report:null,
-      chain:{referenceLengthCm:42,mount:config.necklaceMount,representation:'visible articulated segment only'},
+      chain:config.product==='necklace'?{referenceLengthCm:42,mount:config.necklaceMount,representation:'visible articulated segment only'}:null,
       notes:['OBJ source is unitless and normalized to 15 mm by visual span','The shank has a continuous geometric bore, but fit and manufacture have not been certified','Manufacturing validation is technique-specific; painted or pavé stone seats are not certified']};
     download(new Blob([JSON.stringify(recipe,null,2)],{type:'application/json'}),'xiangyan-motif-recipe.json');setStatus('已导出参数化设计记录');
   };
@@ -346,9 +382,9 @@ export function MotifCaseStudio(){
   };
   return <div className="motif-lab">
     <div className="motif-lab-heading">
-      <div><p className="motif-kicker">XIANGYAN / DESIGN SYSTEM 001</p><h1>从一枚四叶草，拆解一套珠宝语言。</h1>
+      <div><h1>模组设计工坊</h1>
         <p className="motif-heading-sub">6 组工艺构型灵感 · 7 种源模组 · 镶嵌 × 戒臂 × 项链连接 · 实时 3D</p></div>
-      <span className="motif-build-tag">内部案例 · 珠宝构型 V0.4</span>
+      <span className="motif-build-tag">实验工作区</span>
     </div>
     <div className="motif-workspace">
       <aside className="motif-controls" aria-label="DIY 配置面板">
@@ -360,6 +396,12 @@ export function MotifCaseStudio(){
         <div className="motif-section-caption"><span>02</span> 选择造型 <small>源自上传 OBJ</small></div>
         <div className="motif-choices">{MOTIFS.map(m=><button key={m.id} type="button" aria-pressed={config.motif===m.id}
           onClick={()=>chooseMotif(m.id)}><MotifThumbnail id={m.id}/><span>{m.name}</span></button>)}</div>
+        <p className="motif-label">图样排列</p>
+        <div className="motif-edge-row" role="group" aria-label="图样排列">
+          {(Object.keys(PATTERNS) as PatternMode[]).map(mode=><button key={mode} type="button" aria-pressed={config.pattern===mode}
+            onClick={()=>update('pattern',mode)}>{PATTERNS[mode]}</button>)}
+        </div>
+        {config.pattern!=='single'&&<p className="motif-technique-caption">{config.pattern==='axis'?'两枚主题以中线左右镜像。':'两枚主题围绕中点相差 180°。'}尺寸参数对应单枚主题。</p>}
         <div className="motif-section-caption"><span>03</span> 艺术构型 <small>基于首饰结构研究</small></div>
         <div className="motif-techniques" role="group" aria-label="工艺构型">
           {(Object.keys(TECHNIQUES) as Technique[]).map(t=>{
@@ -374,7 +416,9 @@ export function MotifCaseStudio(){
         <p className="motif-technique-caption">{TECHNIQUES[config.technique].description}。不同工艺会生成不同的真实三维组件。</p>
         <div className="motif-section-caption"><span>04</span> 六组组合灵感 <small>点击应用完整方案</small></div>
         <div className="motif-preset-grid">{PRESETS.map(p=><button key={p.id} type="button" className="motif-preset-card"
-          aria-pressed={config.motif===p.motif&&config.technique===p.technique&&config.inlay===p.inlay&&config.metal===p.metal}
+          aria-pressed={config.pattern==='single'&&config.product===p.product&&config.motif===p.motif&&config.technique===p.technique
+            &&config.inlay===p.inlay&&config.metal===p.metal&&config.edge===p.edge&&config.centerStone===p.centerStone
+            &&(config.product==='ring'?config.shank===p.shank:config.necklaceMount===p.necklaceMount)}
           onClick={()=>choosePreset(p)}>
             <span className={'motif-preset-icon motif-preset-'+p.id} aria-hidden="true">
               <MotifThumbnail id={p.motif}/></span>
@@ -395,7 +439,7 @@ export function MotifCaseStudio(){
         <p className="motif-label">主题边框 <span>依工艺选择</span></p>
         <div className="motif-edge-row" role="group" aria-label="包边样式">
           {([['double','双排金珠'],['smooth','光面包边'],['none','不加包边']] as const).map(([k,v])=><button type="button" key={k} aria-pressed={config.edge===k} disabled={config.technique==='inlay'&&k==='none'}
-            onClick={()=>update('edge',k)}>{v}</button>)}
+            onClick={()=>setConfig(old=>({...old,edge:k,part:k==='none'&&old.part==='edge'?'all':old.part}))}>{v}</button>)}
         </div>
         <div className="motif-section-caption"><span>06</span> 佩戴结构</div>
         {config.product==='ring'
@@ -423,35 +467,35 @@ export function MotifCaseStudio(){
         </div>
       </aside>
       <main className="motif-visual" aria-label="实时三维结构预览">
-        <div className="motif-preview-title"><span>INTERACTIVE 3D / LIVE ASSEMBLY</span>
+        <div className="motif-preview-title">
           <h2>{label(config.motif)} <em>·</em> {config.product==='necklace'?'悬挂项链':'镶饰戒指'}</h2>
-          <p>{TECHNIQUES[config.technique].name} / {config.product==='ring'?({classic:'经典素圈',split:'分叉肩位',pave:'戒臂侧石'}[config.shank]):config.necklaceMount==='side'?'双侧链环':'顶部吊环'} · 拖动旋转查看装配</p></div>
-        <ModelPreview config={config} view={view} rootRef={rootRef} rendererRef={rendererRef} ready={setReady}
-          fusedMetal={config.shank==='classic'&&fusion?.diameter===config.ringDiameter?fusion.result.geometry:null}/>
+          <p>{TECHNIQUES[config.technique].name} / {config.product==='ring'?({classic:'经典素圈',split:'分叉肩位',pave:'戒臂侧石'}[config.shank]):config.necklaceMount==='side'?'双侧链环':'顶部吊环'} · {PATTERNS[config.pattern]}</p></div>
+        <div className="motif-model-surface"><ModelPreview config={config} shot={shot} rootRef={rootRef} rendererRef={rendererRef} ready={setReady}
+          fusedMetal={config.shank==='classic'&&fusion?.diameter===config.ringDiameter?fusion.result.geometry:null}/></div>
         {!ready&&<p className="motif-loader" role="status">正在装配 3D 模组…</p>}
         <div className="motif-view-tools" role="group" aria-label="三维视角">
-          {([['angle','45°'],['front','正面'],['side','侧面'],...(config.product==='ring'?[['fit','指孔'] as const]:[])] as const).map(([k,v])=><button type="button" key={k} aria-pressed={view===k} onClick={()=>setView(k)}>{v}</button>)}
+          {([['angle','45°'],['front','正面'],['side','侧面'],['detail','近看'],...(config.product==='ring'?[['fit','指孔'] as const]:[])] as const).map(([k,v])=><button type="button" key={k} aria-pressed={shot.view===k} onClick={()=>setView(k)}>{v}</button>)}
         </div>
-        <div className="motif-visual-status"><span className="motif-live-dot"/>真实 OBJ 源模组 <span>·</span> 正交视图 <span>·</span> {config.product==='ring'?'环形指孔 / 双肩连接':'独立链节 / 双侧连接环'}</div>
+        <div className="motif-visual-status"><span className="motif-live-dot"/>拖动旋转，双指或滚轮缩放 <span>·</span> 正交 <span>·</span> {config.product==='ring'?'贯通指孔':config.necklaceMount==='bail'?'顶部吊环':'双侧连接环'}</div>
       </main>
       <aside className="motif-anatomy" aria-label="结构拆解与输出">
-        <div className="motif-anatomy-head"><p className="motif-kicker">STRUCTURE / 结构</p><h2>拆开来看。</h2><p>点击一个零件单独查看它与整体的关系。</p></div>
+        <div className="motif-anatomy-head"><h2>结构拆解</h2><p>点击一个零件单独查看它与整体的关系。</p></div>
         <div className="motif-setting-spec">
           <strong>{TECHNIQUES[config.technique].name}</strong>
           <span>{config.technique==='pave'||config.technique==='cluster'
-            ?'视觉布石 '+summarizeGemSetting(config.motif,config.technique,config.centerStone).modeledAccentStones+' 颗 · 独立镶座与小爪'
-            :config.technique==='sculpted'?'五片独立金属花瓣 · 中心爪镶'
+            ?'视觉布石 '+accentStoneCount+' 颗 · 独立镶座与小爪'
+            :config.technique==='sculpted'?(5*layout.copies.length)+' 片立体花瓣'+(config.centerStone?' · 中心爪镶':'')
             :config.technique==='guilloche'?'沿原始轮廓收束的放射状金属纹'
             :'原始 OBJ 嵌片 · 独立底托与包边'}</span>
           <small>装配与镶爪尺寸为视觉研究，不可直接送厂</small>
         </div>
         <button className="motif-all-parts" aria-pressed={config.part==='all'} type="button" onClick={()=>update('part','all')}>完整装配 <span>ALL PARTS ↗</span></button>
-        <div className="motif-part-list">{PARTS.map(p=><button type="button" key={p.id} aria-pressed={config.part===p.id} onClick={()=>update('part',config.part===p.id?'all':p.id)}>
-          <span className="motif-part-no">{p.no}</span><span><strong>{p.name}</strong><small>{p.id==='adapter'?(config.product==='necklace'?'独立椭圆链节与双侧连接环':'贯通指孔、舒适戒臂与双侧肩部'):p.description}</small></span><span className="motif-part-arrow">↗</span>
+        <div className="motif-part-list">{activeParts.map(p=><button type="button" key={p.id} aria-pressed={config.part===p.id} onClick={()=>update('part',config.part===p.id?'all':p.id)}>
+          <span className="motif-part-no">{p.no}</span><span><strong>{p.name}</strong><small>{p.id==='adapter'?(config.product==='necklace'?(config.necklaceMount==='bail'?'独立椭圆链节与顶部吊环':'独立椭圆链节与双侧连接环'):'贯通指孔、舒适戒臂与双侧肩部'):p.description}</small></span><span className="motif-part-arrow">↗</span>
         </button>)}</div>
         <div className="motif-explode"><div className="motif-explode-label"><span>爆炸视图</span><b>{Math.round(config.explode*100)}%</b></div>
           <input aria-label="结构爆炸程度" type="range" min="0" max="1.5" step=".05" value={config.explode} onChange={e=>update('explode',Number(e.target.value))}/>
-          <p>沿 Z 轴分离嵌片、边框与金属底托</p></div>
+          <p>沿镶面法向分离嵌片、边框与底托</p></div>
         {config.product==='ring'&&<div className="motif-fusion-panel" aria-label="金属实体初筛">
           <div className="motif-fusion-title"><strong>金属实体检查</strong><span>MANIFOLD / PRECHECK</span></div>
           <p>检查戒臂、两侧肩部和底部支撑能否融合为单个闭合金属实体。嵌片和宝石仍独立。</p>

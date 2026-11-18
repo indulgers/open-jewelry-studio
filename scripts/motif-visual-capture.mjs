@@ -1,4 +1,4 @@
-import {existsSync,mkdirSync,writeFileSync} from 'node:fs';
+import {existsSync,mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {spawn} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {chromium} from 'playwright-core';
@@ -80,6 +80,30 @@ try{
     await page.screenshot({path:dest+'/'+names[i]+'.png',animations:'disabled'});
     console.log('Recipe visual check',names[i],expected[i]);
   }
+  // Verify exported meshes as well as the controls for both symmetry operations.
+  for(const [preset,mode,filename] of [[0,'轴对称','18-axis-ring'],[5,'中心对称','19-center-necklace']]){
+    await page.locator('.motif-preset-card').nth(preset).click();
+    await page.getByRole('group',{name:'图样排列'}).getByRole('button',{name:mode}).click();
+    await page.getByRole('button',{name:'近看',exact:true}).click();
+    await capture(filename);
+    const jsonDownload=page.waitForEvent('download');
+    await page.getByRole('button',{name:'配置 JSON'}).click();
+    const recipe=JSON.parse(readFileSync(await (await jsonDownload).path(),'utf8'));
+    if(recipe.pattern.copies.length!==2||recipe.pattern.mode!==(preset===0?'axis':'center'))throw new Error('Wrong exported pattern');
+    const modelDownload=page.waitForEvent('download');
+    await page.getByRole('button',{name:'导出 3D GLB'}).click();
+    const glb=readFileSync(await (await modelDownload).path());
+    const json=JSON.parse(glb.subarray(20,20+glb.readUInt32LE(12)).toString('utf8'));
+    for(const name of ['pattern-motif-1','pattern-motif-2','paired-motif-bridge']){
+      if(!json.nodes.some(node=>node.name===name))throw new Error('Missing paired GLB node: '+name);
+    }
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>scrollTo(0,0));
+  const model=await page.locator('.motif-model-surface').boundingBox();
+  if(!model||model.y+model.height>844||model.height<130)throw new Error('Mobile model outside first viewport');
+  await capture('20-mobile-paired-preview');
+  await page.setViewportSize({width:1450,height:950});
   // Every wearable choice is a separate geometry configuration.
   await page.locator('.motif-preset-card').nth(4).click();
   await page.locator('.motif-wear-styles button').filter({hasText:'分叉肩位'}).click();
