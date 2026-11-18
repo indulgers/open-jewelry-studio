@@ -1,4 +1,6 @@
 import {Readable} from 'node:stream';
+import {communityApi} from './community.ts';
+import {localCommunityStore} from './community-store.ts';
 import {cloudAdmin} from './cloud-admin.ts';
 import {cloudStore} from './cloud-store.ts';
 import {execFile} from 'node:child_process';
@@ -63,6 +65,7 @@ export function modelAdmin():Plugin{
       if(publicDir&&(storage===publicDir||storage.startsWith(publicDir+sep))){
         throw new Error('XIANGYAN_MODEL_DIR 必须在网站公共素材目录之外。');
       }
+      const community=localCommunityStore(join(storage,'community'));
       const worker=join(server.config.root,'scripts/model-admin/run.mjs');
       const templates=createTemplateLibrary(storage,publicDir);
       const r2=createR2(loadEnv(server.config.mode,server.config.envDir,'XIANGYAN_R2_'));
@@ -128,6 +131,15 @@ export function modelAdmin():Plugin{
         res.setHeader('X-Content-Type-Options','nosniff');
         await mkdir(storage,{recursive:true,mode:0o700});
         const [,id,action,...rest]=path.split('/').slice(2);
+        if(id==='community'){
+          const request=new Request('http://'+host+path,{method:req.method,headers:req.headers as HeadersInit,
+            ...(req.method==='POST'?{body:Readable.toWeb(req),duplex:'half'}:{})} as RequestInit);
+          // The existing local-admin gate above restricts this server to localhost.
+          const response=await communityApi(request,path.slice('/api/model-admin/community/'.length),community,true);
+          res.writeHead(response.status,Object.fromEntries(response.headers));
+          if(response.body)Readable.fromWeb(response.body as any).pipe(res);else res.end();
+          return;
+        }
         if(id==='library'&&req.method==='GET'&&!action)return json(res,200,{...await templates.list(),cloud:!!r2});
         if(id==='templates'){
           if(req.method==='POST'&&!action)return exclusively(async()=>json(res,201,await templates.save(await body(req))));

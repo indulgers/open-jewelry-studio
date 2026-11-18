@@ -1,3 +1,4 @@
+import {newDesignFit} from '../fit/profile';
 import {BASE_DESIGN,TEMPLATE_REVISION,parseDesign,usesAutomaticPave,type RingDesign} from './model';
 
 const SAVE_KEY='open-jewelry-studio:'+TEMPLATE_REVISION;
@@ -21,7 +22,7 @@ export function readDraft():Draft{
       return newDraft(design);
     }
   }catch{/* Editing remains available without browser storage. */}
-  return newDraft(BASE_DESIGN);
+  return newDraft({...BASE_DESIGN,...newDesignFit()});
 }
 export function writeDraft(draft:Draft){
   localStorage.setItem(SAVE_KEY,JSON.stringify(draft));

@@ -2,6 +2,7 @@ import {createHash,createHmac,randomUUID,timingSafeEqual} from 'node:crypto';
 import {mkdir,mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {basename,join} from 'node:path';
+import {communityApi} from './community.ts';
 import {cloudStore,type CloudStore} from './cloud-store.ts';
 import {processModel} from './process.mjs';
 import {assetKeys,RequestError,selectTemplate,priceSelection,requirePrice,uuid,validateTemplateInput} from './templates.ts';
@@ -285,6 +286,10 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     const method=request.method;
     const store=storeOverride??cloudStore();
     const password=passwordOverride??process.env.XIANGYAN_ADMIN_PASSWORD;
+    if(id==='community'){
+      if(!store)return json({error:'社区存储尚未配置。'},503);
+      return communityApi(request,route.slice('community/'.length),store,!!password&&password.length>=32&&sessionIsValid(request,password));
+    }
     if(id==='assets'&&method==='GET'){
       if(!store)return json({error:'文件存储未配置。'},503);
       const path=[action,revision,...rest].filter(Boolean).join('/');

@@ -62,7 +62,7 @@ html:has(.source-library[open]) {overflow: hidden}
 .source-library .source-part-name {min-height: 26px; padding-bottom: 0}
 .source-part-detail {padding: 0 4px 8px; color: var(--muted); font-size: 12px}
 .source-library-empty {padding: 16px 0; color: var(--muted); font-size: 13px}
-.source-ring-swap-status {position: absolute; right: 12px; bottom: 46px; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--shop-radius); background: var(--panel); color: var(--ink); font-size: 12px}
+.source-ring-swap-status {position: absolute; right: 12px; top: 146px; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--shop-radius); background: var(--panel); color: var(--ink); font-size: 12px}
 .ring02-workspace .source-ring-swap-status button {min-height: 32px; padding-block: 3px}
 @media (max-width: 800px) {
   .source-ring-entry .source-style-picker {font-size: 0; gap: 0}
@@ -84,7 +84,7 @@ html:has(.source-library[open]) {overflow: hidden}
 
 @media (max-width: 800px) and (min-height: 700px) {
   .ring02-main.source-ring-main .stone-first-preview {position: sticky; top: 64px; z-index: 1}
-  .source-ring-main .stone-first-panel :is(button,input,summary) {scroll-margin-top: calc(154px + clamp(180px,51vw,310px))}
+  .source-ring-main .stone-first-panel :is(button,input,summary) {scroll-margin-top: calc(200px + clamp(180px,51vw,310px))}
 }
 
 .managed-price { margin: 24px 0; display: grid; gap: 16px; }

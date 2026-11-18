@@ -20,7 +20,7 @@ it('migrates old metal finishes without reusing a possible cart revision',()=>{
 
 it('restores confirmed engraving exactly on refresh',()=>{
   const draft=readDraft();
-  draft.design={...draft.design,engraving:'A & B - 2026'};
+  draft.design={...draft.design,engraving:'A & B - 2026',engravingStyle:{font:'italic',align:'center'}};
   writeDraft(draft);
   expect(readDraft()).toEqual(draft);
 });

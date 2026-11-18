@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {XiangyanWordmark} from './XiangyanWordmark';
 import {CART_CHANGED,demoOrders} from '../stone-first/ring02/demoOrder';
 
@@ -18,6 +18,25 @@ export function ShopHeader({page}:{page:string|null}){
   const [style,setStyle]=useState(initialStyle);
   const [count,setCount]=useState(0);
   const [menu,setMenu]=useState(false);
+  const menuButton=useRef<HTMLButtonElement>(null);
+  const header=useRef<HTMLElement>(null);
+  useEffect(()=>{
+    if(!menu)return;
+    function dismiss(event:PointerEvent){
+      if(event.target instanceof Node && !header.current?.contains(event.target))setMenu(false);
+    }
+    function escape(event:KeyboardEvent){
+      if(event.key!=='Escape')return;
+      setMenu(false);
+      menuButton.current?.focus();
+    }
+    document.addEventListener('pointerdown',dismiss);
+    document.addEventListener('keydown',escape);
+    return ()=>{
+      document.removeEventListener('pointerdown',dismiss);
+      document.removeEventListener('keydown',escape);
+    };
+  },[menu]);
   useEffect(()=>{
     document.documentElement.dataset.style=style;
     try{localStorage.setItem(STYLE_KEY,style);}catch{}
@@ -35,15 +54,20 @@ export function ShopHeader({page}:{page:string|null}){
       window.removeEventListener('hashchange',close);
     };
   },[]);
+  const customising=['reference','published','ring02','recipes'].includes(page??'');
+  const links=[
+    {label:'款式系列',href:'#/diy/collection',active:page==='collection'},
+    {label:'专属定制',href:'#/stonefirst/ring-02',active:customising},
+    {label:'设计社区',href:'#/community',active:page==='community'},
+    {label:'关于相言',href:'#/diy/story',active:page==='story'},
+  ].map(({label,href,active})=><a key={href} href={href} aria-current={active?'page':undefined}
+    onClick={()=>setMenu(false)}>{label}</a>);
   return <>
-    <div className="shop-announcement">银色珠宝，心意由你定义<span> · </span>相言定制系列</div>
-    <header className="site-header">
-      <nav className="shop-navigation" aria-label="主导航">
-        <a href="#/diy/collection" aria-current={page==='collection'?'page':undefined}>款式系列</a>
-        <a href="#/stonefirst/ring-02">专属定制</a>
-        <a href="#/diy/story">关于相言</a>
-      </nav>
-      <button className="shop-menu-button" aria-label={menu?'收起导航':'展开导航'} aria-expanded={menu} aria-controls="shop-mobile-menu" onClick={()=>setMenu(!menu)}>
+    <header className="site-header" ref={header} onBlur={event=>{
+      if(event.relatedTarget instanceof Node&&!event.currentTarget.contains(event.relatedTarget))setMenu(false);
+    }}>
+      <nav className="shop-navigation" aria-label="主导航">{links}</nav>
+      <button ref={menuButton} className="shop-menu-button" aria-label={menu?'收起导航':'展开导航'} aria-expanded={menu} aria-controls="shop-mobile-menu" onClick={()=>setMenu(!menu)}>
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d={menu?'M5 5l14 14M5 19 19 5':'M3 6h18M3 12h18M3 18h12'}/></svg>
       </button>
       <a className="brand" href="#/diy" aria-label="相言首页"><XiangyanWordmark/><span>XIANGYAN</span></a>
@@ -57,9 +81,7 @@ export function ShopHeader({page}:{page:string|null}){
         </a>
       </div>
       <nav className="shop-mobile-menu" id="shop-mobile-menu" aria-label="移动端导航" hidden={!menu}>
-        <a href="#/diy/collection" onClick={()=>setMenu(false)}>款式系列</a>
-        <a href="#/stonefirst/ring-02" onClick={()=>setMenu(false)}>专属定制</a>
-        <a href="#/diy/story" onClick={()=>setMenu(false)}>关于相言</a>
+        {links}
       </nav>
     </header>
   </>;

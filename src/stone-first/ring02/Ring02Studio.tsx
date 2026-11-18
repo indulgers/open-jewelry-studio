@@ -1,4 +1,8 @@
 import {SaveCommunityDesign} from '../../community/SaveCommunityDesign';
+import {RingFitField} from '../fit/RingFitField';
+import {ringSizeDescription} from '../fit/sizing';
+import {EngravingEditor} from '../engraving/EngravingEditor';
+import {DEFAULT_ENGRAVING_STYLE,engravingStyleLabel,type EngravingStyle} from '../engraving/style';
 import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {Mesh} from 'three';
@@ -7,7 +11,7 @@ import {preloadJewelryLighting} from '../../viewer/JewelryLighting';
 import {STONE_APPEARANCES,STONE_APPEARANCE_IDS} from '../../viewer/stoneAppearance';
 import {Ring02Stage,VIEWS,type RingView} from './Ring02Stage';
 import {
-  BASE_DESIGN,ENGRAVING_LIMIT,REACHES,SIZES,TEMPLATE_REVISION,engravingProblem,findNewIntersection,
+  BASE_DESIGN,REACHES,SIZES,TEMPLATE_REVISION,engravingProblem,findNewIntersection,
   fitStones,paveSpacing,prepareTemplate,type RingDesign,type StoneSpec,type Zone,
 } from './model';
 import {HEADS,type Head} from './head';
@@ -64,13 +68,16 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
   const [orderError,setOrderError]=useState(false);
   const [engravingInput,setEngravingInput]=useState<string|null>(null);
   const [engravingError,setEngravingError]=useState('');
-  const [composing,setComposing]=useState(false);
+  const [pendingFont,setPendingFont]=useState<EngravingStyle['font']|null>(null);
+  const [engravingView,setEngravingView]=useState(false);
   const {current:draft,past,future}=history;
   const current=draft.design;
   const engraving=engravingInput??current.engraving;
-  const engravingDirty=engraving!==current.engraving;
+  const savedFont=current.engravingStyle?.font??DEFAULT_ENGRAVING_STYLE.font;
+  const engravingStyle:EngravingStyle={font:pendingFont??savedFont,align:'center'};
+  const engravingDirty=engraving!==current.engraving||engravingStyle.font!==savedFont;
   const engravingPreview=engraving.trim();
-  const engravingSample=engravingPreview&&!engravingProblem(engravingPreview)?engravingPreview:'刻字预览';
+
   const zone=part==='shank'?'shoulder':current.head==='halo'?headZone:'center';
   const visible=compare?BASE_DESIGN:current;
   const fitted=useMemo(()=>fitStones(template,current),[template,current]);
@@ -91,7 +98,8 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     {label:'主石',value:stoneDescription('center'),field:'center'},
     ...(current.head==='halo'?[{label:'外围围钻',value:stoneDescription('halo')+' · '+pave.halo.count+' 颗 + 4 颗固定装饰钻 · 间距 '+describeGap(pave.halo),field:'halo'}]:[]),
     {label:'戒臂配钻',value:stoneDescription('shoulder')+' · '+pave.shoulder.count+' 颗 · '+REACH_LABELS[REACHES.indexOf(current.reach)]+' · 间距 '+describeGap(pave.shoulder),field:'shoulder'},
-    {label:'内圈刻字',value:current.engraving||'未添加',field:'engraving'},
+    {label:'实物圈号',value:ringSizeDescription(current.ringSizeUS),field:'fit'},
+    {label:'内圈刻字',value:current.engraving?current.engraving+' · '+engravingStyleLabel(current.engravingStyle):'未添加',field:'engraving'},
   ];
 
   useEffect(()=>{
@@ -114,8 +122,8 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     }
     setMessage('');
     setCartNotice(undefined);
-    if(next.engraving!==current.engraving){
-      setEngravingInput(null);
+    if(next.engraving!==current.engraving||next.engravingStyle?.font!==current.engravingStyle?.font){
+      setPendingFont(null);setEngravingInput(null);
       setEngravingError('');
     }
     setHistory({past:[...past,current].slice(-10),current:newDraft(next),future:[]});
@@ -126,8 +134,8 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
   }
 
   function undo(){
-    if(past.at(-1)?.engraving!==current.engraving){
-      setEngravingInput(null);
+    if(past.at(-1)?.engraving!==current.engraving||past.at(-1)?.engravingStyle?.font!==current.engravingStyle?.font){
+      setPendingFont(null);setEngravingInput(null);
       setEngravingError('');
     }
     setHistory({past:past.slice(0,-1),current:newDraft(past[past.length-1]),future:[current,...future]});
@@ -136,8 +144,8 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
   }
 
   function redo(){
-    if(future[0].engraving!==current.engraving){
-      setEngravingInput(null);
+    if(future[0].engraving!==current.engraving||future[0].engravingStyle?.font!==current.engravingStyle?.font){
+      setPendingFont(null);setEngravingInput(null);
       setEngravingError('');
     }
     setHistory({past:[...past,current],current:newDraft(future[0]),future:future.slice(1)});
@@ -163,13 +171,13 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     }else{
       setPending({
         title:'重置戒圈',clearEngraving:true,description:'戒臂配钻、铺钻长度和刻字将恢复为原款。可以撤销这次修改。',
-        design:{...current,shoulder:BASE_DESIGN.shoulder,reach:BASE_DESIGN.reach,engraving:BASE_DESIGN.engraving},
+        design:{...current,shoulder:BASE_DESIGN.shoulder,reach:BASE_DESIGN.reach,engraving:BASE_DESIGN.engraving,engravingStyle:BASE_DESIGN.engravingStyle},
       });
     }
   }
 
   function jumpTo(field:string){
-    setPart(field==='shoulder'||field==='engraving'?'shank':'head');
+    setPart(field==='shoulder'||field==='engraving'||field==='fit'?'shank':'head');
     if(field==='center'||field==='halo')setHeadZone(field);
     requestAnimationFrame(()=>document.getElementById('ring02-field-'+field)?.focus());
   }
@@ -179,7 +187,8 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     const problem=engravingProblem(text);
     setEngravingError(problem);
     if(problem)return;
-    apply({...current,engraving:text});
+    apply({...current,engraving:text,engravingStyle});
+    setPendingFont(null);
     setEngravingInput(null);
     document.getElementById('ring02-field-engraving')?.focus({preventScroll:true});
   }
@@ -195,7 +204,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
       templateRevision:TEMPLATE_REVISION,revision:draft.revision,design:current,quote,
       confirmedAt:'',
       pave:{units:'model',...(current.head==='halo'?{halo:pave.halo}:{}),shoulder:pave.shoulder},
-      details:[...details.map(({label,value})=>({label,value})),{label:'金属外观',value:'银色'},{label:'实物圈号',value:'待工艺确认'}],
+      details:[...details.map(({label,value})=>({label,value})),{label:'金属外观',value:'银色'}],
       stones:fitted.map(stone=>({
         id:stone.name,zone:stone.zone,appearance:stone.appearance,placement:stone.matrix.toArray(),
       })),
@@ -222,10 +231,10 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
         <div><strong>{compare?'原款':headName}</strong><span>{stones.length} 颗宝石</span></div>
         <button aria-pressed={compare} onClick={()=>setCompare(!compare)}>对比原款</button>
       </div>
-      <Ring02Stage template={template} design={visible} stones={stones} view={view} reset={viewReset} captureRef={captureThumbnail}/>
       <div className="stone-first-camera-views" role="group" aria-label="戒指观察视角">
-        {VIEWS.map(([id,name])=><button key={id} aria-pressed={view===id} onClick={()=>{setView(id);setViewReset(token=>token+1);}}>{name}</button>)}
+        {VIEWS.map(([id,name])=><button key={id} aria-pressed={!engravingView&&view===id} onClick={()=>{setEngravingView(false);setView(id);setViewReset(token=>token+1);}}>{name}</button>)}
       </div>
+      <Ring02Stage template={template} design={visible} engraving={compare||engravingProblem(engravingPreview)?visible.engraving:engravingPreview} engravingStyle={compare?BASE_DESIGN.engravingStyle:engravingStyle} engravingView={engravingView} stones={stones} view={view} reset={viewReset} captureRef={captureThumbnail}/>
     </section>
     <section className="stone-first-panel" aria-label="戒指配置">
       <header className="ring02-product">
@@ -282,25 +291,13 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
             <div><dt>相邻石边间距</dt><dd>{describeGap(previewLayout)}</dd></div>
           </dl>:<p>尺寸以原款为参照。</p>}
         </div>
-        {part==='shank'&&<fieldset disabled={compare} className="ring02-engraving">
-          <legend>内圈刻字 <span>选填</span></legend>
-          <label htmlFor="ring02-field-engraving" className="sr-only">刻字文字</label>
-          <input id="ring02-field-engraving" type="text" value={engraving} autoComplete="off" spellCheck={false}
-            placeholder="例如  A & B"
-            aria-describedby={engravingError?'ring02-engraving-help ring02-engraving-error':'ring02-engraving-help'}
-            onChange={event=>{setEngravingInput(event.target.value);setEngravingError('');}}
-            onCompositionStart={()=>setComposing(true)} onCompositionEnd={()=>setComposing(false)}/>
-          <p id="ring02-engraving-help">单行，最多 {ENGRAVING_LIMIT} 个字符。支持中文、英文字母、数字、空格和 . &amp; -</p>
-          <figure className="ring02-engraving-sample">
-            <blockquote>{engravingSample}</blockquote><figcaption>内圈位置示意 · 字体与工艺待确认</figcaption>
-          </figure>
-          <p id="ring02-engraving-error" role="alert">{engravingError}</p>
-          <div className="ring02-engraving-actions">
-            <button type="button" disabled={!engravingDirty} onClick={()=>{setEngravingInput(null);setEngravingError('');}}>取消修改</button>
-            <button type="button" disabled={!engravingDirty||composing} onClick={confirmEngraving}>确认刻字</button>
-          </div>
-        </fieldset>}
+        {part==='shank'&&<div id="ring02-field-fit" tabIndex={-1}><RingFitField value={current.ringSizeUS} disabled={compare} onChange={ringSizeUS=>apply({...current,ringSizeUS})}/></div>}
       </div>
+      <EngravingEditor id="ring02-field-engraving" text={engraving} style={engravingStyle} disabled={compare} dirty={engravingDirty}
+        onText={value=>{setEngravingInput(value);setEngravingError('');}} onStyle={value=>setPendingFont(value.font)}
+        onView={()=>{setEngravingView(true);setViewReset(token=>token+1);document.querySelector('.stone-first-preview')?.scrollIntoView({block:'nearest'});}}
+        onCancel={()=>{setPendingFont(null);setEngravingInput(null);setEngravingError('');}} onConfirm={confirmEngraving}/>
+      {engravingError&&<p role="alert">{engravingError}</p>}
       <details className="ring02-summary">
         <summary>配置摘要</summary>
         <ul>{details.map(detail=><li key={detail.field}>
@@ -336,7 +333,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     <p>{pending.description}</p>
     <div className="ring02-dialog-actions">
       <button autoFocus onClick={()=>setPending(null)}>保留原方案</button>
-      <button className="shop-button" onClick={()=>{apply(pending.design);if(pending.clearEngraving){setEngravingInput(null);setEngravingError('');}setPending(null);}}>确认更改</button>
+      <button className="shop-button" onClick={()=>{apply(pending.design);if(pending.clearEngraving){setPendingFont(null);setEngravingInput(null);setEngravingError('');}setPending(null);}}>确认更改</button>
     </div>
   </ReviewDialog>}
   {review&&<ReviewDialog title="核对当前方案" onClose={()=>setReview(null)}>

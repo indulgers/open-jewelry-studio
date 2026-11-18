@@ -8,7 +8,8 @@ import {StudioFillLights} from '../../viewer/StudioFillLights';
 import {ViewerBoundary} from '../../viewer/ViewerBoundary';
 import {createMetalMaterial} from '../../viewer/materials';
 import {createMountGeometry} from '../../viewer/mountGeometry';
-import {STUDIO_PRESETS} from '../../viewer/studioPresets';
+import type {StudioPreset} from '../../viewer/studioPresets';
+import {RingInspectionTools,useRingInspection} from '../ring02/RingInspection';
 import {GemBatch,RingCamera,RingThumbnail,type PlacedGem,type RingView} from '../ring02/Ring02Stage';
 import type {CatalogRing} from '../catalog';
 import type {ReferenceDesign} from './design';
@@ -17,7 +18,6 @@ import type {applyReferencePave} from './pave';
 export type SourceFrame={ring:ReturnType<typeof applyReferencePave>;design:ReferenceDesign};
 // Fiber ignores undefined updates, so explicitly retire the previous mesh callback.
 const ignoreRender=()=>{};
-const preset=STUDIO_PRESETS.catalog;
 
 export function SourceLoading({template,retry}:{template:Pick<CatalogRing,'name'>;retry?:()=>void}){
   return <div className="ring02-stage-loading" role={retry?'alert':'status'}>
@@ -26,12 +26,12 @@ export function SourceLoading({template,retry}:{template:Pick<CatalogRing,'name'
     {retry&&<button onClick={retry}>重试加载</button>}
   </div>;
 }
-function SourceScene({ring,design,environment,onReady}:SourceFrame&{environment:Texture;onReady?:()=>void}){
-  const material=useMemo(()=>{const result=createMetalMaterial('white',preset);result.side=DoubleSide;return result;},[]);
+function SourceScene({ring,design,environment,studio,onReady}:SourceFrame&{environment:Texture;studio:StudioPreset;onReady?:()=>void}){
+  const material=useMemo(()=>{const result=createMetalMaterial('white',studio);result.side=DoubleSide;return result;},[studio]);
   useEffect(()=>()=>material.dispose(),[material]);
   const mountGeometry=useMemo(()=>createMountGeometry(ring.metal.map(part=>part.geometry),ring.metal.map(part=>part.offsetY??0)),[ring.metal]);
   useEffect(()=>()=>mountGeometry.dispose(),[mountGeometry]);
-  const mount=useMemo(()=>({bvh:mountGeometry.bvh,color:material.color,roughness:preset.roughness}),[mountGeometry,material]);
+  const mount=useMemo(()=>({bvh:mountGeometry.bvh,color:material.color,roughness:studio.roughness}),[mountGeometry,material,studio]);
   const batches=useMemo(()=>{
     const groups=new Map<string,PlacedGem[]>();
     for(const stone of ring.stones){
@@ -47,28 +47,28 @@ function SourceScene({ring,design,environment,onReady}:SourceFrame&{environment:
       frustumCulled={index!==0||!onReady} onAfterRender={index===0&&onReady?onReady:ignoreRender}/>)}
     {design.engraving&&<EngravingOverlay parts={ring.metal} text={design.engraving} style={design.engravingStyle}/>}
     {batches.map(([key,stones])=><GemBatch key={key} environment={environment} stones={stones}
-      studio={preset} mount={mount}/>)}
+      studio={studio} mount={mount}/>)}
   </group>;
 }
 export function SourceRingStage({ring,design,template,view,reset,captureRef,onCaptureReady,captureSize,engravingView=false}:SourceFrame&{
   engravingView?:boolean;captureSize?:number;template:Pick<CatalogRing,'name'>;view:RingView;reset:number;captureRef:RefObject<(()=>string|undefined)|null>;onCaptureReady:(frame:SourceFrame|null)=>void;
 }){
-  const cameraFrames=useMemo(()=>engravingView?{...ring.frames,[view]:{position:[0,.75,2.4] as const,target:[0,-.72,0] as const,height:1.15}}:ring.frames,[ring.frames,view,engravingView]);
+  const inspection=useRingInspection();
   const [rendered,setRendered]=useState<SourceFrame|null>(null),[failed,setFailed]=useState(false);
   const ready=rendered?.ring===ring&&rendered.design===design;
   const reportCapture=useCallback((available:boolean)=>onCaptureReady(available?{ring,design}:null),[onCaptureReady,ring,design]);
-  return <div className="stone-first-canvas ring02-canvas source-ring-canvas" aria-label={template.name+'三维预览'}>
+  return <><RingInspectionTools inspection={inspection} enabled={!!rendered&&!failed}/><div className="stone-first-canvas ring02-canvas source-ring-canvas" aria-label={template.name+'三维预览'}>
     <ViewerBoundary onError={()=>setFailed(true)} onRetry={()=>{clearJewelryLightingCache();setRendered(null);setFailed(false);}} errorDetail={<p>配置已保留。请重试加载以恢复三维预览。</p>}>
       <Canvas orthographic camera={{position:[2.2,2.5,3.6],near:.03,far:30}} dpr={[1,2]} frameloop="demand" gl={{antialias:true,preserveDrawingBuffer:true}} onCreated={({gl})=>{gl.toneMapping=NeutralToneMapping;}}>
         <color attach="background" args={['#fff']}/><StudioFillLights neutral/>
         <Suspense fallback={null}>
-          <JewelryLighting preset={preset}>{environment=><SourceScene ring={ring} design={design} environment={environment}
+          <JewelryLighting preset={inspection.studio}>{environment=><SourceScene studio={inspection.studio} ring={ring} design={design} environment={environment}
             onReady={ready?undefined:()=>setRendered(frame=>frame?.ring===ring&&frame.design===design?frame:{ring,design})}/>}</JewelryLighting>
         </Suspense>
         <JewelryPostprocessing quality="high" capturing={false} whiteBackground contentKey="source-ring"/>
-        <RingCamera view={view} reset={reset} frames={cameraFrames}/><RingThumbnail size={captureSize} captureRef={captureRef} ready={ready&&!failed} frames={ring.frames} onCaptureReady={reportCapture}/>
+        <RingCamera view={view} reset={reset} frames={ring.frames} engravingView={engravingView} inspection={inspection}/><RingThumbnail size={captureSize} captureRef={captureRef} ready={ready&&!failed} frames={ring.frames} onCaptureReady={reportCapture}/>
       </Canvas>
     </ViewerBoundary>
     {!rendered&&!failed&&<SourceLoading template={template}/>}
-  </div>;
+  </div></>;
 }

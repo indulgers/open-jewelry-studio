@@ -1,6 +1,7 @@
 import {useEffect, useState, type ChangeEvent, type FormEvent} from 'react';
 import {createRoot} from 'react-dom/client';
 import Review,{type ReviewModel as Model} from './ModelReview';
+import {CommunityAdmin} from './CommunityAdmin';
 import TemplateLibrary from './TemplateLibrary';
 import './model-admin.css';
 
@@ -122,14 +123,14 @@ function ModelAssets({onUse}:{onUse:(id:string)=>void}) {
 function App(){
   const [sourceId,setSourceId]=useState('');
   function useSource(id:string){setSourceId(id);setTab('templates');}
-  const [tab,setTab]=useState<'models'|'parts'|'templates'>('templates');
+  const [tab,setTab]=useState<'models'|'parts'|'templates'|'community'>('templates');
   return <>
     <header className="admin-header"><span className="wordmark">相言</span>
-      <nav aria-label="配置管理">{([['models','上传复核'],['parts','部件管理'],['templates','商品管理']] as const)
+      <nav aria-label="配置管理">{([['models','上传复核'],['parts','部件管理'],['templates','商品管理'],['community','设计社区']] as const)
         .map(([id,label])=><button key={id} aria-current={id===tab?'page':undefined} onClick={()=>{setSourceId('');setTab(id);}}>{label}</button>)}</nav>
       <span className="local-label">{hosted ? '管理后台' : '本地工作台'}</span>
     </header>
-    {tab==='models'?<ModelAssets onUse={useSource}/>:<TemplateLibrary key={tab+sourceId} request={request} tab={tab} initialSourceId={sourceId} onUse={useSource}/>}
+    {tab==='community'?<CommunityAdmin/>:tab==='models'?<ModelAssets onUse={useSource}/>:<TemplateLibrary key={tab+sourceId} request={request} tab={tab} initialSourceId={sourceId} onUse={useSource}/>}
   </>;
 }
 

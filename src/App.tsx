@@ -22,6 +22,7 @@ import {DiyCart} from './stone-first/DiyCart';
 import {RING02_PRECISION_ROUTE} from './stone-first/ring02/assets';
 import {loadRing02} from './stone-first/ring02/entry';
 import {Ring02Loading} from './stone-first/ring02/Ring02Loading';
+const FitPage=lazy(()=>import('./stone-first/fit/FitPage'));
 const JewelryStage=lazy(()=>import('./viewer/JewelryStage').then(module=>({default:module.JewelryStage})));
 const Ring02Studio=lazy(()=>loadRing02().then(module=>({default:module.Ring02Studio})));
 const PublishedTemplateStudio=lazy(()=>import('./stone-first/reference/ManagedTemplateStudio'));
@@ -118,7 +119,7 @@ function JewelryStudio({active}:{active:boolean}){
   </div>;
 }
 
-type StudioRoute={tab:'showroom'|'modules'}|{tab:'stonefirst';page:'community'|'mine'|'catalog'|'cart'|'ring02'|'recipes'|'reference'|'published';templateId?:string;revision?:string;section?:'collection'|'story'};
+type StudioRoute={tab:'showroom'|'modules'}|{tab:'stonefirst';page:'fit'|'community'|'mine'|'catalog'|'cart'|'ring02'|'recipes'|'reference'|'published';templateId?:string;revision?:string;section?:'collection'|'story'};
 function readRoute():StudioRoute{
   const hash=window.location.hash;
   switch(hash){
@@ -127,6 +128,7 @@ function readRoute():StudioRoute{
     case '#/diy/story':return {tab:'stonefirst',page:'catalog',section:'story'};
     case '#/community':return {tab:'stonefirst',page:'community'};
     case '#/my-designs':return {tab:'stonefirst',page:'mine'};
+    case '#/diy/fit':return {tab:'stonefirst',page:'fit'};
     case '#/diy/cart':return {tab:'stonefirst',page:'cart'};
     case HALO_COMBINATION_ROUTE:return {tab:'stonefirst',page:'reference',templateId:'ring-02'};
     case RING02_PRECISION_ROUTE:return {tab:'stonefirst',page:'ring02'};
@@ -158,9 +160,9 @@ export default function App(){
     return()=>window.removeEventListener('hashchange',sync);
   },[]);
   return <div className="app-shell" data-workspace={tab}>
-    <ShopHeader page={route.tab==='stonefirst'&&route.section==='collection'?'collection':diyPage}/>
+    <ShopHeader page={route.tab==='stonefirst'?route.section??diyPage:null}/>
     <section id="panel-showroom" aria-label="珠宝展台" hidden={tab!=='showroom'}><JewelryStudio active={tab==='showroom'}/></section>
     <section id="panel-modules" aria-label="模组 DIY" hidden={tab!=='modules'}>{modulesVisited&&<ModuleStudio active={tab==='modules'}/>}</section>
-    <section id="panel-stonefirst" aria-label="戒指定制" hidden={tab!=='stonefirst'}>{tab==='stonefirst'&&(diyPage==='catalog'?<DiyHome section={route.section}/>:diyPage==='cart'?<DiyCart/>:diyPage==='community'||diyPage==='mine'?<Suspense fallback={<p role="status">正在打开作品…</p>}><CommunityStudio key={diyPage} mode={diyPage}/></Suspense>:<Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='ring02'?<Ring02Studio/>:diyPage==='reference'?<SourceRingStudio key={route.templateId} templateId={route.templateId!}/>:diyPage==='published'?<PublishedTemplateStudio key={route.revision} id={route.templateId!} revision={route.revision!}/>:<StoneFirstStudio/>}</Suspense>)}</section>
+    <section id="panel-stonefirst" aria-label="戒指定制" hidden={tab!=='stonefirst'}>{tab==='stonefirst'&&(diyPage==='catalog'?<DiyHome section={route.section}/>:diyPage==='cart'?<DiyCart/>:diyPage==='community'||diyPage==='mine'?<Suspense fallback={<p role="status">正在打开作品…</p>}><CommunityStudio key={diyPage} mode={diyPage}/></Suspense>:<Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='fit'?<FitPage/>:diyPage==='ring02'?<Ring02Studio/>:diyPage==='reference'?<SourceRingStudio key={route.templateId} templateId={route.templateId!}/>:diyPage==='published'?<PublishedTemplateStudio key={route.revision} id={route.templateId!} revision={route.revision!}/>:<StoneFirstStudio/>}</Suspense>)}</section>
   </div>;
 }

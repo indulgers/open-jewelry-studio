@@ -1,3 +1,6 @@
+import {RingFitField} from '../fit/RingFitField';
+import {newDesignFit} from '../fit/profile';
+import {ringSizeDescription} from '../fit/sizing';
 import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
 import {addDemoOrder,formatYuan,type DemoOrder} from '../ring02/demoOrder';
 import {templateQuote} from '../pricing';
@@ -26,6 +29,7 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
   const [attempt,setAttempt]=useState(0);
   const [view,setView]=useState<RingView>('overall');
   const [reset,setReset]=useState(0);
+  const [ringSizeUS,setRingSizeUS]=useState(()=>thumbnailRef?undefined:newDesignFit().ringSizeUS);
   const [center,setCenter]=useState<StoneAppearance>('diamond');
   const [loaded,setLoaded]=useState<{stock?:RingAssembly;band?:ReferenceBand;error?:boolean}>({});
   const [diameter,setDiameter]=useState<PaveDiameter>(100),[length,setLength]=useState<PaveLength>(100);
@@ -33,7 +37,7 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
   const original=diameter===100&&length===100;
   const ring=layout.ring;
   const capture=useRef<(()=>string|undefined)|null>(null);
-  const design=useMemo(()=>({...ORIGINAL_REFERENCE,center}),[center]);
+  const design=useMemo(()=>({...ORIGINAL_REFERENCE,center,ringSizeUS}),[center,ringSizeUS]);
   const [ready,setReady]=useState(false);
   const [adding,setAdding]=useState(false);
   const [feedback,setFeedback]=useState<Feedback>();
@@ -49,7 +53,7 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
       if(!thumbnail)throw new Error('款式图片还未准备好，请稍后重试。');
       addDemoOrder({templateRevision:template.revision,revision:crypto.randomUUID(),confirmedAt:new Date().toISOString(),
         managed:{id:template.id,revision:template.revision,name:template.name},design,quote:confirmed,thumbnail,stones:[],
-        details:[{label:'戒头',value:template.headName},{label:'戒圈',value:template.bandName},{label:'主石外观',value:STONE_APPEARANCES[center].name},
+        details:[{label:'实物圈号',value:ringSizeDescription(ringSizeUS)},{label:'戒头',value:template.headName},{label:'戒圈',value:template.bandName},{label:'主石外观',value:STONE_APPEARANCES[center].name},
           ...(['base','head','band','pave'] as const).map((key,index)=>({label:['基础价','戒头加价','戒圈加价','铺钻加价'][index],value:formatYuan(template.pricing![key])})),
           {label:'工艺状态',value:template.review?.status==='approved'?'复核通过':'待人工确认'}]});
       setFeedback({tone:'success',title:'已加入购物车',description:'你的戒指方案已保存。'});
@@ -69,16 +73,16 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
 
   return <div className="stone-first-workspace ring02-workspace source-ring-workspace managed-editor">
     <div className="stone-first-main ring02-main source-ring-main"><section className="stone-first-preview">
-      {ring?<SourceRingStage ring={ring} design={design} template={template}
-        view={view} reset={reset} captureRef={thumbnailRef??capture} captureSize={thumbnailRef?768:320} onCaptureReady={captureReady}/>
-        :<div className="stone-first-canvas ring02-canvas"><SourceLoading template={template} retry={loaded.error?()=>{
-          setLoaded({});setAttempt(value=>value+1);
-        }:undefined}/></div>}
       <div className="stone-first-camera-views" aria-label="查看角度">
         {VIEWS.map(([id,label])=><button type="button" key={id} aria-pressed={view===id} onClick={()=>{
           setView(id);setReset(value=>value+1);
         }}>{label}</button>)}
       </div>
+      {ring?<SourceRingStage ring={ring} design={design} template={template}
+        view={view} reset={reset} captureRef={thumbnailRef??capture} captureSize={thumbnailRef?768:320} onCaptureReady={captureReady}/>
+        :<div className="stone-first-canvas ring02-canvas"><SourceLoading template={template} retry={loaded.error?()=>{
+          setLoaded({});setAttempt(value=>value+1);
+        }:undefined}/></div>}
     </section>
     <section className="stone-first-panel">
       <h2>{template.name}</h2>
@@ -93,6 +97,7 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
         {layout.error&&<p role="alert">{layout.error}</p>}
         {!original&&<><p>检查后恢复原款，再确认发布。</p><button type="button" onClick={()=>{setDiameter(100);setLength(100);}}>恢复原款排钻</button></>}
       </fieldset>}
+      {!thumbnailRef&&<RingFitField value={ringSizeUS} onChange={setRingSizeUS}/>}
       {quote&&<section className="managed-price" aria-label="商品报价"><p>参考价 <strong>{formatYuan(quote.amount)}</strong></p>
         <details><summary>价格明细</summary><dl>{(['base','head','band','pave'] as const).map((key,index)=><div key={key}><dt>{['模板基础价','戒头加价','戒圈加价','铺钻加价'][index]}</dt><dd>{formatYuan(template.pricing![key])}</dd></div>)}</dl></details>
         {!thumbnailRef&&template.publishedAt&&<><button className="shop-button" disabled={!ready||adding} onClick={addToCart}>{adding?'正在保存…':'加入购物车'}</button><a className="shop-text-link" href="#/diy/cart">查看购物车</a></>}

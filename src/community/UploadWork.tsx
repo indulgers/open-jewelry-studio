@@ -21,7 +21,7 @@ export async function imageForUpload(file:File){
     return jpeg;
   }finally{URL.revokeObjectURL(url);}
 }
-export function UploadWork({onSaved}:{onSaved:()=>void}){
+export function UploadWork({onSaved,admin=false}:{onSaved:()=>void;admin?:boolean}){
   const [title,setTitle]=useState(''),[image,setImage]=useState(''),[error,setError]=useState('');
   const [busy,setBusy]=useState(false);
   const sequence=useRef(0);
@@ -29,7 +29,7 @@ export function UploadWork({onSaved}:{onSaved:()=>void}){
   return <form className="community-form community-upload" onSubmit={async event=>{
     event.preventDefault();if(!image||!title.trim()||busy)return;
     setBusy(true);setError('');
-    try{await communityRequest('designs',{title:title.trim(),image});onSaved();}
+    try{await communityRequest(admin?'admin/designs':'designs',{title:title.trim(),image});onSaved();}
     catch(cause){setError(errorText(cause));}finally{setBusy(false);}
   }}>
     <label>作品名称<input value={title} onChange={event=>setTitle(event.target.value)} required maxLength={60}/></label>
