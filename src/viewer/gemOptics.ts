@@ -127,23 +127,32 @@ void main(){
   if(isOrthographic)smoothRay.z=-1.0;
   smoothRay=normalize((viewMatrixInverse*vec4(smoothRay,0.0)).xyz);
   float scale=max(length(modelMatrix[0].xyz),max(length(modelMatrix[1].xyz),length(modelMatrix[2].xyz)));
-  float pixelDiameter=stoneDiameter*scale*detailResolution.y*0.5*gl_FragCoord.w/projectionMatrixInverse[1][1];
-  // A small accent samples the studio; resolve the nearby prongs as their reflection becomes visible.
-  mountDetail=smoothstep(24.0,48.0,pixelDiameter);
-  // Use one shader call site for all wavelengths so the driver compiles the
-  // BVH traversal once. The wavelengths, bounce budget and pavé threshold match.
-  float spread=movingInspection?0.0:aberrationStrength*smoothstep(24.0,52.0,pixelDiameter);
-  vec3 transmitted=vec3(0.0);
-  int rayCount=spread>0.0?3:1;
-  for(int ray=0;ray<rayCount;ray++){
-    float eta=ray==0?ior:ray==1?ior*(1.0-spread):ior*(1.0+spread);
-    vec3 radiance=traceRadiance(incident,normal,eta,smoothRay);
-    if(ray==0)transmitted=radiance;
-    else if(ray==1)transmitted.r=radiance.r;
-    else transmitted.b=radiance.b;
+  vec3 transmitted,reflected;
+  if(movingInspection){
+    // While orbiting, shade the actual facets with the same studio and stone tint.
+    // Single-interface refraction avoids per-pixel BVH traversal for gems and prongs.
+    vec3 direction=refract(incident,normal,1.0/ior);
+    transmitted=environment(direction,smoothRay)*exp(-attenuation*stoneDiameter*scale*.5);
+    reflected=environment(reflect(incident,normal),smoothRay);
+  }else{
+    float pixelDiameter=stoneDiameter*scale*detailResolution.y*0.5*gl_FragCoord.w/projectionMatrixInverse[1][1];
+    // A small accent samples the studio; resolve the nearby prongs as their reflection becomes visible.
+    mountDetail=smoothstep(24.0,48.0,pixelDiameter);
+    // Use one shader call site for all wavelengths so the driver compiles the
+    // BVH traversal once. The wavelengths, bounce budget and pavé threshold match.
+    float spread=aberrationStrength*smoothstep(24.0,52.0,pixelDiameter);
+    transmitted=vec3(0.0);
+    int rayCount=spread>0.0?3:1;
+    for(int ray=0;ray<rayCount;ray++){
+      float eta=ray==0?ior:ray==1?ior*(1.0-spread):ior*(1.0+spread);
+      vec3 radiance=traceRadiance(incident,normal,eta,smoothRay);
+      if(ray==0)transmitted=radiance;
+      else if(ray==1)transmitted.r=radiance.r;
+      else transmitted.b=radiance.b;
+    }
+    reflected=outsideRadiance(vWorldPosition,reflect(incident,normal),smoothRay);
   }
   float fresnel=fresnelDielectric(dot(-incident,normal),1.0,ior);
-  vec3 reflected=outsideRadiance(vWorldPosition,reflect(incident,normal),smoothRay);
   gl_FragColor=vec4(mix(transmitted,reflected,fresnel),1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
