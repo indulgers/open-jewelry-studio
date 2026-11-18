@@ -26,12 +26,14 @@ async function previewPixels(locator){
     context.drawImage(element,0,0,96,64);
     const {data}=context.getImageData(0,0,96,64);
     const shade=[];
+    let chroma=0;
     let mass=0,moment=0;
     for(let n=0;n<data.length;n+=4){
       const ink=(255-(data[n]+data[n+1]+data[n+2])/3)*data[n+3]/255;
+      chroma+=(Math.max(data[n],data[n+1],data[n+2])-Math.min(data[n],data[n+1],data[n+2]))*data[n+3]/255;
       shade.push(ink);mass+=ink;moment+=ink*((n/4)%96);
     }
-    return {centroid:moment/mass,shade,aspect:(element.naturalWidth||element.width)/(element.naturalHeight||element.height)};
+    return {centroid:moment/mass,shade,chroma,aspect:(element.naturalWidth||element.width)/(element.naturalHeight||element.height)};
   });
 }
 
@@ -110,6 +112,7 @@ async function checkDesktopInspection(){
   await page.evaluate(()=>{window.dragFrames=[];});
   await page.mouse.move(x+box.width*.06,y+box.height*.03,{steps:12});
   await twoFrames();
+  await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionDraw==='traced-motion');
   const rotation=await page.evaluate(()=>{const result=window.dragFrames;window.dragFrames=null;return result;});
   assert.ok(rotation.length>=2&&rotation.at(-1).pixels>0&&rotation.at(-1).pixels<surfacePixels*.55);
   const times=rotation.slice(1).map((frame,i)=>frame.time-rotation[i].time).sort((a,b)=>a-b);
@@ -248,6 +251,21 @@ try{
   await twoFrames();
   assert.notDeepEqual((await previewPixels(canvas)).shade,originalFace.shade,'custom styling must change visible pixels');
   await capture('03-editor-pear-gem');
+  await canvas.scrollIntoViewIfNeeded();
+  const pinkBox=await canvas.boundingBox();
+  const cx=pinkBox.x+pinkBox.width/2,cy=pinkBox.y+pinkBox.height/2;
+  await page.mouse.move(cx,cy);await page.mouse.down();
+  await page.mouse.move(cx+pinkBox.width*.025,cy+5,{steps:5});
+  await twoFrames();
+  await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionDraw==='traced-motion');
+  const pinkHeld=await previewPixels(canvas);
+  await page.mouse.up();
+  await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionFrame==='settled');
+  const pinkSettled=await previewPixels(canvas);
+  compareInspectionFrame(pinkHeld,pinkSettled,'pink-rotation');
+  const chromaRatio=pinkHeld.chroma/pinkSettled.chroma;
+  console.log('PINK_CHROMA_RATIO',chromaRatio);
+  assert.ok(chromaRatio>.7&&chromaRatio<1.3,'pink stone must retain its color while rotating');
   await assertCurrentSnapshot(canvas,save);
   await page.getByLabel('作品名称').fill('围钻定制快照');
   await page.getByRole('button',{name:'保存到我的设计'}).click();

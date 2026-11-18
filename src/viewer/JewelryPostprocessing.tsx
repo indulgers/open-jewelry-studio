@@ -41,8 +41,9 @@ export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackgro
     const movingScene=moving?new RenderPass(scene,camera,undefined,whiteBackground?new Color(0):undefined,0):null;
     const movingOutput=moving?new OutputPass():null;
     let movingResolve:ReturnType<typeof liveResolve>|undefined;
+    let motionRatio=Math.min(.85,pixelRatio*.55);
     if(moving&&movingScene&&movingOutput){
-      moving.setPixelRatio(Math.min(.85,pixelRatio*.55));
+      moving.setPixelRatio(motionRatio);
       moving.setSize(size.width,size.height);
       movingResolve=liveResolve(moving.readBuffer.width,moving.readBuffer.height,whiteBackground);
       moving.addPass(movingScene);
@@ -59,6 +60,24 @@ export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackgro
       addDepth(composer.readBuffer);addDepth(moving.readBuffer);addDepth(spare);
     }
     const firstMotionTarget=moving?.readBuffer;
+    const context=gl.getContext() as WebGL2RenderingContext;
+    let fence:WebGLSync|null=null,submitted=0,slowFrames=0,fastFrames=0,poll=0;
+    const clearFence=()=>{
+      cancelAnimationFrame(poll);
+      if(fence)context.deleteSync(fence);
+      fence=null;
+    };
+    const pollCompletion=()=>{
+      if(!fence)return;
+      if(context.clientWaitSync(fence,0,0)===context.TIMEOUT_EXPIRED){
+        poll=requestAnimationFrame(pollCompletion);
+        return;
+      }
+      const elapsed=performance.now()-submitted;
+      slowFrames=elapsed>50?slowFrames+1:0;
+      fastFrames=elapsed<25?fastFrames+1:0;
+      clearFence();
+    };
     let lastTarget:WebGLRenderTarget|null=null,lastRevision:object|undefined,phase=0;
     const lastProjection=new Matrix4(),lastLens=new Matrix4(),lastOrientation=new Quaternion();
     const viewProjection=new Matrix4(),cachedProjection=new Matrix4(),meshProjection=new Matrix4();
@@ -89,6 +108,29 @@ export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackgro
       }
       const active=inMotion&&moving?moving:composer;
       if(active===moving&&moving&&spare&&firstMotionTarget){
+        const now=performance.now();
+        if(fence){
+          // Do not queue obsolete camera poses behind an unfinished GPU frame.
+          if(context.clientWaitSync(fence,0,0)===context.TIMEOUT_EXPIRED){
+            gl.domElement.dataset.inspectionDraw='pending-motion';
+            invalidate();
+            return;
+          }
+          pollCompletion();
+        }
+        const ceiling=Math.min(.85,pixelRatio*.55);
+        const adjusted=slowFrames>=2?Math.max(.36,motionRatio*.75)
+          :fastFrames>=30?Math.min(ceiling,motionRatio/.75):motionRatio;
+        if(adjusted!==motionRatio){
+          motionRatio=adjusted;
+          moving.setPixelRatio(motionRatio);
+          spare.setSize(firstMotionTarget.width,firstMotionTarget.height);
+          movingResolve!.uniforms.offset.value.set(.32/firstMotionTarget.width,.32/firstMotionTarget.height);
+          // Resizing invalidates the previous motion depth/color pair.
+          if(lastTarget!==composer.readBuffer)lastTarget=null;
+          slowFrames=0;fastFrames=0;
+        }
+        submitted=now;
         const next=lastTarget===firstMotionTarget?spare:firstMotionTarget;
         moving.readBuffer=next;
         opticalHistory.delete(next);
@@ -103,6 +145,12 @@ export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackgro
       const background=scene.background;
       if(whiteBackground)scene.background=null;
       try{active.render(delta);}finally{scene.background=background;}
+      if(active===moving){
+        fence=context.fenceSync(context.SYNC_GPU_COMMANDS_COMPLETE,0);
+        context.flush();poll=requestAnimationFrame(pollCompletion);
+      }else{
+        clearFence();slowFrames=0;fastFrames=0;
+      }
       if(motion){
         gl.domElement.dataset.inspectionFrame=inMotion?'moving':'settled';
         gl.domElement.dataset.inspectionDraw=inMotion?'traced-motion':'traced-full';
@@ -127,7 +175,7 @@ export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackgro
       if(gl.domElement.dataset.inspectionFrame==='moving')renderLive(0,false);
     };
     const owned={composer,taa,moving,renderLive,dispose(){
-      spare?.dispose();movingScene?.dispose();movingOutput?.dispose();movingResolve?.dispose();moving?.dispose();
+      clearFence();spare?.dispose();movingScene?.dispose();movingOutput?.dispose();movingResolve?.dispose();moving?.dispose();
       scenePass.dispose();output.dispose();resolve?.dispose();composer.dispose();
     }};
     pipeline.current=owned;state.current={stableFrames:0,samples:0};previous.current.key='';invalidate();
