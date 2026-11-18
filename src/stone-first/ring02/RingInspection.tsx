@@ -9,7 +9,8 @@ export function useRingInspection(){
   const [contrast,setContrast]=useState(false);
   const [zoom,setZoom]=useState(100);
   const cameraActions=useRef<{zoom:(factor:number)=>void;reset:()=>void}|null>(null);
-  return {mode,setMode,contrast,setContrast,zoom,setZoom,cameraActions,
+  const motion=useRef({active:false,restore:()=>{}});
+  return {motion,mode,setMode,contrast,setContrast,zoom,setZoom,cameraActions,
     studio:contrast?STUDIO_PRESETS.contrast:STUDIO_PRESETS.catalog};
 }
 export type Inspection=ReturnType<typeof useRingInspection>;

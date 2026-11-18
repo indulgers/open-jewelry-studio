@@ -25,6 +25,7 @@ uniform float bounces;
 uniform float ior;
 uniform float aberrationStrength;
 uniform float stoneDiameter;
+uniform bool movingInspection;
 uniform float environmentIntensity;
 uniform float environmentRotation;
 uniform bool hasMount;
@@ -131,7 +132,7 @@ void main(){
   mountDetail=smoothstep(24.0,48.0,pixelDiameter);
   // Use one shader call site for all wavelengths so the driver compiles the
   // BVH traversal once. The wavelengths, bounce budget and pavé threshold match.
-  float spread=aberrationStrength*smoothstep(24.0,52.0,pixelDiameter);
+  float spread=movingInspection?0.0:aberrationStrength*smoothstep(24.0,52.0,pixelDiameter);
   vec3 transmitted=vec3(0.0);
   int rayCount=spread>0.0?3:1;
   for(int ray=0;ray<rayCount;ray++){
@@ -150,6 +151,7 @@ void main(){
 
 export function syncGemDraw(material:ShaderMaterial,renderer:WebGLRenderer,camera:Camera){
   const uniforms=material.uniforms,target=renderer.getRenderTarget();
+  uniforms.movingInspection.value=target?.texture.userData.movingInspection===true;
   uniforms.viewMatrixInverse.value.copy(camera.matrixWorld);
   // Reflector oblique clipping changes projectionMatrix without updating its inverse.
   uniforms.projectionMatrixInverse.value.copy(camera.projectionMatrix).invert();
@@ -195,6 +197,7 @@ export function createGemOptics(geometry:BufferGeometry,environment:Texture,qual
   material.uniforms.ior.value=2.42;
   if(!geometry.boundingSphere)geometry.computeBoundingSphere();
   material.uniforms.detailResolution={value:new Vector2()};
+  material.uniforms.movingInspection={value:false};
   material.uniforms.stoneDiameter={value:geometry.boundingSphere!.radius*2};
   material.uniforms.aberrationStrength.value=settings.aberrationStrength;
   material.uniforms.environmentIntensity={value:1.0};

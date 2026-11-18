@@ -63,7 +63,11 @@ async function checkDesktopInspection(){
   const intervals=frames.slice(1).map((frame,i)=>frame.time-frames[i].time).sort((a,b)=>a-b);
   console.log('DRAG_PROFILE',JSON.stringify({frames:frames.length,medianMs:intervals[Math.floor(intervals.length*.5)],
     p95Ms:intervals[Math.ceil(intervals.length*.95)-1],scenePixels:frames.at(-1).pixels}));
+  const surfacePixels=await canvas.evaluate(el=>el.width*el.height);
+  assert.ok(frames.at(-1).pixels<surfacePixels*.55,'drag must use the smaller scene target');
+  assert.equal(await canvas.getAttribute('data-inspection-frame'),'moving');
   await page.mouse.up();
+  await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionFrame==='settled');
   await twoFrames();
   const panned=await previewPixels(canvas);
   assert.ok(panned.centroid>before.centroid+2,'primary drag must shift visible silver right');
@@ -219,6 +223,14 @@ try{
   await page.locator('[aria-label="戒指 02 三维预览"] canvas').waitFor({state:'visible',timeout:90000});
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
   const precision=await checkInspectionLayout();
+  await precision.scrollIntoViewIfNeeded();
+  const bounds=await precision.boundingBox();
+  await page.mouse.move(bounds.x+bounds.width*.5,bounds.y+bounds.height*.5);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x+bounds.width*.6,bounds.y+bounds.height*.55,{steps:6});
+  await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionFrame==='moving');
+  await page.mouse.up();
+  await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionFrame==='settled');
   await page.getByLabel('刻字文字').fill('A & B');
   assert.ok(await save.isDisabled(),'unconfirmed engraving cannot be captured');
   await page.getByRole('button',{name:'简洁黑体'}).click();

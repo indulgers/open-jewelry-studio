@@ -32,7 +32,7 @@ const ENGRAVING_FRAME:RingFraming={position:[0,1.4,2.4],target:[0,-.85,0],height
 
 export function RingCamera({view,reset,frames=cameras,engravingView=false,inspection}:{view:RingView;reset:number;frames?:Record<RingView,RingFraming>;engravingView?:boolean;inspection:Inspection}){
   const {camera,gl,size,invalidate}=useThree();
-  const {mode,cameraActions,setZoom}=inspection;
+  const {mode,cameraActions,setZoom,motion}=inspection;
   const orbitRef=useRef<ReturnType<typeof createInspectionOrbit>|null>(null);
   const fit=useRef(1);
   const last=useRef<{framing:RingFraming;view:RingView;reset:number;engravingView:boolean;width:number;height:number}|null>(null);
@@ -40,10 +40,28 @@ export function RingCamera({view,reset,frames=cameras,engravingView=false,inspec
     if(!(camera instanceof OrthographicCamera))return;
     const orbit=createInspectionOrbit(camera,gl.domElement);
     orbitRef.current=orbit;
-    const refresh=()=>{setZoom(Math.round(camera.zoom/fit.current*100));invalidate();};
+    let dragging=false;
+    let settleTimer:ReturnType<typeof setTimeout>;
+    const start=()=>{dragging=true;clearTimeout(settleTimer);};
+    const settle=()=>{motion.current.active=false;invalidate();};
+    const end=()=>{
+      dragging=false;
+      clearTimeout(settleTimer);
+      // Wheel events each start and end synchronously. Keep a burst in the same render mode.
+      settleTimer=setTimeout(settle,100);
+    };
+    let lastCameraZoom=camera.zoom;
+    const refresh=()=>{
+      if(dragging)motion.current.active=true;
+      const percent=Math.round(camera.zoom/fit.current*100);
+      if(camera.zoom!==lastCameraZoom){setZoom(percent);lastCameraZoom=camera.zoom;}
+      invalidate();
+    };
+    orbit.addEventListener('start',start);
+    orbit.addEventListener('end',end);
     orbit.addEventListener('change',refresh);
-    return ()=>{orbit.removeEventListener('change',refresh);orbit.dispose();orbitRef.current=null;last.current=null;};
-  },[camera,gl,invalidate,setZoom]);
+    return ()=>{clearTimeout(settleTimer);motion.current.active=false;orbit.removeEventListener('start',start);orbit.removeEventListener('end',end);orbit.removeEventListener('change',refresh);orbit.dispose();orbitRef.current=null;last.current=null;};
+  },[camera,gl,invalidate,setZoom,motion]);
   useLayoutEffect(()=>{if(orbitRef.current)setInspectionDrag(orbitRef.current,mode);},[mode,camera,gl]);
   useLayoutEffect(()=>{
     const orbit=orbitRef.current;
@@ -84,7 +102,8 @@ export function RingCamera({view,reset,frames=cameras,engravingView=false,inspec
 export type RingCapture=(mode?:'inspection')=>string|undefined;
 const afterFrame=()=>{};
 
-export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady,size=320}:{
+export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady,size=320,motion}:{
+  motion?:Inspection['motion'];
   captureRef:RefObject<RingCapture|null>;ready:boolean;size?:number;frames?:Record<RingView,RingFraming>;onCaptureReady?:(ready:boolean)=>void;
 }){
   const {gl,scene,camera,invalidate}=useThree();
@@ -99,6 +118,7 @@ export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady,si
       const context=thumbnail.getContext('2d');
       if(!context)return;
       if(mode==='inspection'){
+        motion?.current.restore();
         const scale=Math.min(1,768/Math.max(source.width,source.height));
         thumbnail.width=Math.max(1,Math.round(source.width*scale));
         thumbnail.height=Math.max(1,Math.round(source.height*scale));
@@ -123,7 +143,7 @@ export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady,si
     };
     onCaptureReady?.(true);
     return ()=>{captureRef.current=null;onCaptureReady?.(false);};
-  },[captureRef,ready,gl,scene,camera,invalidate,frames,onCaptureReady,size]);
+  },[captureRef,ready,gl,scene,camera,invalidate,frames,onCaptureReady,size,motion]);
   return null;
 }
 
@@ -206,9 +226,9 @@ export function Ring02Stage({view,reset,design,captureRef,onCaptureReady,engravi
         <color attach="background" args={['#ffffff']}/>
         <StudioFillLights neutral/>
         <Suspense fallback={null}><RingScene {...scene} studio={inspection.studio} design={design} onReady={ready?undefined:()=>setRendered(frame)}/></Suspense>
-        <JewelryPostprocessing quality="high" capturing={false} whiteBackground contentKey="precision-ring"/>
+        <JewelryPostprocessing motion={inspection.motion} quality="high" capturing={false} whiteBackground contentKey="precision-ring"/>
         <RingCamera view={view} reset={reset} engravingView={engravingView} inspection={inspection}/>
-        <RingThumbnail captureRef={captureRef} ready={ready&&!failed} onCaptureReady={reportReady}/>
+        <RingThumbnail motion={inspection.motion} captureRef={captureRef} ready={ready&&!failed} onCaptureReady={reportReady}/>
       </Canvas>
     </ViewerBoundary>
     {!rendered&&!failed&&<Ring02Loading/>}
