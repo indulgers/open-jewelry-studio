@@ -14,6 +14,77 @@ const server=spawn('npm',['run','dev','--','--port','5188','--strictPort'],{
 });
 let browser,page;
 async function capture(name){await page.screenshot({path:join(directory,name+'.png')});}
+async function twoFrames(){
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+}
+
+async function previewPixels(locator){
+  return locator.evaluate(element=>{
+    const sample=document.createElement('canvas');
+    sample.width=96;sample.height=64;
+    const context=sample.getContext('2d');
+    context.drawImage(element,0,0,96,64);
+    const {data}=context.getImageData(0,0,96,64);
+    const shade=[];
+    let mass=0,moment=0;
+    for(let n=0;n<data.length;n+=4){
+      const ink=(255-(data[n]+data[n+1]+data[n+2])/3)*data[n+3]/255;
+      shade.push(ink);mass+=ink;moment+=ink*((n/4)%96);
+    }
+    return {centroid:moment/mass,shade,aspect:(element.naturalWidth||element.width)/(element.naturalHeight||element.height)};
+  });
+}
+
+async function checkInspectionLayout(){
+  const canvas=page.locator('.stone-first-preview canvas').first();
+  const drawing=await canvas.boundingBox();
+  for(const control of [page.getByRole('group',{name:'戒指观察视角'}),page.getByRole('group',{name:'三维画布操作'})]){
+    const box=await control.boundingBox();
+    assert.ok(box&&drawing&&box.y+box.height<=drawing.y+1,'canvas controls must precede the drawing');
+  }
+  return canvas;
+}
+
+async function checkDesktopInspection(){
+  const canvas=await checkInspectionLayout();
+  await canvas.scrollIntoViewIfNeeded();
+  const box=await canvas.boundingBox();
+  const x=box.x+box.width*.48,y=box.y+box.height*.48;
+  await page.getByRole('button',{name:'平移',exact:true}).click();
+  const before=await previewPixels(canvas);
+  await page.mouse.move(x,y);await page.mouse.down();
+  await page.mouse.move(x+box.width*.08,y,{steps:5});await page.mouse.up();
+  await twoFrames();
+  const panned=await previewPixels(canvas);
+  assert.ok(panned.centroid>before.centroid+2,'primary drag must shift visible silver right');
+  await page.mouse.move(x+box.width*.2,y);
+  await page.mouse.wheel(0,-240);await twoFrames();
+  const zoom=page.locator('.ring-inspection-zoom span');
+  const magnification=Number.parseInt(await zoom.innerText(),10);
+  assert.ok(magnification>100,'scroll wheel magnifies the current inspection angle');
+  const enlarged=await previewPixels(canvas);
+  assert.ok(enlarged.centroid<panned.centroid,'zooming at a point right of the ring must shift it left');
+  const theme=page.getByLabel('网站风格');
+  const nextTheme=await theme.evaluate(select=>[...select.options].find(option=>option.value!==select.value).value);
+  await theme.selectOption(nextTheme);await twoFrames();
+  assert.equal(Number.parseInt(await zoom.innerText(),10),magnification);
+  assert.ok(Math.abs((await previewPixels(canvas)).centroid-enlarged.centroid)<1.5,'theme change must retain the pan');
+  await capture('03-editor-desktop-inspection');
+  return canvas;
+}
+
+async function assertCurrentSnapshot(canvas,save){
+  const displayed=await previewPixels(canvas);
+  assert.ok(Number.isFinite(displayed.centroid),'displayed frame contains jewelry');
+  await save.click();
+  const image=page.getByAltText('本次保存的设计预览');
+  await image.evaluate(img=>img.decode());
+  const stored=await previewPixels(image);
+  assert.ok(Math.abs(stored.aspect-displayed.aspect)<.01,'saved frame retains the viewport aspect ratio');
+  const mean=stored.shade.reduce((sum,v,i)=>sum+Math.abs(v-displayed.shade[i]),0)/stored.shade.length;
+  assert.ok(mean<7,'saved jewelry matches the displayed frame including camera position');
+}
+
 try{
   for(let step=0;step<100;step++){
     if(await fetch(origin).then(r=>r.ok).catch(()=>false))break;
@@ -24,6 +95,15 @@ try{
   browser=await chromium.launch({executablePath,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
   page=await browser.newPage({viewport:{width:1440,height:1000},deviceScaleFactor:1});
   page.setDefaultTimeout(35000);
+  // Hold the next animation callback to verify a just-edited design cannot save an older frame.
+  await page.addInitScript(()=>{
+    const next=window.requestAnimationFrame.bind(window);
+    let held=false;
+    window.requestAnimationFrame=callback=>next(function run(time){
+      if(held)next(run);else callback(time);
+    });
+    window.holdTestFrames=value=>{held=value;};
+  });
   const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   // The clean local store starts empty. Seed the published catalog response only;
@@ -58,22 +138,44 @@ try{
   await capture('02-community');
   await page.goto(origin+'/#/my-designs');
   await page.getByText('待人工核价',{exact:true}).waitFor();
-  const orders=await page.request.get(origin+'/api/model-admin/community/orders');
+  const orders=await page.request.get(origin+'/api/model-admin/community/orders',{headers:{'X-Expected-Account':'studio_reviewer'}});
+  assert.equal(orders.status(),200);
   assert.equal((await orders.json()).length,1);
   await page.goto(origin+'/#/stonefirst/combine/ring-02');
   const save=page.getByRole('button',{name:'保存设计',exact:true});
   await save.waitFor({timeout:90000});
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
-  await capture('03-editor');
-  await save.click();
+  const canvas=await checkDesktopInspection();
+  await assertCurrentSnapshot(canvas,save);
   await page.getByLabel('作品名称').fill('围钻定制快照');
   await page.getByRole('button',{name:'保存到我的设计'}).click();
   await page.getByText(/已私密保存/).waitFor();
   await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>scrollTo(0,0));await twoFrames();
+  await checkInspectionLayout();
+  await page.getByRole('button',{name:'镶嵌特写'}).click();await twoFrames();
+  await capture('04-editor-mobile-detail');
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'mobile editor overflow');
+  await page.goto(origin+'/#/stonefirst/precision/ring-02');
+  await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
+  const precision=await checkInspectionLayout();
+  await page.getByLabel('刻字文字').fill('A & B');
+  assert.ok(await save.isDisabled(),'unconfirmed engraving cannot be captured');
+  await page.getByRole('button',{name:'简洁黑体'}).click();
+  await page.evaluate(()=>window.holdTestFrames(true));
+  try{
+    await page.getByRole('button',{name:'确认刻字'}).dispatchEvent('click');
+    assert.ok(await save.isDisabled(),'a new revision must wait for its own render before saving');
+  }finally{await page.evaluate(()=>window.holdTestFrames(false));}
+  await page.getByRole('button',{name:/查看内圈效果/}).click();
+  await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
+  await twoFrames();
+  await assertCurrentSnapshot(precision,save);
+  await page.getByRole('button',{name:'返回编辑器'}).click();
   await page.goto(origin+'/#/diy/fit');
   await page.getByLabel('身高（cm）').waitFor();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'mobile overflow');
-  await capture('04-mobile-fit');
+  await capture('05-mobile-fit');
   assert.deepEqual(errors,[],'uncaught browser errors');
 } catch(error){
   if(page)await capture('failure').catch(()=>{});

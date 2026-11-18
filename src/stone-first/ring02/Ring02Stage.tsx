@@ -1,4 +1,4 @@
-import {Suspense,useEffect,useLayoutEffect,useMemo,useRef,useState,type RefObject} from 'react';
+import {Suspense,useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState,type RefObject} from 'react';
 import {Canvas,useThree} from '@react-three/fiber';
 import {createInspectionOrbit,setInspectionDrag} from './inspection-camera';
 import {RingInspectionTools,useRingInspection,MIN_INSPECTION_ZOOM,MAX_INSPECTION_ZOOM,type Inspection} from './RingInspection';
@@ -81,13 +81,16 @@ export function RingCamera({view,reset,frames=cameras,engravingView=false,inspec
   return null;
 }
 
+export type RingCapture=(mode?:'inspection')=>string|undefined;
+const afterFrame=()=>{};
+
 export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady,size=320}:{
-  captureRef:RefObject<(()=>string|undefined)|null>;ready:boolean;size?:number;frames?:Record<RingView,RingFraming>;onCaptureReady?:(ready:boolean)=>void;
+  captureRef:RefObject<RingCapture|null>;ready:boolean;size?:number;frames?:Record<RingView,RingFraming>;onCaptureReady?:(ready:boolean)=>void;
 }){
   const {gl,scene,camera,invalidate}=useThree();
-  useEffect(()=>{
+  useLayoutEffect(()=>{
     if(!ready)return;
-    captureRef.current=()=>{
+    captureRef.current=mode=>{
       const source=gl.domElement;
       const side=Math.min(source.width,source.height);
       if(!side||gl.getContext().isContextLost())return;
@@ -95,6 +98,14 @@ export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady,si
       thumbnail.width=thumbnail.height=size;
       const context=thumbnail.getContext('2d');
       if(!context)return;
+      if(mode==='inspection'){
+        const scale=Math.min(1,768/Math.max(source.width,source.height));
+        thumbnail.width=Math.max(1,Math.round(source.width*scale));
+        thumbnail.height=Math.max(1,Math.round(source.height*scale));
+        // Capture the displayed, postprocessed frame including the inspection angle and pan.
+        context.drawImage(source,0,0,thumbnail.width,thumbnail.height);
+        return thumbnail.toDataURL('image/jpeg',.88);
+      }
       const {position,target,height}=frames.overall;
       const halfWidth=height*source.width/(2*side),halfHeight=height*source.height/(2*side);
       const photo=new OrthographicCamera(-halfWidth,halfWidth,halfHeight,-halfHeight,.03,30);
@@ -117,13 +128,13 @@ export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady,si
 }
 
 export type PlacedGem=Pick<FittedStone,'name'|'geometry'|'appearance'|'matrix'>;
-export function GemBatch({stones,environment,studio=preset,mount}:{stones:PlacedGem[];environment:Texture;studio?:StudioPreset;mount?:GemOpticsOptions['mount']}){
+export function GemBatch({stones,environment,studio=preset,mount,sample}:{stones:PlacedGem[];environment:Texture;studio?:StudioPreset;sample?:GemOpticsOptions['sample'];mount?:GemOpticsOptions['mount']}){
   const {geometry,appearance}=stones[0];
   const environmentOnly=!mount;
   const optics=useMemo(()=>createGemOptics(geometry,environment,'high',{environmentOnly}),[geometry,environment,environmentOnly]);
   useLayoutEffect(()=>{
-    updateGemOptics(optics.material,{appearance,mount,environmentRotation:studio.rotation,environmentIntensity:studio.gemIntensity,dispersion:studio.dispersion});
-  },[optics,appearance,mount,studio]);
+    updateGemOptics(optics.material,{appearance,sample,mount,environmentRotation:studio.rotation,environmentIntensity:studio.gemIntensity,dispersion:studio.dispersion});
+  },[optics,appearance,sample,mount,studio]);
   useEffect(()=>()=>optics.dispose(),[optics]);
   return stones.map(stone=><mesh key={stone.name} name={stone.name} geometry={geometry} material={optics.material}
     matrix={stone.matrix} matrixAutoUpdate={false}
@@ -156,17 +167,22 @@ function RingScene({template,design,stones,studio,engraving,engravingStyle,onRea
   }
 
   return <JewelryLighting preset={studio}>{environment=><><group scale={.1} dispose={null}>
-    {metal.map((part,index)=><mesh key={part.name} name={part.name} geometry={part.geometry} material={metalMaterial} onAfterRender={index===0?onReady:undefined}/>)}
+    {metal.map((part,index)=><mesh key={part.name} name={part.name} geometry={part.geometry} material={metalMaterial} frustumCulled={index!==0||!onReady} onAfterRender={index===0&&onReady?onReady:afterFrame}/>)}
     {[...batches].map(([key,batch])=><GemBatch key={key} stones={batch} environment={environment} studio={studio} mount={mount}/>)}
   </group>{engraving&&<EngravingOverlay parts={metal} modelScale={.1} text={engraving} style={engravingStyle}/>}</>}</JewelryLighting>;
 }
 
-export function Ring02Stage({view,reset,design,captureRef,engravingView=false,...scene}:SceneProps&Lettering&{
-  engravingView?:boolean;
-  view:RingView;reset:number;captureRef:RefObject<(()=>string|undefined)|null>;
+export function Ring02Stage({view,reset,design,captureRef,onCaptureReady,engravingView=false,...scene}:SceneProps&Lettering&{
+  engravingView?:boolean;onCaptureReady:(design:RingDesign|null)=>void;
+  view:RingView;reset:number;captureRef:RefObject<RingCapture|null>;
 }){
   const inspection=useRingInspection();
-  const [ready,setReady]=useState(false);
+  const {engraving,engravingStyle,stones}=scene;
+  const frame=useMemo(()=>({design,stones,engraving,font:engravingStyle?.font,studio:inspection.studio}),
+    [design,stones,engraving,engravingStyle?.font,inspection.studio]);
+  const [rendered,setRendered]=useState<typeof frame|null>(null);
+  const ready=rendered===frame;
+  const reportReady=useCallback((available:boolean)=>onCaptureReady(available?design:null),[onCaptureReady,design]);
   const [failed,setFailed]=useState(false);
   const matchesPoster=design.head===BASE_DESIGN.head&&design.reach===BASE_DESIGN.reach
     &&ZONES.every(zone=>{
@@ -180,7 +196,7 @@ export function Ring02Stage({view,reset,design,captureRef,engravingView=false,..
   </figure>:<p>当前配置没有可用参考图。重新加载可尝试恢复三维预览，配置会保留。</p>;
   function retry(){
     clearJewelryLightingCache();
-    setReady(false);
+    setRendered(null);
     setFailed(false);
   }
   return <><RingInspectionTools inspection={inspection} enabled={ready&&!failed}/><div className="stone-first-canvas ring02-canvas" aria-label="戒指 02 三维预览">
@@ -189,12 +205,12 @@ export function Ring02Stage({view,reset,design,captureRef,engravingView=false,..
         gl={{antialias:true,preserveDrawingBuffer:true}} onCreated={({gl})=>{gl.toneMapping=NeutralToneMapping;}}>
         <color attach="background" args={['#ffffff']}/>
         <StudioFillLights neutral/>
-        <Suspense fallback={null}><RingScene {...scene} studio={inspection.studio} design={design} onReady={ready?undefined:()=>setReady(true)}/></Suspense>
+        <Suspense fallback={null}><RingScene {...scene} studio={inspection.studio} design={design} onReady={ready?undefined:()=>setRendered(frame)}/></Suspense>
         <JewelryPostprocessing quality="high" capturing={false} whiteBackground contentKey="precision-ring"/>
         <RingCamera view={view} reset={reset} engravingView={engravingView} inspection={inspection}/>
-        <RingThumbnail captureRef={captureRef} ready={ready&&!failed}/>
+        <RingThumbnail captureRef={captureRef} ready={ready&&!failed} onCaptureReady={reportReady}/>
       </Canvas>
     </ViewerBoundary>
-    {!ready&&!failed&&<Ring02Loading/>}
+    {!rendered&&!failed&&<Ring02Loading/>}
   </div></>;
 }

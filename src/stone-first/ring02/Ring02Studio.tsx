@@ -9,7 +9,7 @@ import {Mesh} from 'three';
 import {jewelryModelLoader} from '../../viewer/modelLoader';
 import {preloadJewelryLighting} from '../../viewer/JewelryLighting';
 import {STONE_APPEARANCES,STONE_APPEARANCE_IDS} from '../../viewer/stoneAppearance';
-import {Ring02Stage,VIEWS,type RingView} from './Ring02Stage';
+import {Ring02Stage,VIEWS,type RingView,type RingCapture} from './Ring02Stage';
 import {
   BASE_DESIGN,REACHES,SIZES,TEMPLATE_REVISION,engravingProblem,findNewIntersection,
   fitStones,paveSpacing,prepareTemplate,type RingDesign,type StoneSpec,type Zone,
@@ -63,7 +63,8 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
   const [saveFailed,setSaveFailed]=useState(false);
   const [pending,setPending]=useState<PendingChange|null>(null);
   const [review,setReview]=useState<DemoOrder|null>(null);
-  const captureThumbnail=useRef<(()=>string|undefined)|null>(null);
+  const captureThumbnail=useRef<RingCapture|null>(null);
+  const [capturableDesign,setCapturableDesign]=useState<RingDesign|null>(null);
   const [cartNotice,setCartNotice]=useState<Feedback>();
   const [orderError,setOrderError]=useState(false);
   const [engravingInput,setEngravingInput]=useState<string|null>(null);
@@ -84,6 +85,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
   const original=useMemo(()=>fitStones(template,BASE_DESIGN),[template]);
   const stones=compare?original:fitted;
   const quote=estimateRing02(current);
+  const canCapture=!compare&&!engravingDirty&&capturableDesign===current;
   const added=hasDemoOrder(draft.revision);
   const pave=useMemo(()=>({
     halo:paveSpacing(fitted,'halo'),shoulder:paveSpacing(fitted,'shoulder'),
@@ -212,10 +214,11 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
   }
 
   function confirmOrder(){
-    if(!review||review.revision!==draft.revision||compare)return;
+    if(!review||review.revision!==draft.revision||!canCapture)return;
     let thumbnail:string|undefined;
     try{thumbnail=captureThumbnail.current?.();}
     catch{thumbnail=undefined;}
+    if(!thumbnail){setOrderError(true);return;}
     try{
       const created=addDemoOrder({...review,thumbnail,confirmedAt:new Date().toISOString()});
       setReview(null);
@@ -234,7 +237,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
       <div className="stone-first-camera-views" role="group" aria-label="戒指观察视角">
         {VIEWS.map(([id,name])=><button key={id} aria-pressed={!engravingView&&view===id} onClick={()=>{setEngravingView(false);setView(id);setViewReset(token=>token+1);}}>{name}</button>)}
       </div>
-      <Ring02Stage template={template} design={visible} engraving={compare||engravingProblem(engravingPreview)?visible.engraving:engravingPreview} engravingStyle={compare?BASE_DESIGN.engravingStyle:engravingStyle} engravingView={engravingView} stones={stones} view={view} reset={viewReset} captureRef={captureThumbnail}/>
+      <Ring02Stage template={template} design={visible} engraving={compare||engravingProblem(engravingPreview)?visible.engraving:engravingPreview} engravingStyle={compare?BASE_DESIGN.engravingStyle:engravingStyle} engravingView={engravingView} stones={stones} view={view} reset={viewReset} captureRef={captureThumbnail} onCaptureReady={setCapturableDesign}/>
     </section>
     <section className="stone-first-panel" aria-label="戒指配置">
       <header className="ring02-product">
@@ -322,7 +325,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
       <p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p>
       <small>示例交期 {quote.leadTime} · 待工艺确认</small>
     </div>
-    <SaveCommunityDesign title="围钻戒指" templateId="ring-02" revision={draft.revision} design={current} capture={()=>captureThumbnail.current?.()} disabled={compare||engravingDirty}/>
+    <SaveCommunityDesign title="围钻戒指" templateId="ring-02" revision={draft.revision} design={current} capture={()=>captureThumbnail.current?.('inspection')} disabled={!canCapture}/>
       {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:
       !RING02_TEMPLATE.listed?<span>该款式已停售</span>:
       part==='head'?<button className="shop-button" onClick={()=>jumpTo('shoulder')}>下一步 · 配置戒圈</button>:
@@ -343,7 +346,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     <FeedbackToast inline notice={orderError?{tone:'error',title:'购物车未能保存',description:'浏览器未能保存方案，当前配置仍在编辑器中。'}:undefined} onDismiss={()=>setOrderError(false)} onRetry={orderError?confirmOrder:undefined}/>
     <div className="ring02-dialog-actions">
       <button autoFocus onClick={()=>setReview(null)}>返回修改</button>
-      <button className="shop-button" onClick={confirmOrder}>确认并加入演示购物车</button>
+      <button className="shop-button" disabled={!canCapture} onClick={confirmOrder}>确认并加入演示购物车</button>
     </div>
   </ReviewDialog>}
   </>;

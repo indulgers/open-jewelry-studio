@@ -1,6 +1,8 @@
 import {SaveCommunityDesign} from '../../community/SaveCommunityDesign';
 import {RingFitField} from '../fit/RingFitField';
 import {newDesignFit} from '../fit/profile';
+import {ReferenceStylingFields} from './ReferenceStylingFields';
+import {PLATING,isCustomStyling,type ReferenceStyling} from './styling';
 import {EngravingEditor} from '../engraving/EngravingEditor';
 import {DEFAULT_ENGRAVING_STYLE,type EngravingStyle} from '../engraving/style';
 import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
@@ -11,11 +13,11 @@ import {RING_CATALOG,type CatalogRing} from '../catalog';
 import {RingStylePicker} from '../RingStylePicker';
 import {ReviewDialog} from '../ring02/ReviewDialog';
 import {RING02_PRECISION_ROUTE} from '../ring02/assets';
-import {VIEWS,type RingView} from '../ring02/Ring02Stage';
+import {VIEWS,type RingView,type RingCapture} from '../ring02/Ring02Stage';
 import {engravingProblem} from '../ring02/engraving';
 import {addDemoOrder,formatYuan,hasDemoOrder} from '../ring02/demoOrder';
 import {createReferenceLibrary} from './part-library';
-import {PartCard,PartLibrary,headChoices,sourceImage} from './PartLibrary';
+import {PartCard,PartLibrary,headChoices,bandImage} from './PartLibrary';
 import {ORIGINAL_REFERENCE,parseReferenceDesign,referenceDetails,referenceParts,referenceQuote,ZONE_NAMES,type ReferenceDesign} from './design';
 import {BAND_STYLES,bandStyle,headName} from './parts';
 import {PAVE_DIAMETERS,PAVE_LENGTHS,describePaveGap} from './pave-options';
@@ -34,7 +36,7 @@ preloadJewelryLighting();
 
 type PartChoice={id:string;name:string;image:string};
 const listed=(id:string)=>RING_CATALOG.some(item=>item.id===id&&item.listed);
-const bandChoices=BAND_STYLES.filter(style=>style.finishes.some(finish=>listed(finish.id))).map(style=>({id:style.name,name:style.name,image:sourceImage((style.finishes.find(finish=>listed(finish.id))??style.finishes[0]).id)}));
+const bandChoices=BAND_STYLES.filter(style=>style.finishes.some(finish=>listed(finish.id))).map(style=>({id:style.name,name:style.name,image:bandImage((style.finishes.find(finish=>listed(finish.id))??style.finishes[0]).id)}));
 
 function PartChoices({kind,label,choices,selected,disabled,pending,onSelect}:{
   kind:'head'|'band'|'finish';label:string;choices:readonly PartChoice[];selected:string;
@@ -76,7 +78,7 @@ function Editor({template}:{template:CatalogRing}){
   const [engraving,setEngraving]=useState(design.engraving);
   const [engravingStyle,setEngravingStyle]=useState<EngravingStyle>(design.engravingStyle??DEFAULT_ENGRAVING_STYLE);
   const [engravingView,setEngravingView]=useState(false);
-  const capture=useRef<(()=>string|undefined)|null>(null);
+  const capture=useRef<RingCapture|null>(null);
   const [captureFrame,setCaptureFrame]=useState<SourceFrame|null>(null);
   const {head,band,zones}=referenceParts(template,design);
   const style=bandStyle(band.id);
@@ -115,6 +117,10 @@ function Editor({template}:{template:CatalogRing}){
     if(JSON.stringify(next)===JSON.stringify(design))return;
     setHistory({design:next,revision:crypto.randomUUID(),past:[...past,design].slice(-10)});setMessage('');
   }
+  const styled=isCustomStyling(design.styling);
+  function changeStyling(styling:ReferenceStyling){
+    change({...design,styling:isCustomStyling(styling)?styling:undefined});
+  }
   function color(appearance:StoneAppearance){if(zone)change({...design,[zone]:appearance});}
   function selectHead(id:string){
     if(id===head.id)return;
@@ -131,8 +137,25 @@ function Editor({template}:{template:CatalogRing}){
   function selectFinish(id:string){
     if(id!==band.id)change({...design,bandId:id});
   }
+  function exportPreview(){
+    if(!canCapture||engravingDirty||compare)return;
+    try{
+      const preview=capture.current?.();
+      if(!preview)throw new Error('当前预览图片尚未生成。');
+      const snapshot={templateId:template.id,templateRevision:template.revision,revision,design,details,preview,status:'待工艺与报价确认'};
+      const url=URL.createObjectURL(new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json'}));
+      const link=document.createElement('a');
+      link.href=url;
+      link.download='相言-'+template.name+'-'+revision+'.json';
+      link.click();
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+      setCartFeedback(undefined);
+    }catch(error){
+      setCartFeedback({tone:'error',title:'暂时无法下载设计方案',description:error instanceof Error?error.message:'请重试。'});
+    }
+  }
   async function confirm(){
-    if(compare||engravingDirty||!ring||!canCapture||adding)return;
+    if(styled||compare||engravingDirty||!ring||!canCapture||adding)return;
     let thumbnail:string|undefined;
     try{thumbnail=capture.current?.();}catch{}
     if(!thumbnail){setCartFeedback({tone:'error',title:'购物车未能保存',description:'搭配图片暂未生成。'});return;}
@@ -169,7 +192,7 @@ function Editor({template}:{template:CatalogRing}){
       </div>}
     </section>
     <section className="stone-first-panel" aria-label="戒指配置">
-      <header className="ring02-product"><h1>专属定制</h1><p>{displayName} · 银色</p></header>
+      <header className="ring02-product"><h1>专属定制</h1><p>{displayName} · {PLATING[design.styling?.plating??'white']}</p></header>
       <div className="source-part-tabs" role="group" aria-label="选择戒指部件"><button aria-pressed={part==='head'} onClick={()=>setPart('head')}>戒头</button><button aria-pressed={part==='shank'} onClick={()=>setPart('shank')}>戒圈与铺钻</button></div>
       <div className="stone-first-fields ring02-fields source-ring-fields">
         <button type="button" className="source-library-trigger shop-text-link" ref={libraryTrigger} aria-haspopup="dialog"
@@ -179,7 +202,7 @@ function Editor({template}:{template:CatalogRing}){
           {zones.includes('halo')&&<div className="ring02-head-zones stone-first-options" role="group" aria-label="戒头镶嵌区域">{(['center','halo'] as const).map(id=><button key={id} aria-pressed={zone===id} onClick={()=>setHeadZone(id)}>{ZONE_NAMES[id]}</button>)}</div>}
         </>:<>
           <PartChoices kind="band" label="戒圈结构" choices={bandChoices} selected={style.name} disabled={compare} pending={swapping&&!!previousParts&&bandStyle(previousParts.band.id).name!==style.name} onSelect={selectBand}/>
-          <PartChoices kind="finish" label="戒臂铺钻" choices={style.finishes.filter(item=>listed(item.id)||item.id===band.id).map(item=>({...item,image:sourceImage(item.id)}))} selected={band.id} disabled={compare} pending={swapping&&previousParts?.band.id!==band.id} onSelect={selectFinish}/>
+          <PartChoices kind="finish" label="戒臂铺钻" choices={style.finishes.filter(item=>listed(item.id)||item.id===band.id).map(item=>({...item,image:bandImage(item.id)}))} selected={band.id} disabled={compare} pending={swapping&&previousParts?.band.id!==band.id} onSelect={selectFinish}/>
           {automaticPave&&<>
             <fieldset disabled={compare}><legend>配钻石径</legend>
               <div className="stone-first-options">{PAVE_DIAMETERS.map(value=><button key={value} aria-pressed={diameter===value}
@@ -198,8 +221,9 @@ function Editor({template}:{template:CatalogRing}){
             </div>
           </>}
         </>}
-        {zone?<fieldset disabled={compare}><legend>{ZONE_NAMES[zone]}搭配</legend><div className="stone-first-options ring02-gems">{STONE_APPEARANCE_IDS.map(id=><button key={id} aria-pressed={design[zone]===id} onClick={()=>color(id)}><i className={'ring02-swatch swatch-'+id} aria-hidden="true"/>{STONE_APPEARANCES[id].name}{id!=='diamond'?' +¥100':''}</button>)}</div></fieldset>:<><h2>素面戒臂</h2><p>这款戒臂采用银色素面。</p></>}
+        {zone==='center'?<ReferenceStylingFields section="center" value={design.styling} disabled={compare} onChange={changeStyling}/>:zone?<fieldset disabled={compare}><legend>{ZONE_NAMES[zone]}搭配</legend><div className="stone-first-options ring02-gems">{STONE_APPEARANCE_IDS.map(id=><button key={id} aria-pressed={design[zone]===id} onClick={()=>color(id)}><i className={'ring02-swatch swatch-'+id} aria-hidden="true"/>{STONE_APPEARANCES[id].name}{id!=='diamond'?' +¥100':''}</button>)}</div></fieldset>:<><h2>素面戒臂</h2><p>这款戒臂采用银色素面。</p></>}
 
+        {part==='shank'&&<ReferenceStylingFields section="metal" value={design.styling} disabled={compare} onChange={changeStyling}/>}
         {part==='shank'&&<RingFitField value={design.ringSizeUS} disabled={compare} onChange={ringSizeUS=>change({...design,ringSizeUS})}/>}
       </div>
       <EngravingEditor id="source-engraving" text={engraving} style={engravingStyle} disabled={compare} dirty={engravingDirty}
@@ -212,14 +236,14 @@ function Editor({template}:{template:CatalogRing}){
       <p className="ring02-status" role={saveError?'alert':undefined}>{saveError?'浏览器未能保存草稿，请保留此页面。':engravingDirty?'请确认或取消刻字修改。':'草稿已保留在本机'}</p>
     </section>
   </div>
-    <section className="ring02-purchase" aria-label="估价与演示加购"><div><p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p><small>示例交期 {quote.leadTime} · 待工艺确认</small></div>
-      <SaveCommunityDesign title={displayName} templateId={template.id} revision={revision} design={design} capture={()=>capture.current?.()} disabled={compare||engravingDirty||!canCapture}/>
+    <section className="ring02-purchase" aria-label="估价与演示加购"><div>{styled?<><p>改款方案 <strong>待核价</strong></p><small>主石、镶座与金属工艺需另行确认</small></>:<><p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p><small>示例交期 {quote.leadTime} · 待工艺确认</small></>}</div>
+      <SaveCommunityDesign title={displayName} templateId={template.id} revision={revision} design={design} capture={()=>capture.current?.('inspection')} disabled={compare||engravingDirty||!canCapture}/>
       {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:part==='head'?<button className="shop-button" onClick={()=>setPart('shank')}>下一步 · 配置戒圈</button>:<button className="shop-button" disabled={compare||engravingDirty||!canCapture} onClick={()=>{setMessage('');setCartFeedback(undefined);setReview(true);}}>查看方案</button>}
     </section>
     {library&&<PartLibrary kind={library} trigger={libraryTrigger} selected={library==='head'?head.id:band.id}
       onClose={()=>setLibrary(null)} onSelect={library==='head'?selectHead:selectFinish}/>}
     {!review&&<FeedbackToast notice={cartFeedback?.tone==='success'?cartFeedback:undefined} onDismiss={()=>setCartFeedback(undefined)}/>}
-    {review&&<ReviewDialog title="确认你的戒指方案" busy={adding} onClose={()=>setReview(false)}><p>{displayName} · 参考估价 {formatYuan(quote.amount)}</p><dl>{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl><p>当前为演示加购，价格、圈号与制作工艺待正式确认。</p><FeedbackToast inline notice={cartFeedback} onDismiss={()=>setCartFeedback(undefined)} onRetry={cartFeedback&&!adding?confirm:undefined}/><div className="ring02-dialog-actions"><button autoFocus disabled={adding} onClick={()=>setReview(false)}>继续修改</button><button className="shop-button" disabled={!canCapture||adding} onClick={confirm}>{adding?'正在加入…':'确认并加入演示购物车'}</button></div></ReviewDialog>}
+    {review&&<ReviewDialog title="确认你的戒指方案" busy={adding} onClose={()=>setReview(false)}><p>{displayName} · {styled?'待核价':'参考估价 '+formatYuan(quote.amount)}</p><dl>{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl>{styled?<p>方案包含改款效果图与所选规格，可下载交给工艺人员核对镶口、实石尺寸和报价。</p>:<p>当前为演示加购，价格、圈号与制作工艺待正式确认。</p>}<FeedbackToast inline notice={cartFeedback} onDismiss={()=>setCartFeedback(undefined)} onRetry={cartFeedback&&!adding?(styled?exportPreview:confirm):undefined}/><div className="ring02-dialog-actions"><button autoFocus disabled={adding} onClick={()=>setReview(false)}>继续修改</button><button className="shop-button" disabled={!canCapture||adding} onClick={styled?exportPreview:confirm}>{styled?'下载设计方案':adding?'正在加入…':'确认并加入演示购物车'}</button></div></ReviewDialog>}
   </>;
 }
 

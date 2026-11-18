@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {ReviewDialog} from '../stone-first/ring02/ReviewDialog';
 import {AccountForm} from './AccountForm';
 import {UploadWork} from './UploadWork';
-import {communityRequest,errorText,type Account,type Order,type Work} from './client';
+import {CommunityAccountChanged,communityRequest,errorText,type Account,type Order,type Work} from './client';
 import './community.css';
 
 type Mode='community'|'mine';
@@ -16,34 +16,50 @@ export default function CommunityStudio({mode}:{mode:Mode}){
   const [preview,setPreview]=useState<Work>(),[publish,setPublish]=useState<Work>();
   useEffect(()=>{
     const controller=new AbortController(),signal=controller.signal;
-    setLoading(true);setError('');setWorks([]);setOrders([]);
-    (async()=>{
+    setLoading(true);setAccount(undefined);setError('');setWorks([]);setOrders([]);
+    setPreview(undefined);setPublish(undefined);setUpload(false);setAuth(false);
+    async function load(){
       const session=await communityRequest<{account:Account|null}>('session',undefined,signal);
       const [items,requests]=await Promise.all([
-        mine&&!session.account?[]:communityRequest<Work[]>(mine?'mine':'works',undefined,signal),
-        mine&&session.account?communityRequest<Order[]>('orders',undefined,signal):[],
+        mine&&!session.account?[]:communityRequest<Work[]>(mine?'mine':'works',undefined,signal,mine?session.account?.name:undefined),
+        mine&&session.account?communityRequest<Order[]>('orders',undefined,signal,session.account.name):[],
       ]);
       if(!signal.aborted){setAccount(session.account);setWorks(items);setOrders(requests);}
-    })().catch(cause=>{if(!signal.aborted)setError(errorText(cause));})
+    }
+    load().catch(cause=>{
+      if(signal.aborted)return;
+      if(!(cause instanceof CommunityAccountChanged))throw cause;
+      setNotice('账号已变更，请核对当前账号后重新操作。');
+      return load();
+    }).catch(cause=>{if(!signal.aborted)setError(errorText(cause));})
       .finally(()=>{if(!signal.aborted)setLoading(false);});
     return ()=>controller.abort();
   },[mine,version]);
   function loggedIn(user:Account){setAccount(user);setAuth(false);refresh(v=>v+1);}
+  function accountChanged(){
+    setAccount(undefined);setWorks([]);setOrders([]);setPreview(undefined);setPublish(undefined);
+    setUpload(false);setAuth(false);setNotice('账号已变更，请核对当前账号后重新操作。');
+    refresh(n=>n+1);
+  }
   async function act(action:()=>Promise<void>){
     if(busy)return;
     setBusy(true);setError('');setNotice('');
-    try{await action();}catch(cause){setError(errorText(cause));}finally{setBusy(false);}
+    try{await action();}catch(cause){
+      if(cause instanceof CommunityAccountChanged)accountChanged();
+      else setError(errorText(cause));
+    }finally{setBusy(false);}
   }
   function order(work:Work){
     if(!account){setAuth(true);return;}
     void act(async()=>{
-      const request=await communityRequest<Order>('works/'+work.id+'/orders',{});
+      const request=await communityRequest<Order>('works/'+work.id+'/orders',{expectedAccount:account.name});
       setNotice('已提交同款申请，编号 '+request.id+'。可在「我的设计」查看处理状态。');
     });
   }
   function changeVisibility(work:Work){
+    if(!account)return;
     void act(async()=>{
-      await communityRequest('designs/'+work.id+'/'+(work.published?'unpublish':'publish'),{});
+      await communityRequest('designs/'+work.id+'/'+(work.published?'unpublish':'publish'),{expectedAccount:account.name});
       setPublish(undefined);setNotice(work.published?'作品已转为私密。':'作品已发布到社区。');refresh(v=>v+1);
     });
   }
@@ -52,9 +68,10 @@ export default function CommunityStudio({mode}:{mode:Mode}){
       <p>{mine?'查看保存的作品、发布记录和同款申请。':'浏览创作者发布的珠宝作品，选择心仪的设计申请制作。'}</p></div>
       <a className="shop-text-link" href={mine?'#/community':'#/my-designs'}>{mine?'浏览设计社区':'我的设计'}</a>
     </header>
+    {!mine&&account&&<p className="community-account">当前账号 {account.name}</p>}
     {mine&&account&&<div className="community-account"><span>{account.name}</span><a href="#/diy/fit">佩戴资料与尺寸</a>
       <button disabled={busy} onClick={()=>void act(async()=>{
-        await communityRequest('logout',{});setAccount(null);setWorks([]);setOrders([]);setPreview(undefined);setUpload(false);setPublish(undefined);refresh(v=>v+1);
+        await communityRequest('logout',{expectedAccount:account.name});setAccount(null);setWorks([]);setOrders([]);setPreview(undefined);setUpload(false);setPublish(undefined);refresh(v=>v+1);
       })}>退出登录</button></div>}
     {notice&&<p role="status" className="community-notice">{notice}</p>}
     {error&&<p role="alert" className="community-notice">{error} <button onClick={()=>refresh(v=>v+1)}>重新加载</button></p>}
@@ -62,7 +79,7 @@ export default function CommunityStudio({mode}:{mode:Mode}){
       {mine&&account&&<div className="community-actions">
         <button className="shop-button" onClick={()=>setUpload(!upload)} aria-expanded={upload}>{upload?'收起上传':'上传作品'}</button>
         <a className="shop-text-link" href="#/diy/collection">从款式开始设计</a></div>}
-      {upload&&account&&mine&&<UploadWork onSaved={()=>{setUpload(false);setNotice('作品已私密保存。');refresh(v=>v+1);}}/>}
+      {upload&&account&&mine&&<UploadWork expectedAccount={account.name} onAccountChanged={accountChanged} onSaved={()=>{setUpload(false);setNotice('作品已私密保存。');refresh(v=>v+1);}}/>}
       {!works.length&&!error&&<div className="community-empty"><p>{mine?'你还没有保存作品。':'社区还没有公开作品。'}</p>
         <a className="shop-text-link" href={mine?'#/diy/collection':'#/my-designs'}>{mine?'浏览款式':'上传第一件作品'}</a></div>}
       <div className="community-grid">{works.map(work=><article key={work.id} className="community-work">

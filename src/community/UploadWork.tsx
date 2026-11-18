@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
-import {communityRequest,errorText} from './client';
+import {useDesignRequestId} from './useDesignRequestId';
+import {CommunityAccountChanged,communityRequest,errorText} from './client';
 
 export async function imageForUpload(file:File){
   if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>12*1024*1024)
@@ -21,7 +22,12 @@ export async function imageForUpload(file:File){
     return jpeg;
   }finally{URL.revokeObjectURL(url);}
 }
-export function UploadWork({onSaved,admin=false}:{onSaved:()=>void;admin?:boolean}){
+type UploadProps={onSaved:()=>void}&(
+  {admin:true;expectedAccount?:never;onAccountChanged?:never} |
+  {admin?:false;expectedAccount:string;onAccountChanged:()=>void}
+);
+export function UploadWork({onSaved,admin,expectedAccount,onAccountChanged}:UploadProps){
+  const requestIdFor=useDesignRequestId();
   const [title,setTitle]=useState(''),[image,setImage]=useState(''),[error,setError]=useState('');
   const [busy,setBusy]=useState(false);
   const sequence=useRef(0);
@@ -29,8 +35,17 @@ export function UploadWork({onSaved,admin=false}:{onSaved:()=>void;admin?:boolea
   return <form className="community-form community-upload" onSubmit={async event=>{
     event.preventDefault();if(!image||!title.trim()||busy)return;
     setBusy(true);setError('');
-    try{await communityRequest(admin?'admin/designs':'designs',{title:title.trim(),image});onSaved();}
-    catch(cause){setError(errorText(cause));}finally{setBusy(false);}
+    try{
+      const name=title.trim();
+      await communityRequest(admin?'admin/designs':'designs',{
+        title:name,image,requestId:requestIdFor(admin?'studio':expectedAccount,name,image),
+        ...(!admin && {expectedAccount}),
+      });
+      onSaved();
+    }catch(cause){
+      if(!admin && cause instanceof CommunityAccountChanged)onAccountChanged();
+      else setError(errorText(cause));
+    }finally{setBusy(false);}
   }}>
     <label>作品名称<input value={title} onChange={event=>setTitle(event.target.value)} required maxLength={60}/></label>
     <label>预览图<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={async event=>{

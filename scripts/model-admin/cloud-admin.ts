@@ -1,7 +1,8 @@
-import {createHash,createHmac,randomUUID,timingSafeEqual} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {mkdir,mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {basename,join} from 'node:path';
+import {adminSessionCookie,adminSessionValid,sameSecret} from './admin-session.ts';
 import {communityApi} from './community.ts';
 import {cloudStore,type CloudStore} from './cloud-store.ts';
 import {processModel} from './process.mjs';
@@ -17,8 +18,6 @@ import type {LibrarySource,ManagedTemplate,PublishedTemplate,TemplateDraft} from
 const prefix='/api/model-admin';
 const root='studio/v1/';
 const maxUpload=25*1024*1024;
-const cookieName='__Host-xiangyan-admin';
-const sessionSeconds=8*60*60;
 const partFile=/^parts\/(heads|bands|stones)\/ring(?:-(?:head|pave|adapter))?-[a-f0-9]{12}\.glb$/;
 type Job={id:string;filename:string;createdAt:string;size:number};
 type Version={assignments?:Record<string,string>;settings?:LibrarySource['settings'];name?:string;partNames?:LibrarySource['partNames'];metadataRevision?:string;archived?:boolean;id:string;createdAt:string;parts:ReferenceAssets;profileId?:string};
@@ -31,14 +30,6 @@ const fail=(status:number,message:string):never=>{throw new RequestError(status,
 const modelKey=(id:string)=>root+'models/'+id+'/';
 const releaseKey=(id:string,revision:string)=>root+'releases/'+id+'/'+revision+'/';
 const publicPath=(id:string,revision:string)=>prefix+'/public/'+id+'/'+revision+'/';
-const same=(a:string,b:string)=>timingSafeEqual(createHash('sha256').update(a).digest(),createHash('sha256').update(b).digest());
-const signature=(password:string,claims:string)=>createHmac('sha256',password).update(claims).digest('base64url');
-
-function sessionIsValid(request:Request,password:string){
-  const session=request.headers.get('cookie')?.split(';').map(value=>value.trim()).find(value=>value.startsWith(cookieName+'='))?.slice(cookieName.length+1);
-  const match=/^(\d{10,13}\.[0-9a-f-]{36})\.([A-Za-z0-9_-]{43})$/.exec(session??'');
-  return !!match&&Number(match[1].split('.')[0])>Date.now()&&same(signature(password,match[1]),match[2]);
-}
 async function body(request:Request,limit=16*1024){
   if(request.headers.get('content-type')?.split(';')[0]!=='application/json')fail(400,'请提交 JSON。');
   if(Number(request.headers.get('content-length'))>limit)fail(413,'提交内容超过大小限制。');
@@ -288,7 +279,7 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     const password=passwordOverride??process.env.XIANGYAN_ADMIN_PASSWORD;
     if(id==='community'){
       if(!store)return json({error:'社区存储尚未配置。'},503);
-      return communityApi(request,route.slice('community/'.length),store,!!password&&password.length>=32&&sessionIsValid(request,password));
+      return communityApi(request,route.slice('community/'.length),store,!!password&&password.length>=32&&adminSessionValid(request,password));
     }
     if(id==='assets'&&method==='GET'){
       if(!store)return json({error:'文件存储未配置。'},503);
@@ -341,12 +332,11 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     if(method==='POST'&&request.headers.get('origin')!==url.origin)fail(403,'请从本站后台操作。');
     if(id==='session'&&!action&&method==='POST'){
       const input=await body(request);
-      if(typeof input?.password!=='string'||!same(input.password,password))fail(401,'管理员密码错误。');
-      const claims=(Date.now()+sessionSeconds*1000)+'.'+randomUUID();
+      if(typeof input?.password!=='string'||!sameSecret(input.password,password))fail(401,'管理员密码错误。');
       return new Response(null,{status:204,headers:{'Cache-Control':'no-store',
-        'Set-Cookie':cookieName+'='+claims+'.'+signature(password,claims)+'; Path=/; Max-Age='+sessionSeconds+'; HttpOnly; Secure; SameSite=Strict'}});
+        'Set-Cookie':adminSessionCookie(password)}});
     }
-    if(!sessionIsValid(request,password))return json({error:'请先登录后台。'},401);
+    if(!adminSessionValid(request,password))return json({error:'请先登录后台。'},401);
     if(id==='session'&&!action&&method==='GET')return new Response(null,{status:204,headers:{'Cache-Control':'no-store'}});
     const library=cloudLibrary(store);
     if(id==='library'&&!action&&method==='GET')return json({sources:await library.sources(),

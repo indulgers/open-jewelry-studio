@@ -1,6 +1,5 @@
 import {Readable} from 'node:stream';
-import {communityApi} from './community.ts';
-import {localCommunityStore} from './community-store.ts';
+import {localCommunity} from './local-community.ts';
 import {cloudAdmin} from './cloud-admin.ts';
 import {cloudStore} from './cloud-store.ts';
 import {execFile} from 'node:child_process';
@@ -65,7 +64,7 @@ export function modelAdmin():Plugin{
       if(publicDir&&(storage===publicDir||storage.startsWith(publicDir+sep))){
         throw new Error('XIANGYAN_MODEL_DIR 必须在网站公共素材目录之外。');
       }
-      const community=localCommunityStore(join(storage,'community'));
+      const community=localCommunity(storage,process.env.XIANGYAN_ADMIN_PASSWORD);
       const worker=join(server.config.root,'scripts/model-admin/run.mjs');
       const templates=createTemplateLibrary(storage,publicDir);
       const r2=createR2(loadEnv(server.config.mode,server.config.envDir,'XIANGYAN_R2_'));
@@ -134,8 +133,7 @@ export function modelAdmin():Plugin{
         if(id==='community'){
           const request=new Request('http://'+host+path,{method:req.method,headers:req.headers as HeadersInit,
             ...(req.method==='POST'?{body:Readable.toWeb(req),duplex:'half'}:{})} as RequestInit);
-          // The existing local-admin gate above restricts this server to localhost.
-          const response=await communityApi(request,path.slice('/api/model-admin/community/'.length),community,true);
+          const response=await community(request,path.slice('/api/model-admin/community/'.length));
           res.writeHead(response.status,Object.fromEntries(response.headers));
           if(response.body)Readable.fromWeb(response.body as any).pipe(res);else res.end();
           return;

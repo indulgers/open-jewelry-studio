@@ -1,0 +1,11 @@
+.reference-styling .stone-select-row { display:flex; gap:.65rem; align-items:end; flex-wrap:wrap }
+.reference-styling .stone-select-row label { flex:1 1 7.5rem; font-size:.83rem }
+.reference-styling select { display:block; margin-top:.35rem; width:100%; min-height:2.6rem; padding:.45rem; border:1px solid var(--shop-line,#c9c6bf); border-radius:3px; color:inherit; background:var(--shop-paper,#fff) }
+.reference-cut-sample { width:2.55rem; height:2.55rem; background-image:url('./cut-previews.png'); background-size:auto 100%; background-repeat:no-repeat }
+.reference-styling .stone-first-options { margin-top:.55rem; flex-wrap:wrap }
+.reference-styling .gem-sample,.reference-styling .metal-sample { display:inline-block; width:.87rem; height:.87rem; border-radius:50%; border:1px solid #0002; margin-inline-end:.32rem }
+.metal-sample-white { background:linear-gradient(130deg,#a9a9aa,#fcfcfc,#bcbec3) }
+.metal-sample-yellow { background:linear-gradient(130deg,#ae8340,#f3e0ac,#bd934c) }
+.metal-sample-rose { background:linear-gradient(130deg,#ab786a,#f4d7c4,#c8947e) }
+.reference-styling .reference-carat { margin-top:.85rem; font-size:.83rem }
+.reference-styling p { margin:.6rem 0 0; line-height:1.6; font-size:.79rem }

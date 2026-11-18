@@ -28,3 +28,14 @@ describe('source model customization',()=>{
     }
   });
 });
+
+it('keeps custom cut, carat, stone and finish when a saved reference design is reopened',()=>{
+  const styling={cut:'pear',carat:1.5,gem:'moissanite-blue',plating:'rose',surface:'matte'} as const;
+  const saved={...ORIGINAL_REFERENCE,styling};
+  expect(parseReferenceDesign(JSON.parse(JSON.stringify(saved)))).toEqual(saved);
+  const details=referenceDetails(RING_CATALOG[0],saved);
+  expect(details.find(row=>row.label==='主石')?.value).toBe('莫桑钻 · 灰蓝色 · 梨形 · 1.5 ct');
+  expect(details.find(row=>row.label==='金属外观')?.value).toBe('玫瑰金色 · 哑面');
+  expect(parseReferenceDesign({...saved,styling:{...styling,carat:9}})).toBeNull();
+  expect(parseReferenceDesign({...saved,styling:{...styling,gem:'toString'}})).toBeNull();
+});

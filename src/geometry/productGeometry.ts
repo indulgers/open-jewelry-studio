@@ -18,8 +18,8 @@ export function normalizeLooseGem(source:BufferGeometry){
   const box=bounds(source),center=box.getCenter(new Vector3()),scale=2/planWidth(box);
   const result=source.clone();result.translate(-center.x,-center.y,-center.z);result.scale(scale,scale,scale);result.computeBoundingBox();return result;
 }
-export function fitRoundGem(source:BufferGeometry,target:BufferGeometry){
-  const sourceBox=bounds(source),targetBox=bounds(target),scale=planWidth(targetBox)/planWidth(sourceBox);
+export function fitGemToSeat(source:BufferGeometry,target:BufferGeometry,relativeSize=1){
+  const sourceBox=bounds(source),targetBox=bounds(target),scale=relativeSize*planWidth(targetBox)/planWidth(sourceBox);
   const a=sourceBox.getCenter(new Vector3()),b=targetBox.getCenter(new Vector3());
   const sourceY=girdle(source,sourceBox),targetY=girdle(target,targetBox);
   const result=source.clone();result.translate(-a.x,-sourceY,-a.z);result.scale(scale,scale,scale);
@@ -41,7 +41,7 @@ export function prepareProductRing(scene:Object3D,replacement:Object3D){
       if(!(object instanceof Mesh))return;
       let geometry=object.geometry.clone().applyMatrix4(object.matrixWorld);
       if(object.name==='CenterDiamond'){
-        const fitted=fitRoundGem(replacementGeometry,geometry);geometry.dispose();geometry=fitted;foundCenter=true;
+        const fitted=fitGemToSeat(replacementGeometry,geometry);geometry.dispose();geometry=fitted;foundCenter=true;
       }
       box.union(bounds(geometry));
       (object.name.includes('Diamond')?gems:metals).push({name:object.name,geometry});

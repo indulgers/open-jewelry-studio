@@ -4,7 +4,7 @@ import {communityRequest,errorText,type Order,type Work} from '../community/clie
 import '../community/community.css';
 
 type ReceivedOrder=Order&{accountName:string;accountId:string;image:string;templateId?:string;revision?:string;design?:object};
-export function CommunityAdmin(){
+function CommunityManager(){
   const [works,setWorks]=useState<Work[]>([]),[orders,setOrders]=useState<ReceivedOrder[]>([]);
   const [epoch,setEpoch]=useState(0),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
   const [error,setError]=useState(''),[notice,setNotice]=useState(''),[uploading,setUploading]=useState(false);
@@ -55,4 +55,34 @@ export function CommunityAdmin(){
       </details>)}
     </>}
   </main>;
+}
+
+type LocalAccess={admin:boolean;generated:boolean};
+function LocalCommunityLogin(){
+  const [access,setAccess]=useState<LocalAccess>(),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+  const [attempt,setAttempt]=useState(0);
+  useEffect(()=>{
+    const controller=new AbortController();
+    communityRequest<LocalAccess>('local-admin-session',undefined,controller.signal).then(setAccess)
+      .catch(e=>{if(!controller.signal.aborted)setError(errorText(e));});
+    return ()=>controller.abort();
+  },[attempt]);
+  if(access?.admin)return <CommunityManager/>;
+  return <main className="admin-login"><article className="review"><h1>社区管理登录</h1>
+    {access?<form className="template-form" onSubmit={async event=>{
+      event.preventDefault();if(busy)return;
+      const password=new FormData(event.currentTarget).get('password');
+      setBusy(true);setError('');
+      try{await communityRequest('local-admin-session',{password});setAccess({...access,admin:true});}
+      catch(e){setError(errorText(e));}finally{setBusy(false);}
+    }}>
+      <p>{access.generated?'本机管理员口令位于模型目录的 community-admin-password 文件。默认目录是 ~/.xiangyan-model-admin。':'请输入 XIANGYAN_ADMIN_PASSWORD 设置的本机管理员口令。'}</p>
+      <label>社区管理员口令<input required type="password" name="password" autoComplete="current-password"/></label>
+      <button className="primary" disabled={busy}>{busy?'正在登录…':'登录社区管理'}</button>
+    </form>:!error&&<p role="status">正在检查管理权限…</p>}
+    {error&&<p className="error" role="alert">{error} {!access&&<button onClick={()=>{setError('');setAttempt(v=>v+1);}}>重试</button>}</p>}
+  </article></main>;
+}
+export function CommunityAdmin(){
+  return import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE?<CommunityManager/>:<LocalCommunityLogin/>;
 }

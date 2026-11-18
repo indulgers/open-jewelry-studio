@@ -1,4 +1,4 @@
-import {randomUUID} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {parseReferenceDesign} from '../../src/stone-first/reference/design.ts';
 import {parseDesign} from '../../src/stone-first/ring02/model.ts';
 import {RequestError,uuid} from './templates.ts';
@@ -16,9 +16,8 @@ const publicKey=(id:string)=>'published/'+id+'.json';
 const imageKey=(id:string)=>communityRoot+'images/'+id+'.jpg';
 const authorFor=(admin:boolean)=>admin?'相言工作室':'消费者';
 
-async function inputOf(req:Request){
+export async function inputOf(req:Request,max=1450000){
   if(req.headers.get('content-type')?.split(';')[0]!=='application/json')return fail(415,'请提交 JSON。');
-  const max=1450000;
   if(Number(req.headers.get('content-length'))>max)return fail(413,'图片或设置过大。');
   const reader=req.body?.getReader();if(!reader)return fail(400,'内容为空。');
   const chunks:Uint8Array[]=[];let length=0;
@@ -58,6 +57,26 @@ function snapshot(input:Record<string,unknown>){
   if(parsed===null)return fail(422,'设计配置无效，请回到编辑器重新保存。');
   return {title:title.trim(),...(typeof templateId==='string'?{templateId}:{}),...(typeof revision==='string'?{revision}:{}),...(parsed?{design:parsed}:{})};
 }
+type SaveReservation={id:string;fingerprint:string;createdAt:string};
+async function saveDesign(input:Record<string,unknown>,owner:string,admin:boolean,store:CommunityStore){
+  if(typeof input.requestId!=='string'||!uuid.test(input.requestId))return fail(422,'保存请求编号无效，请重新打开保存窗口。');
+  const data=snapshot(input),image=previewJpeg(input.image);
+  const canonical=JSON.stringify(data,(_key,value)=>value&&typeof value==='object'&&!Array.isArray(value)
+    ?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b))):value);
+  const fingerprint=createHash('sha256').update(canonical).update(image).digest('hex');
+  const key='saves/'+owner+'/'+input.requestId+'.json';
+  const initial:SaveReservation={id:randomUUID(),createdAt:new Date().toISOString(),fingerprint};
+  const reservation=await putJson(store,key,initial,{etag:null})?initial:await getJson<SaveReservation>(store,key);
+  if(!reservation)return fail(503,'保存状态尚未就绪，请重试。');
+  if(reservation.fingerprint!==fingerprint)return reply({error:'这个请求编号已用于其他作品，请重新保存。',code:'REQUEST_CONFLICT'},409);
+  // A failed metadata write leaves a reusable reservation. A retry completes
+  // the same image and metadata keys without exposing a partial design.
+  const {id,createdAt}=reservation;
+  const item:SavedDesign={...data,id,createdAt,author:authorFor(admin)};
+  await store.put(imageKey(id),image,'image/jpeg',{etag:null});
+  const created=await putJson(store,jsonKey(owner,id),item,{etag:null});
+  return reply({...item,...publicWork(item,!created&&!!await getJson(store,publicKey(id)))},created?201:200);
+}
 function orderDesign(design:object|undefined){
   if(!design)return;
   const {engraving:_engraving,engravingStyle:_style,ringSizeUS:_size,...shared}=design as Record<string,unknown>;
@@ -81,25 +100,24 @@ export async function communityApi(req:Request,path:string,store:CommunityStore,
     const get=req.method==='GET',post=req.method==='POST';
     if(post&&req.headers.get('origin')!==new URL(req.url).origin)return fail(403,'请从本站提交。');
     if(!get&&!post)return fail(405,'请求方法无效。');
-    if(!admin&&post&&['register','login','logout'].includes(route))return await accountAction(req,store,route,await inputOf(req));
+    if(!admin&&post&&['register','login'].includes(route))return await accountAction(req,store,route,await inputOf(req));
     const member=await memberOf(req,store);
     if(!admin&&get&&route==='session')return reply({account:member?{name:member.name}:null});
     if(!admin&&get&&route==='works')return reply(newest((await list<Published>(store,'published/')).map(entry=>entry.work)));
+    const posted=post?await inputOf(req):{};
+    const expected=get?req.headers.get('X-Expected-Account'):posted.expectedAccount;
+    const checkAccount=!admin&&(post||(get&&(route==='orders'||route==='mine')&&expected!==null));
+    if(checkAccount&&(!member||typeof expected!=='string'||expected.toLowerCase()!==member.name.toLowerCase())){
+      return reply({error:'登录账号发生变化，请重新确认当前账号。',code:'ACCOUNT_CHANGED'},member?409:401);
+    }
+    if(!admin&&post&&route==='logout')return await accountAction(req,store,route,posted);
     const owner=admin?'studio':member?.id;
     if(!admin&&resource==='works'&&uuid.test(id)&&action==='image'&&segments.length===3&&get){
       if(!await getJson(store,publicKey(id))&&!(member&&await getJson(store,jsonKey(member.id,id)))&&!(isAdmin&&await getJson(store,jsonKey('studio',id))))return fail(404,'找不到作品。');
       return await imageResponse(store,id);
     }
     if(!owner)return fail(401,'请先登录消费者账号。');
-    if(post&&route==='designs'){
-      const input=await inputOf(req),data=snapshot(input),image=previewJpeg(input.image);
-      const id=randomUUID();
-      const item:SavedDesign={...data,id,author:authorFor(admin),createdAt:new Date().toISOString()};
-      await store.put(imageKey(id),image,'image/jpeg',{etag:null});
-      try{await putJson(store,jsonKey(owner,id),item,{etag:null});}
-      catch(error){await store.remove(imageKey(id));throw error;}
-      return reply({...item,...publicWork(item,false)},201);
-    }
+    if(post&&route==='designs')return await saveDesign(posted,owner,admin,store);
     if(get&&route===(admin?'designs':'mine')){
       const items=await list<SavedDesign>(store,'designs/'+owner+'/');
       return reply(newest(await Promise.all(items.map(async item=>({...item,...publicWork(item,!!await getJson(store,publicKey(item.id)))})))));
@@ -136,7 +154,7 @@ export async function communityApi(req:Request,path:string,store:CommunityStore,
       const saved=await store.get(communityRoot+key);
       if(!saved)return fail(404,'申请不存在。');
       const current=await saved.json() as Order;
-      const {expected,status}=await inputOf(req);
+      const {expected,status}=posted;
       if(status!=='已受理'&&status!=='已关闭')return fail(422,'处理状态无效。');
       if(current.status===status)return reply(orderSummary(current));
       if(expected!==current.status||current.status==='已关闭')return fail(409,'申请状态已变更，请刷新。');

@@ -1,7 +1,8 @@
 import {useEffect,useState} from 'react';
 import {ReviewDialog} from '../stone-first/ring02/ReviewDialog';
 import {AccountForm} from './AccountForm';
-import {communityRequest,errorText,type Account} from './client';
+import {useDesignRequestId} from './useDesignRequestId';
+import {CommunityAccountChanged,communityRequest,errorText,type Account} from './client';
 import './community.css';
 
 type Snapshot={title:string;templateId:string;revision:string;design:object;image:string};
@@ -11,22 +12,32 @@ function SaveDialog({snapshot,onClose,onSaved}:{snapshot:Snapshot;onClose:()=>vo
   const [account,setAccount]=useState<Account|null>();
   const [title,setTitle]=useState(snapshot.title);
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[attempt,setAttempt]=useState(0);
+  const requestIdFor=useDesignRequestId();
+  const [accountChanged,setAccountChanged]=useState(false);
   useEffect(()=>{
     const controller=new AbortController();
-    communityRequest<{account:Account|null}>('session',undefined,controller.signal).then(result=>setAccount(result.account))
+    communityRequest<{account:Account|null}>('session',undefined,controller.signal).then(result=>{if(!controller.signal.aborted)setAccount(result.account);})
       .catch(cause=>{if(!controller.signal.aborted)setError(errorText(cause));});
     return ()=>controller.abort();
   },[attempt]);
   return <ReviewDialog title="保存设计" onClose={onClose} busy={busy}>
-    <img className="community-dialog-preview" alt="本次保存的设计预览" src={snapshot.image}/>
-    {account===null?<><p>登录后可在其他设备打开自己的设计。</p><AccountForm onSuccess={setAccount}/></>:
+    {!accountChanged&&<img className="community-dialog-preview" alt="本次保存的设计预览" src={snapshot.image}/>}
+    {accountChanged?<p role="status">账号已变更。{account?'当前账号为 '+account.name+'。':account===null?'当前已退出登录。':''}请回到编辑器，重新确认要保存的设计。</p>:account===null?<><p>登录后可在其他设备打开自己的设计。</p><AccountForm onSuccess={setAccount}/></>:
       account?<form className="community-form" onSubmit={async event=>{
         event.preventDefault();if(busy||!title.trim())return;
         setBusy(true);setError('');
-        try{await communityRequest('designs',{...snapshot,title:title.trim()});onSaved();}
-        catch(cause){setError(errorText(cause));}finally{setBusy(false);}
+        try{
+          const name=title.trim();
+          await communityRequest('designs',{...snapshot,title:name,expectedAccount:account.name,
+            requestId:requestIdFor(account.name,name,snapshot.image)});
+          onSaved();
+        }catch(cause){
+          if(cause instanceof CommunityAccountChanged){
+            setAccountChanged(true);setAccount(undefined);setAttempt(n=>n+1);
+          }else setError(errorText(cause));
+        }finally{setBusy(false);}
       }}><label>作品名称<input value={title} onChange={event=>setTitle(event.target.value)} maxLength={60} required/></label>
-      <p>设计先保存为私密作品，只有你可以查看。</p>
+      <p>保存到 {account.name} 的私密作品。</p>
       <button className="shop-button" disabled={busy||!title.trim()}>{busy?'正在保存…':'保存到我的设计'}</button>
       </form>:!error&&<p role="status">正在读取账号…</p>}
     {error&&<p role="alert">{error} {account===undefined&&<button onClick={()=>{setError('');setAttempt(n=>n+1);}}>重试</button>}</p>}

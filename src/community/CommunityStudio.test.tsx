@@ -13,7 +13,10 @@ it('submits the displayed work and shows the persisted request number', async()=
     calls.push((init?.method??'GET')+' '+path);
     if(path==='works')return Response.json([work]);
     if(path==='session')return Response.json({account:{name:'demo_buyer'}});
-    if(path==='works/work-one/orders')return Response.json({id:'request-one',title:work.title,status:'待人工核价'});
+    if(path==='works/work-one/orders'){
+      expect(JSON.parse(String(init?.body))).toEqual({expectedAccount:'demo_buyer'});
+      return Response.json({id:'request-one',title:work.title,status:'待人工核价'});
+    }
     throw Error(path);
   }));
   render(<CommunityStudio mode="community"/>);
