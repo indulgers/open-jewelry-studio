@@ -274,7 +274,7 @@ try{
   await page.getByRole('button',{name:'戒头',exact:true}).click();
   await page.getByRole('button',{name:'1 ct',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'));
-  await page.getByRole('button',{name:'复位',exact:true}).click();
+  await page.getByRole('button',{name:'复位当前视角',exact:true}).click();
   const canvas=await checkDesktopInspection();
   const originalFace=await previewPixels(canvas);
   await page.getByLabel('主石切形').selectOption('pear');
