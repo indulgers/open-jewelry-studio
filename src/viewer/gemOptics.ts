@@ -243,7 +243,6 @@ export function createGemOptics(geometry:BufferGeometry,environment:Texture,qual
   material.uniforms.bvh.value=bvh;
   material.uniforms.bounces.value=settings.bounces;
   material.uniforms.ior.value=2.42;
-  if(!geometry.boundingSphere)geometry.computeBoundingSphere();
   material.uniforms.facetAtlas={value:atlas};
   material.uniforms.facetCenter={value:sphere.center.clone()};
   material.uniforms.mountAtlas={value:null};
@@ -251,7 +250,7 @@ export function createGemOptics(geometry:BufferGeometry,environment:Texture,qual
   material.uniforms.hasMountAtlas={value:false};
   material.uniforms.atlasMotion={value:false};
   material.uniforms.detailResolution={value:new Vector2()};
-  material.uniforms.stoneDiameter={value:geometry.boundingSphere!.radius*2};
+  material.uniforms.stoneDiameter={value:sphere.radius*2};
   material.uniforms.aberrationStrength.value=settings.aberrationStrength;
   material.uniforms.environmentIntensity={value:1.0};
   material.uniforms.environmentRotation={value:0};material.uniforms.hasMount={value:false};

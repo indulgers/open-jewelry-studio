@@ -268,8 +268,13 @@ try{
   const save=page.getByRole('button',{name:'保存设计',exact:true});
   await save.waitFor({timeout:90000});
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
+  await page.getByRole('button',{name:'戒圈与铺钻',exact:true}).click();
+  await page.getByRole('button',{name:'纤细戒圈',exact:true}).click();
+  await page.getByText('39 颗宝石',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'戒头',exact:true}).click();
   await page.getByRole('button',{name:'1 ct',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'));
+  await page.getByRole('button',{name:'复位',exact:true}).click();
   const canvas=await checkDesktopInspection();
   const originalFace=await previewPixels(canvas);
   await page.getByLabel('主石切形').selectOption('pear');
