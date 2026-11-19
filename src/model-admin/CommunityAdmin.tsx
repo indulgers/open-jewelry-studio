@@ -1,9 +1,73 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {UploadWork} from '../community/UploadWork';
-import {communityRequest,errorText,type Order,type Work} from '../community/client';
+import {communityRequest,errorText,quoteAmount,type Order,type Work} from '../community/client';
+import {maxQuoteFen} from '../community/order-quote';
 import '../community/community.css';
+import '../community/order-quote.css';
 
 type ReceivedOrder=Order&{accountName:string;accountId:string;image:string;templateId?:string;revision?:string;design?:object};
+function AdminOrderCard({order,onUpdate,onReload}:{order:ReceivedOrder;onUpdate:(order:Order)=>void;onReload:()=>void}){
+  const [mode,setMode]=useState<'view'|'quote'|'close'>('view');
+  const [error,setError]=useState(''),[outdated,setOutdated]=useState(false),[busy,setBusy]=useState(false);
+  const [notice,setNotice]=useState('');
+  const pending=useRef(false);
+  const path='admin/orders/'+order.accountId+'/'+order.id;
+  const canQuote=order.status==='已受理'||order.status==='已报价';
+  async function submit(action:'quote'|'status',body:object){
+    if(pending.current||outdated)return;
+    pending.current=true;
+    setError('');setNotice('');setBusy(true);
+    try{
+      const updated=await communityRequest<Order>(path+'/'+action,{expected:order.status,...body});
+      setMode('view');
+      setNotice(action==='quote'?'报价已发送。':'申请状态已更新。');
+      onUpdate(updated);
+    }catch(cause){
+      setError(errorText(cause));
+      setOutdated(true);
+    }finally{pending.current=false;setBusy(false);}
+  }
+  function sendQuote(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();
+    const data=new FormData(event.currentTarget);
+    const amount=String(data.get('amount')).trim();
+    const description=String(data.get('description')).trim();
+    const parts=/^(\d{1,7})(?:\.(\d{1,2}))?$/.exec(amount);
+    const amountFen=parts?Number(parts[1])*100+Number((parts[2]??'').padEnd(2,'0')):0;
+    if(amountFen<1||amountFen>maxQuoteFen){setError('请输入 0.01 至 9,999,999.99 元，保留最多两位小数。');return;}
+    if(!description||description.length>500){setError('请用 1 至 500 字说明本件作品的配置和报价包含的费用。');return;}
+    void submit('quote',{amountFen,description,expectedQuoteVersion:order.quote?.version??null});
+  }
+  function edit(next:typeof mode){setMode(next);if(!outdated)setError('');setNotice('');}
+  return <details className="community-receipt">
+    <summary>{order.title} · {order.accountName} · {order.status==='已下单'?'已下单 · 未支付':order.status}</summary>
+    <img loading="lazy" src={order.image} alt={order.title+'申请时的预览'}/>
+    <p>申请编号 {order.id}</p><p>提交时间 {new Date(order.createdAt).toLocaleString('zh-CN')}</p>
+    {order.templateId&&<p>来源款式 {order.templateId} {order.revision}</p>}
+    {order.design&&<details><summary>已冻结的设计配置</summary><pre>{JSON.stringify(order.design,null,2)}</pre></details>}
+    {order.quote&&<div className="order-quote-details"><div><span>一件报价</span><strong>{quoteAmount(order.quote)}</strong></div>
+      <p>{order.quote.description}</p></div>}
+    {order.orderedAt&&<p>下单时间 {new Date(order.orderedAt).toLocaleString('zh-CN')}</p>}
+    {notice&&<p role="status">{notice}</p>}
+    {error&&<p className="error" role="alert">{error} {outdated&&<button onClick={onReload}>重新读取申请</button>}</p>}
+    {order.status==='待人工核价'&&<button disabled={busy||outdated} onClick={()=>submit('status',{status:'已受理'})}>受理申请</button>}
+    {canQuote&&mode==='view'&&<div className="community-actions"><button className="primary" disabled={busy||outdated} onClick={()=>edit('quote')}>{order.quote?'修改报价':'填写报价'}</button>
+      <button disabled={busy||outdated} onClick={()=>edit('close')}>关闭申请</button></div>}
+    {canQuote&&mode==='quote'&&<form className="quote-form" onSubmit={sendQuote}>
+      <label>一件总价（人民币元）<input required name="amount" inputMode="decimal" defaultValue={order.quote?(order.quote.amountFen/100).toFixed(2):''}/></label>
+      <label>款式配置与费用范围<textarea required name="description" maxLength={500} defaultValue={order.quote?.description}/></label>
+      <div className="community-actions"><button type="submit" className="primary" disabled={busy||outdated}>{busy?'正在发送…':'发送报价'}</button>
+        <button type="button" disabled={busy} onClick={()=>edit('view')}>取消</button></div>
+    </form>}
+    {canQuote&&mode==='close'&&<div>
+      <p>关闭后，此申请将结束，消费者无法再按此申请下单。</p>
+      <div className="community-actions"><button disabled={busy||outdated} onClick={()=>submit('status',{
+        status:'已关闭',...(order.quote&&{expectedQuoteVersion:order.quote.version}),
+      })}>确认关闭申请</button><button disabled={busy} onClick={()=>edit('view')}>取消</button></div>
+    </div>}
+  </details>;
+}
+
 function CommunityManager(){
   const [works,setWorks]=useState<Work[]>([]),[orders,setOrders]=useState<ReceivedOrder[]>([]);
   const [epoch,setEpoch]=useState(0),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
@@ -25,12 +89,6 @@ function CommunityManager(){
       setNotice(work.published?'作品已撤回。':'作品已公开。');reload();}
     catch(e){setError(errorText(e));}finally{setBusy(false);}
   }
-  async function processOrder(order:ReceivedOrder,status:'已受理'|'已关闭'){
-    setError('');setBusy(true);
-    try{const path='admin/orders/'+order.accountId+'/'+order.id+'/status';
-      await communityRequest(path,{expected:order.status,status});setNotice('申请状态已更新。');reload();}
-    catch(e){setError(errorText(e));}finally{setBusy(false);}
-  }
   return <main className="model-assets-page community-admin">
     <header className="page-heading"><h1>设计社区</h1><button className="primary" onClick={()=>setUploading(v=>!v)}>{uploading?'收起上传':'上传工作室作品'}</button></header>
     {uploading&&<UploadWork admin onSaved={()=>{setUploading(false);setNotice('作品已保存为草稿。');reload();}}/>}
@@ -44,15 +102,11 @@ function CommunityManager(){
         <button disabled={busy} onClick={()=>change(work)}>{work.published?'撤回作品':'发布到社区'}</button>
       </article>)}</div>}
       <h2>同款申请</h2>
-      {!orders.length?<p>消费者提交后，可在这里查看编号、来源作品和待核价配置。</p>:orders.map(o=><details className="community-receipt" key={o.id}>
-        <summary>{o.title} · {o.accountName} · {o.status}</summary>
-        <img loading="lazy" src={o.image} alt={o.title+'申请时的预览'}/>
-        <p>申请编号 {o.id}</p><p>提交时间 {new Date(o.createdAt).toLocaleString('zh-CN')}</p>
-        {o.templateId&&<p>来源款式 {o.templateId} {o.revision}</p>}
-        {o.status==='待人工核价'&&<button disabled={busy} onClick={()=>processOrder(o,'已受理')}>受理申请</button>}
-        {o.status==='已受理'&&<button disabled={busy} onClick={()=>processOrder(o,'已关闭')}>结束处理</button>}
-        {o.design&&<details><summary>已冻结的设计配置</summary><pre>{JSON.stringify(o.design,null,2)}</pre></details>}
-      </details>)}
+      {!orders.length?<p>消费者提交后，可在这里查看编号、来源作品和待核价配置。</p>:orders.map(o=><AdminOrderCard
+        key={o.accountId+'/'+o.id} order={o} onReload={reload} onUpdate={updated=>{
+          setOrders(previous=>previous.map(receipt=>receipt.accountId===o.accountId&&receipt.id===o.id?{...receipt,...updated}:receipt));
+        }}/>)}
+
     </>}
   </main>;
 }

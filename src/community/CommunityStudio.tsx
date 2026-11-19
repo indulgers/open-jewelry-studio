@@ -1,8 +1,10 @@
 import {lazy,Suspense,useEffect,useState} from 'react';
 import {ReviewDialog} from '../stone-first/ring02/ReviewDialog';
 import {AccountForm} from './AccountForm';
+import {OrderHistory} from './OrderHistory';
+import {WorkRequestDialog} from './WorkRequestDialog';
 import {UploadWork} from './UploadWork';
-import {CommunityAccountChanged,communityRequest,errorText,type Account,type Order,type Work} from './client';
+import {CUSTOMER_SESSION_CHANGED,CommunityAccountChanged,communityRequest,errorText,type Account,type Order,type Work} from './client';
 import './community.css';
 
 const PrivateDesignSummary=lazy(()=>import('./PrivateDesignSummary'));
@@ -14,12 +16,12 @@ export default function CommunityStudio({mode}:{mode:Mode}){
   const [works,setWorks]=useState<Work[]>([]),[orders,setOrders]=useState<Order[]>([]);
   const [loading,setLoading]=useState(true),[version,refresh]=useState(0);
   const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
-  const [auth,setAuth]=useState(false),[upload,setUpload]=useState(false);
+  const [requestWork,setRequestWork]=useState<Work>(),[upload,setUpload]=useState(false);
   const [preview,setPreview]=useState<Work>(),[publish,setPublish]=useState<Work>();
   useEffect(()=>{
     const controller=new AbortController(),signal=controller.signal;
     setLoading(true);setAccount(undefined);setError('');setWorks([]);setOrders([]);
-    setPreview(undefined);setPublish(undefined);setUpload(false);setAuth(false);
+    setPreview(undefined);setPublish(undefined);setUpload(false);setRequestWork(undefined);
     async function load(){
       const session=await communityRequest<{account:Account|null}>('session',undefined,signal);
       const [items,requests]=await Promise.all([
@@ -37,10 +39,27 @@ export default function CommunityStudio({mode}:{mode:Mode}){
       .finally(()=>{if(!signal.aborted)setLoading(false);});
     return ()=>controller.abort();
   },[mine,version]);
-  function loggedIn(user:Account){setAccount(user);setAuth(false);refresh(v=>v+1);}
+  useEffect(()=>{
+    const handleStorage=(event:StorageEvent)=>{
+      if(event.key===CUSTOMER_SESSION_CHANGED)accountChanged();
+    };
+    window.addEventListener('storage',handleStorage);
+    return ()=>window.removeEventListener('storage',handleStorage);
+  },[]);
+  useEffect(()=>{
+    if(!mine||!account||loading)return;
+    const focusOrder=()=>{
+      const id=new URLSearchParams(window.location.hash.split('?')[1]).get('order');
+      if(id)document.getElementById('community-order-'+id)?.focus();
+    };
+    focusOrder();
+    window.addEventListener('hashchange',focusOrder);
+    return ()=>window.removeEventListener('hashchange',focusOrder);
+  },[mine,loading,account,orders]);
+  function loggedIn(user:Account){setAccount(user);setRequestWork(undefined);refresh(v=>v+1);}
   function accountChanged(){
     setAccount(undefined);setWorks([]);setOrders([]);setPreview(undefined);setPublish(undefined);
-    setUpload(false);setAuth(false);setNotice('账号已变更，请核对当前账号后重新操作。');
+    setUpload(false);setRequestWork(undefined);setNotice('账号已变更，请核对当前账号后重新操作。');
     refresh(n=>n+1);
   }
   async function act(action:()=>Promise<void>){
@@ -51,12 +70,13 @@ export default function CommunityStudio({mode}:{mode:Mode}){
       else setError(errorText(cause));
     }finally{setBusy(false);}
   }
-  function order(work:Work){
-    if(!account){setAuth(true);return;}
-    void act(async()=>{
-      const request=await communityRequest<Order>('works/'+work.id+'/orders',{expectedAccount:account.name});
-      setNotice('已提交同款申请，编号 '+request.id+'。可在「我的设计」查看处理状态。');
-    });
+  function startRequest(work:Work){
+    setError('');setNotice('');setPreview(undefined);setRequestWork(work);
+  }
+  function withdrawn(){
+    setRequestWork(undefined);
+    setNotice('这件作品已撤回，可选择其他公开作品。');
+    refresh(v=>v+1);
   }
   function changeVisibility(work:Work){
     if(!account)return;
@@ -89,19 +109,20 @@ export default function CommunityStudio({mode}:{mode:Mode}){
           <img loading="lazy" src={work.image} alt={work.title}/></button>
         <div className="community-work-info"><div><h2>{work.title}</h2>
           <small>{mine?(work.published?'已公开':'仅自己可见'):work.author}</small></div>
-          <button className="shop-text-link" disabled={busy} onClick={()=>mine?(work.published?changeVisibility(work):setPublish(work)):order(work)}>
+          <button className="shop-text-link" disabled={busy} onClick={()=>mine?(work.published?changeVisibility(work):setPublish(work)):startRequest(work)}>
             {mine?(work.published?'转为私密':'发布作品'):'申请同款'}</button></div>
       </article>)}</div>
       {!mine&&works.length>0&&<p className="community-note">同款申请由工作室核价，提交时无需付款。</p>}
-      {mine&&account&&<section className="community-orders"><h2>我的同款申请</h2>
-        {orders.length?<ul>{orders.map(item=><li key={item.id}><strong>{item.title}</strong><span>{item.status}</span><small>受理编号 {item.id}</small></li>)}</ul>:<p>暂无同款申请。</p>}</section>}
+      {mine&&account&&<OrderHistory key={account.name} orders={orders} accountName={account.name}
+        onAccountChanged={accountChanged} onRefresh={()=>refresh(v=>v+1)}/>}
     </>}
-    {auth&&<ReviewDialog title="登录后申请同款" onClose={()=>setAuth(false)}><AccountForm onSuccess={loggedIn}/>
-      <button className="shop-text-link" onClick={()=>setAuth(false)}>返回社区</button></ReviewDialog>}
+    {requestWork&&<WorkRequestDialog key={requestWork.id} work={requestWork} account={account??null} onLogin={setAccount}
+      onClose={()=>setRequestWork(undefined)} onAccountChanged={accountChanged} onWithdrawn={withdrawn}/>}
     {preview&&<ReviewDialog title={preview.title} onClose={()=>setPreview(undefined)}>
       <img className="community-large-preview" src={preview.image} alt={preview.title}/>
       {mine&&account&&preview.design&&<Suspense fallback={<p role="status">正在读取配置…</p>}><PrivateDesignSummary work={preview}/></Suspense>}
-      <button className="shop-text-link" onClick={()=>setPreview(undefined)}>关闭预览</button></ReviewDialog>}
+      <div className="community-actions">{!mine&&<button className="shop-button" onClick={()=>startRequest(preview)}>申请同款</button>}
+        <button className="shop-text-link" onClick={()=>setPreview(undefined)}>关闭预览</button></div></ReviewDialog>}
     {publish&&<ReviewDialog title="发布到设计社区" busy={busy} onClose={()=>setPublish(undefined)}>
       <img className="community-dialog-preview" src={publish.image} alt={publish.title}/>
       <p>所有访客都能看到「{publish.title}」和这张预览图，包括图上可见的刻字。账号资料和详细配置保持私密。</p>

@@ -134,6 +134,9 @@ export function modelAdmin():Plugin{
         res.setHeader('X-Content-Type-Options','nosniff');
         await mkdir(storage,{recursive:true,mode:0o700});
         const [,id,action,...rest]=path.split('/').slice(2);
+        if(id==='public'&&req.method==='GET'&&uuid.test(action??'')&&rest.length===2&&uuid.test(rest[0])&&rest[1]==='quote'){
+          return json(res,200,await templates.quote(action,rest[0]));
+        }
         if(id==='community'){
           const request=new Request('http://'+host+path,{method:req.method,headers:req.headers as HeadersInit,
             ...(req.method==='POST'?{body:Readable.toWeb(req),duplex:'half'}:{})} as RequestInit);
@@ -271,7 +274,11 @@ export function modelAdmin():Plugin{
         const path=req.url?.split('?',1)[0];
         if(cloudEnabled&&path&&(/^\/(models|media)\//.test(path)||/^\/api\/model-admin(?:\/|$)/.test(path))){
           const route=path.startsWith('/api/')?path:'/api/model-admin/assets'+path;
-          const request=new Request('http://'+req.headers.host+route,{method:req.method,headers:req.headers as HeadersInit,
+          const url=new URL(req.url!,'http://'+req.headers.host);
+          url.pathname=route;
+          // Vercel reserves this rewrite parameter; here the route comes from the request path.
+          url.searchParams.delete('path');
+          const request=new Request(url,{method:req.method,headers:req.headers as HeadersInit,
             ...(req.method==='POST'?{body:Readable.toWeb(req),duplex:'half'}:{})} as RequestInit);
           void cloudAdmin(request,cloud).then(response=>{
             res.writeHead(response.status,Object.fromEntries(response.headers));

@@ -4,7 +4,7 @@
 
 ## November 17 studio requirements
 
-The [acceptance matrix](docs/november-studio-acceptance.md) tracks the 17 requested changes and their public entry points. Consumers can save private designs, publish community works and request manual quotes. The following brand-prototype notes describe the earlier release.
+The [acceptance matrix](docs/november-studio-acceptance.md) tracks the 17 requested changes and their public entry points. Consumers can save private designs, publish community works and request a studio quote. A buyer can review the studio’s current single-piece CNY price and terms, then confirm once to place an unpaid order. The studio can revise a quote until confirmation. Payment, stock allocation and fulfillment require commerce integrations. The following brand-prototype notes describe the earlier release.
 
 ## Platform
 

@@ -124,6 +124,7 @@ function JewelryStudio({active}:{active:boolean}){
 type StudioRoute={tab:'showroom'|'modules'}|{tab:'stonefirst';page:'fit'|'community'|'mine'|'catalog'|'cart'|'ring02'|'recipes'|'reference'|'published';templateId?:string;revision?:string;section?:'collection'|'story'};
 function readRoute():StudioRoute{
   const hash=window.location.hash;
+  if(hash.startsWith('#/my-designs?'))return {tab:'stonefirst',page:'mine'};
   switch(hash){
     case '#/diy':return {tab:'stonefirst',page:'catalog'};
     case '#/diy/collection':return {tab:'stonefirst',page:'catalog',section:'collection'};

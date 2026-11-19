@@ -58,8 +58,12 @@ export type ManagedTemplate = ProductPresentation&{
 };
 export type PublishedTemplate = Pick<ManagedTemplate,'id'|'name'|'revision'|'headName'|'bandName'|'pricing'|'description'|'order'|'featured'|'catalogId'|'campaign'|'collection'> & {url: string; image: string};
 
+export function managedAssetUrl(path:string){
+  return ((import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE)?'/api/model-admin/public/':'/models/managed/')+path;
+}
+
 export async function fetchManaged<T>(path:string,signal:AbortSignal):Promise<T>{
-  const response=await fetch(((import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE)?'/api/model-admin/public/':'/models/managed/')+path,{signal});
+  const response=await fetch(managedAssetUrl(path),{signal});
   if(!response.ok)throw new Error('款式暂不可用。');
   return response.json();
 }

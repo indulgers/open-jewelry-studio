@@ -6,12 +6,12 @@ import {parseDesign} from '../../src/stone-first/ring02/model.ts';
 import {RequestError,uuid} from './templates.ts';
 import type {CommunityStore} from './community-store.ts';
 import {accountAction,communityRoot,digest,fail,getJson,memberOf,putJson,reply} from './community-account.ts';
+import {confirmOrder,manageOrder,orderSummary,type Order} from './community-orders.ts';
 import {previewJpeg} from './community-image.ts';
 
 type SavedDesign={id:string;title:string;author:string;templateId?:string;revision?:string;design?:object;basis?:DesignBasis;details?:{label:string;value:string}[];createdAt:string};
 type PublicWork=Pick<SavedDesign,'id'|'title'|'author'|'createdAt'> & {image:string;published:boolean};
 type Published={owner:string;work:PublicWork};
-type Order={id:string;title:string;workId:string;owner:string;accountName:string;status:'待人工核价'|'已受理'|'已关闭';createdAt:string;templateId?:string;revision?:string;design?:object;basis?:DesignBasis};
 const rootPath='/api/model-admin/community/';
 const jsonKey=(owner:string,id:string)=>'designs/'+owner+'/'+id+'.json';
 const publicKey=(id:string)=>'published/'+id+'.json';
@@ -38,9 +38,15 @@ export async function inputOf(req:Request,max=1450000){
 function publicWork(item:SavedDesign,published:boolean):PublicWork{
   return {id:item.id,title:item.title,author:item.author,createdAt:item.createdAt,image:rootPath+'works/'+item.id+'/image',published};
 }
+async function readInBatches<T, R>(items: T[], read: (item: T) => Promise<R>) {
+  const results: R[] = [];
+  for (let offset = 0; offset < items.length; offset += 8)
+    results.push(...await Promise.all(items.slice(offset, offset + 8).map(read)));
+  return results;
+}
 async function list<T>(store:CommunityStore,prefix:string){
   const keys=await store.list(communityRoot+prefix);
-  const result=await Promise.all(keys.filter(key=>key.endsWith('.json')).map(async key=>(await store.get(key))?.json() as Promise<T>|undefined));
+  const result=await readInBatches(keys.filter(key=>key.endsWith('.json')),async key=>(await store.get(key))?.json() as Promise<T>|undefined);
   return result.filter((item):item is Awaited<T>=>item!==undefined);
 }
 const newest=<T extends {createdAt:string}>(all:T[])=>all.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
@@ -100,7 +106,6 @@ async function imageResponse(store:CommunityStore,id:string){
   if(!image)return fail(404,'找不到作品预览。');
   return new Response(image.body,{headers:{'Content-Type':'image/jpeg','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
 }
-const orderSummary=(o:Order)=>({id:o.id,workId:o.workId,title:o.title,status:o.status,createdAt:o.createdAt,basis:o.basis,templateId:o.templateId});
 
 export async function communityApi(req:Request,path:string,store:CommunityStore,isAdmin:boolean,localReader?:PublishedReleaseReader):Promise<Response>{
   try{
@@ -114,9 +119,11 @@ export async function communityApi(req:Request,path:string,store:CommunityStore,
     if(post&&req.headers.get('origin')!==new URL(req.url).origin)return fail(403,'请从本站提交。');
     if(!get&&!post)return fail(405,'请求方法无效。');
     if(!admin&&post&&['register','login'].includes(route))return await accountAction(req,store,route,await inputOf(req));
-    const member=await memberOf(req,store);
-    if(!admin&&get&&route==='session')return reply(member?{account:{name:member.name},localProfileId:member.id}:{account:null});
     if(!admin&&get&&route==='works')return reply(newest((await list<Published>(store,'published/')).map(entry=>entry.work)));
+    const workImage=!admin&&resource==='works'&&uuid.test(id)&&action==='image'&&segments.length===3&&get;
+    if(workImage&&await getJson(store,publicKey(id)))return await imageResponse(store,id);
+    const member=admin?undefined:await memberOf(req,store);
+    if(!admin&&get&&route==='session')return reply(member?{account:{name:member.name},localProfileId:member.id}:{account:null});
     const posted=post?await inputOf(req):{};
     const expected=get?req.headers.get('X-Expected-Account'):posted.expectedAccount;
     const checkAccount=!admin&&(post||(get&&(route==='orders'||route==='mine')&&expected!==null));
@@ -125,15 +132,15 @@ export async function communityApi(req:Request,path:string,store:CommunityStore,
     }
     if(!admin&&post&&route==='logout')return await accountAction(req,store,route,posted);
     const owner=admin?'studio':member?.id;
-    if(!admin&&resource==='works'&&uuid.test(id)&&action==='image'&&segments.length===3&&get){
-      if(!await getJson(store,publicKey(id))&&!(member&&await getJson(store,jsonKey(member.id,id)))&&!(isAdmin&&await getJson(store,jsonKey('studio',id))))return fail(404,'找不到作品。');
+    if(workImage){
+      if(!(member&&await getJson(store,jsonKey(member.id,id)))&&!(isAdmin&&await getJson(store,jsonKey('studio',id))))return fail(404,'找不到作品。');
       return await imageResponse(store,id);
     }
     if(!owner)return fail(401,'请先登录消费者账号。');
     if(post&&route==='designs')return await saveDesign(posted,owner,admin,store,localReader);
     if(get&&route===(admin?'designs':'mine')){
       const items=await list<SavedDesign>(store,'designs/'+owner+'/');
-      return reply(newest(await Promise.all(items.map(async item=>({...item,...publicWork(item,!!await getJson(store,publicKey(item.id)))})))));
+      return reply(newest(await readInBatches(items,async item=>({...item,...publicWork(item,!!await getJson(store,publicKey(item.id)))}))));
     }
     if(resource==='designs'&&uuid.test(id)&&segments.length===3&&post&&(action==='publish'||action==='unpublish')){
       const item=await getJson<SavedDesign>(store,jsonKey(owner,id));
@@ -161,20 +168,10 @@ export async function communityApi(req:Request,path:string,store:CommunityStore,
       }
       return reply(orderSummary(order),201);
     }
-    if(admin&&post&&resource==='orders'&&segments.length===4&&segments[3]==='status'){
-      if(![id,action].every(part=>/^[a-f0-9]{32}$/.test(part)))return fail(404,'申请不存在。');
-      const key='orders/'+id+'/'+action+'.json';
-      const saved=await store.get(communityRoot+key);
-      if(!saved)return fail(404,'申请不存在。');
-      const current=await saved.json() as Order;
-      const {expected,status}=posted;
-      if(status!=='已受理'&&status!=='已关闭')return fail(422,'处理状态无效。');
-      if(current.status===status)return reply(orderSummary(current));
-      if(expected!==current.status||current.status==='已关闭')return fail(409,'申请状态已变更，请刷新。');
-      const updated={...current,status} as Order;
-      if(!await putJson(store,key,updated,{etag:saved.headers.get('etag')}))return fail(409,'已有其他人更新了此申请，请刷新。');
-      return reply(orderSummary(updated));
-    }
+    if(admin&&post&&resource==='orders'&&segments.length===4&&['status','quote'].includes(segments[3]))
+      return await manageOrder(store,id,action,segments[3],posted);
+    if(!admin&&post&&resource==='orders'&&segments.length===3&&action==='confirm')
+      return await confirmOrder(store,owner,id,posted);
     if(get&&route==='orders'){
       const orders=newest(await list<Order>(store,admin?'orders/':'orders/'+owner+'/'));
       return reply(orders.map(order=>admin?{...orderSummary(order),accountName:order.accountName,accountId:order.owner,templateId:order.templateId,revision:order.revision,

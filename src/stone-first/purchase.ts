@@ -1,6 +1,5 @@
-import {fetchManaged,type PublishedTemplate} from './reference/managed-types';
-import {templateQuote} from './pricing';
-import type {DemoOrder} from './ring02/demoOrder';
+import type {PublishedTemplate} from './reference/managed-types';
+import {isPriceQuote,templateQuote,type PriceQuote} from './pricing';
 import type {CatalogRing} from './catalog';
 import {RING02_TEMPLATE} from './ring02/assets';
 import {addDemoOrder,estimateRing02} from './ring02/demoOrder';
@@ -24,10 +23,22 @@ export function purchaseOriginal(template:CatalogRing){
   });
 }
 
+export async function confirmQuote(path:string,expected:PriceQuote):Promise<PriceQuote>{
+  let response:Response;
+  try{response=await fetch('/api/model-admin/public/'+path,{cache:'no-store'});}
+  catch{throw new Error('暂时无法连接报价服务，请重试。');}
+  if(response.status===404)throw new Error('此款暂不可选购，请返回款式系列重新选择。');
+  if(response.status===409)throw new Error('款式或价格已更新，请刷新后重新确认。');
+  if(!response.ok)throw new Error('暂时无法确认报价，请重试。');
+  const quote:unknown=await response.json().catch(()=>null);
+  if(!isPriceQuote(quote))throw new Error('报价信息不完整或无效，请刷新后重新确认。');
+  if(quote.amount!==expected.amount||quote.version!==expected.version)throw new Error('商品价格已更新，请刷新后重新确认。');
+  return quote;
+}
+
 export async function purchasePublished(product:PublishedTemplate){
   if(!product.pricing)throw new Error('此款暂未报价。');
-  const quote=await fetchManaged<DemoOrder['quote']>(product.id+'/'+product.revision+'/quote',new AbortController().signal);
-  if(quote.amount!==templateQuote(product.pricing,product.revision).amount||quote.version!==product.revision)throw new Error('商品价格已更新，请刷新后重新选购。');
+  const quote=await confirmQuote(product.id+'/'+product.revision+'/quote',templateQuote(product.pricing,product.revision));
   addDemoOrder({templateRevision:product.revision,revision:crypto.randomUUID(),confirmedAt:new Date().toISOString(),
     managed:{id:product.id,revision:product.revision,name:product.name},design:ORIGINAL_REFERENCE,quote,stones:[],
     details:[{label:'款式',value:product.name},{label:'搭配',value:'原款搭配'},{label:'金属外观',value:'银色'}]});

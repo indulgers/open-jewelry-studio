@@ -17,6 +17,7 @@ import {ReviewDialog} from '../ring02/ReviewDialog';
 import {RING02_PRECISION_ROUTE} from '../ring02/assets';
 import {VIEWS,type RingView,type RingCapture} from '../ring02/Ring02Stage';
 import {engravingProblem} from '../ring02/engraving';
+import {confirmQuote} from '../purchase';
 import {addDemoOrder,formatYuan,hasDemoOrder} from '../ring02/demoOrder';
 import {createReferenceLibrary} from './part-library';
 import {PartCard,PartLibrary,headChoices,bandImage} from './PartLibrary';
@@ -167,14 +168,12 @@ function Editor({template}:{template:CatalogRing}){
     if(!thumbnail){setCartFeedback({tone:'error',title:'购物车未能保存',description:'搭配图片暂未生成。'});return;}
     setAdding(true);setCartFeedback(undefined);
     try{
+      let confirmed=quote;
       if(import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE){
         const query=new URLSearchParams({head:head.id,band:band.id,headRevision:head.revision,bandRevision:band.revision,center:design.center,halo:design.halo,shoulder:design.shoulder});
-        const response=await fetch('/api/model-admin/public/combination-quote?'+query);
-        const confirmed=await response.json();
-        if(!response.ok)throw new Error(confirmed.error??'报价暂不可用，请重试。');
-        if(confirmed.amount!==quote.amount||confirmed.version!==quote.version)throw new Error('报价已更新，请刷新后重新确认。');
+        confirmed=await confirmQuote('combination-quote?'+query,quote);
       }
-      addDemoOrder({name:displayName,templateRevision:template.revision,revision,confirmedAt:new Date().toISOString(),design,quote,details,thumbnail,
+      addDemoOrder({name:displayName,templateRevision:template.revision,revision,confirmedAt:new Date().toISOString(),design,quote:confirmed,details,thumbnail,
         stones:ring.stones.map(stone=>({id:stone.name,zone:stone.zone,appearance:design[stone.zone],placement:stone.matrix.toArray()})),
       });
       setReview(false);setCartFeedback({tone:'success',title:'已加入购物车',description:'你的戒指方案已保存。'});

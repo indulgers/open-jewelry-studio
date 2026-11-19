@@ -29,3 +29,19 @@
 .community-config{font:inherit;white-space:normal;overflow-wrap:anywhere;max-height:45vh;overflow:auto}
 .community-config div{display:grid;grid-template-columns:minmax(5.4em,auto) 1fr;gap:1rem;padding:.45rem 0;border-bottom:1px solid var(--line)}
 .community-config dt{color:var(--muted)}.community-config dd{margin:0}
+
+.community-page .ring02-dialog{width:min(30rem,calc(100% - 2rem));max-height:calc(100dvh - 2rem);overflow:auto;padding:clamp(20px,4vw,32px);border:1px solid var(--line);border-radius:var(--shop-radius);color:var(--ink);background:var(--panel)}
+.community-page .ring02-dialog::backdrop{background:#201b1675}
+.community-page .ring02-dialog h2{margin:0 0 1.25rem;font:var(--display-weight,500) 1.6rem/1.3 var(--shop-title)}
+.community-request-work{display:grid;grid-template-columns:4.75rem minmax(0,1fr);align-items:center;gap:1rem;padding-block:1rem;border-block:1px solid var(--line)}
+.community-request-work img{display:block;width:100%;aspect-ratio:1;object-fit:contain;background:var(--tint)}
+.community-request-work strong,.community-request-work small{display:block;overflow-wrap:anywhere}
+.community-request-work strong{font:500 1.2rem/1.45 var(--shop-title)}
+.community-request-work small,.community-request-account{margin-top:.35rem;color:var(--muted)}
+.community-request-terms{line-height:1.65}
+.community-request-account{font-size:.875rem}
+.community-request-receipt dl{margin:1rem 0 1.25rem}
+.community-request-receipt dl div{display:grid;grid-template-columns:5em minmax(0,1fr);gap:.75rem;padding-block:.25rem}
+.community-request-receipt dt{color:var(--muted)}
+.community-request-receipt dd{margin:0;overflow-wrap:anywhere}
+.community-request-receipt .shop-button{text-decoration:none}

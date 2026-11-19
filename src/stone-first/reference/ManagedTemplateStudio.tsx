@@ -5,7 +5,8 @@ import {useFitScope} from '../fit/FitSession';
 import {newDesignFit} from '../fit/profile';
 import {ringSizeDescription} from '../fit/sizing';
 import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
-import {addDemoOrder,formatYuan,type DemoOrder} from '../ring02/demoOrder';
+import {confirmQuote} from '../purchase';
+import {addDemoOrder,formatYuan} from '../ring02/demoOrder';
 import {templateQuote} from '../pricing';
 import {useCallback,useEffect,useMemo,useRef,useState,type RefObject} from 'react';
 import {STONE_APPEARANCES,STONE_APPEARANCE_IDS,type StoneAppearance} from '../../viewer/stoneAppearance';
@@ -61,8 +62,7 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
     if(!quote||!ready||adding)return;
     setAdding(true);setFeedback(undefined);
     try{
-      const confirmed=await fetchManaged<DemoOrder['quote']>(template.id+'/'+template.revision+'/quote',new AbortController().signal);
-      if(confirmed.amount!==quote.amount||confirmed.version!==quote.version)throw new Error('价格已更新，请重新打开商品。');
+      const confirmed=await confirmQuote(template.id+'/'+template.revision+'/quote',quote);
       const thumbnail=capture.current?.();
       if(!thumbnail)throw new Error('款式图片还未准备好，请稍后重试。');
       addDemoOrder({templateRevision:template.revision,revision:crypto.randomUUID(),confirmedAt:new Date().toISOString(),

@@ -1,5 +1,5 @@
 import {hasLegacyGemColor} from '../../viewer/stoneAppearance';
-import {componentTotal,isMoney,sumMoney} from '../pricing';
+import {componentTotal,isPriceQuote,sumMoney,type PriceQuote} from '../pricing';
 import type {FittedStone,RingDesign,paveSpacing} from './model';
 import {RING02_TEMPLATE} from './assets';
 import {RING_CATALOG} from '../catalog';
@@ -26,7 +26,7 @@ export type DemoOrder={
   revision:string;
   confirmedAt:string;
   design:RingDesign|ReferenceDesign;
-  quote:{amount:number;currency:'CNY';version:string;leadTime:string};
+  quote:PriceQuote;
   details:Detail[];
   thumbnail?:string;
   managed?:{id:string;revision:string;name:string};
@@ -47,6 +47,7 @@ export function addDemoOrder(order:DemoOrder){
   if(!validManaged(order.managed)&&!RING_CATALOG.some(template=>template.revision===order.templateRevision&&template.listed))throw new Error('当前款式已停售');
   const key=ORDER_PREFIX+order.revision;
   if(localStorage.getItem(key)!==null)return false;
+  if(!isPriceQuote(order.quote))throw new Error('当前报价无效，请重新确认方案。');
   const thumbnail=validThumbnail(order.thumbnail)?order.thumbnail:undefined;
   try{localStorage.setItem(key,JSON.stringify({...order,thumbnail}));}
   catch(error){
@@ -71,8 +72,7 @@ export function demoOrders(){
       const order=JSON.parse(localStorage.getItem(key)??'null');
       if(order&&typeof order.templateRevision==='string'&&order.revision===key.slice(ORDER_PREFIX.length)
         &&typeof order.confirmedAt==='string'&&Number.isFinite(Date.parse(order.confirmedAt))
-        &&isMoney(order.quote?.amount)&&order.quote.amount>0&&order.quote.currency==='CNY'
-        &&typeof order.quote.version==='string'&&typeof order.quote.leadTime==='string'&&Array.isArray(order.details)
+        &&isPriceQuote(order.quote)&&Array.isArray(order.details)
         &&order.details.every((detail:Detail)=>detail&&typeof detail.label==='string'&&typeof detail.value==='string')){
         orders.push({...order,requiresWhiteConfirmation:hasLegacyGemColor(order.design),name:typeof order.name==='string'&&order.name.length<=200?order.name:undefined,managed:validManaged(order.managed)?order.managed:undefined,thumbnail:validThumbnail(order.thumbnail)?order.thumbnail:undefined});
       }

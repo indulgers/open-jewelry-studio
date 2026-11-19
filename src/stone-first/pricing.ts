@@ -8,6 +8,15 @@ export function templateQuote(pricing:TemplatePrice,version:string){
   return {amount:sumMoney([pricing.base,pricing.head,pricing.band,pricing.pave]),currency:'CNY' as const,version,leadTime:'7–10 个工作日'};
 }
 
+export type PriceQuote=ReturnType<typeof templateQuote>;
+export function isPriceQuote(value:unknown):value is PriceQuote{
+  if(!value||typeof value!=='object')return false;
+  const quote=value as Partial<PriceQuote>;
+  return isMoney(quote.amount)&&quote.amount>0&&quote.currency==='CNY'
+    &&typeof quote.version==='string'&&quote.version.trim().length>0
+    &&typeof quote.leadTime==='string'&&quote.leadTime.trim().length>0;
+}
+
 // The published price book is fixed for the current browser visit; cart entries keep that snapshot.
 export let activePriceBook:PriceBook|undefined;
 export function setPriceBook(book:PriceBook){activePriceBook=book;}

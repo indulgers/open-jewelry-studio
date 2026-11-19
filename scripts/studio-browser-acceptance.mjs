@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import {randomBytes} from 'node:crypto';
 import {existsSync,mkdirSync,mkdtempSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -7,10 +8,11 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {chromium} from 'playwright-core';
 
 const origin='http://127.0.0.1:5188';
+const adminPassword=randomBytes(32).toString('hex');
 const directory='visual-artifacts';
 mkdirSync(directory,{recursive:true});
 const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','5188','--strictPort'],{
-  stdio:'inherit',env:{...process.env,XIANGYAN_MODEL_DIR:mkdtempSync(join(tmpdir(),'studio-acceptance-'))},
+  stdio:'inherit',env:{...process.env,XIANGYAN_R2_ACCOUNT_ID:'',XIANGYAN_ADMIN_PASSWORD:adminPassword,XIANGYAN_MODEL_DIR:mkdtempSync(join(tmpdir(),'studio-acceptance-'))},
 });
 let browser,page;
 async function capture(name){await page.screenshot({path:join(directory,name+'.png')});}
@@ -236,7 +238,7 @@ try{
     if(await fetch(origin).then(r=>r.ok).catch(()=>false))break;
     await delay(400);
   }
-  const executablePath=['/usr/bin/google-chrome','/usr/bin/chromium'].find(existsSync);
+  const executablePath=['/usr/bin/google-chrome','/usr/bin/chromium','/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'].find(existsSync);
   assert.ok(executablePath,'Install Chromium for visual acceptance');
   browser=await chromium.launch({executablePath,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
   page=await browser.newPage({viewport:{width:1440,height:1000},deviceScaleFactor:1});
@@ -295,15 +297,52 @@ try{
   await page.getByRole('button',{name:'发布作品',exact:true}).click();
   await page.getByRole('button',{name:'确认发布'}).click();
   await page.getByText('已公开',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'退出登录'}).click();
+  await page.getByRole('button',{name:'登录',exact:true}).waitFor();
   await page.goto(origin+'/#/community');
-  await page.getByRole('button',{name:'申请同款'}).click();
-  await page.getByText(/已提交同款申请，编号/).waitFor();
+  await page.getByRole('button',{name:'预览花冠侧影'}).click();
+  await page.getByRole('dialog',{name:'花冠侧影'}).getByRole('button',{name:'申请同款'}).click();
+  const signIn=page.getByRole('dialog',{name:'登录后申请同款'});
+  await signIn.getByLabel('账号名').fill('studio_reviewer');
+  await signIn.getByLabel('密码',{exact:true}).fill('local-test-account-only');
+  await signIn.getByRole('button',{name:'登录',exact:true}).click();
+  await page.getByRole('dialog',{name:'确认同款申请'}).getByText('花冠侧影',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'确认提交申请'}).click();
+  const receipt=page.getByRole('dialog',{name:'同款申请回执'});
+  await receipt.getByText('待人工核价',{exact:true}).waitFor();
   await capture('02-community');
-  await page.goto(origin+'/#/my-designs');
-  await page.getByText('待人工核价',{exact:true}).waitFor();
+  await receipt.getByRole('link',{name:'查看这笔申请'}).click();
+  await page.locator('.community-orders').getByText('待人工核价',{exact:true}).waitFor();
+  await page.waitForFunction(()=>document.activeElement?.id.startsWith('community-order-'));
+  const adminContext=await browser.newContext();
+  try{
+    const staff=await adminContext.newPage();
+    await staff.goto(origin+'/admin/');
+    await staff.getByRole('button',{name:'设计社区'}).click();
+    await staff.getByLabel('社区管理员口令').fill(adminPassword);
+    await staff.getByRole('button',{name:'登录社区管理'}).click();
+    await staff.locator('summary').filter({hasText:'花冠侧影'}).click();
+    await staff.getByRole('button',{name:'受理申请'}).click();
+    await staff.getByRole('button',{name:'填写报价'}).click();
+    await staff.getByLabel('一件总价（人民币元）').fill('1688.50');
+    await staff.getByLabel('款式配置与费用范围').fill('花冠侧影一件，含银托、配钻与镶嵌工费。');
+    await staff.getByRole('button',{name:'发送报价'}).click();
+    await staff.getByText('报价已发送。',{exact:true}).waitFor();
+  }finally{await adminContext.close();}
+  await page.reload();
+  await page.getByRole('button',{name:'核对报价并下单'}).click();
+  const quotation=page.getByRole('dialog',{name:'核对报价并下单'});
+  await quotation.getByText('花冠侧影一件，含银托、配钻与镶嵌工费。').waitFor();
+  await quotation.getByRole('button',{name:/确认按.*1,688\.50.*下单/}).click();
+  await page.getByText('已下单 · 未支付',{exact:true}).waitFor();
+  await page.reload();
+  await page.getByText('已下单 · 未支付',{exact:true}).waitFor();
   const orders=await page.request.get(origin+'/api/model-admin/community/orders',{headers:{'X-Expected-Account':'studio_reviewer'}});
   assert.equal(orders.status(),200);
-  assert.equal((await orders.json()).length,1);
+  const purchases=await orders.json();
+  assert.equal(purchases.length,1);
+  assert.equal(purchases[0].status,'已下单');
+  assert.equal(purchases[0].quote.amountFen,168850);
   await page.goto(origin+'/#/stonefirst/ring-02');
   const save=page.getByRole('button',{name:'保存设计',exact:true});
   await save.waitFor({timeout:90000});
