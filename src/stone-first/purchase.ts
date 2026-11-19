@@ -23,16 +23,18 @@ export function purchaseOriginal(template:CatalogRing){
   });
 }
 
+export class CatalogQuoteChanged extends Error {}
+
 export async function confirmQuote(path:string,expected:PriceQuote):Promise<PriceQuote>{
   let response:Response;
   try{response=await fetch('/api/model-admin/public/'+path,{cache:'no-store'});}
   catch{throw new Error('暂时无法连接报价服务，请重试。');}
-  if(response.status===404)throw new Error('此款暂不可选购，请返回款式系列重新选择。');
-  if(response.status===409)throw new Error('款式或价格已更新，请刷新后重新确认。');
+  if(response.status===404)throw new CatalogQuoteChanged('此款暂不可选购，请从当前在售款式重新选择。');
+  if(response.status===409)throw new CatalogQuoteChanged('款式或价格已更新，请查看当前在售款式并重新确认。');
   if(!response.ok)throw new Error('暂时无法确认报价，请重试。');
   const quote:unknown=await response.json().catch(()=>null);
   if(!isPriceQuote(quote))throw new Error('报价信息不完整或无效，请刷新后重新确认。');
-  if(quote.amount!==expected.amount||quote.version!==expected.version)throw new Error('商品价格已更新，请刷新后重新确认。');
+  if(quote.amount!==expected.amount||quote.version!==expected.version)throw new CatalogQuoteChanged('商品价格已更新，请查看当前在售款式并重新确认。');
   return quote;
 }
 

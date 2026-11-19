@@ -257,3 +257,8 @@ summary { cursor: pointer; font-size: 14px; }
 .community-receipt{border-top:1px solid #d9d6d0;padding:14px 0}
 .community-receipt img{max-width:240px;max-height:200px;object-fit:contain}
 .community-receipt pre{white-space:pre-wrap;overflow-wrap:anywhere}
+
+.admin-order-tools{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px 24px;margin:0 0 16px}
+.admin-order-tools label{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+.admin-order-tools select{min-height:38px}
+.admin-order-tools strong{color:#242018;font-size:1.12rem;font-variant-numeric:tabular-nums}

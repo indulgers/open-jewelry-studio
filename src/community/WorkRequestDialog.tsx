@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {ReviewDialog} from '../stone-first/ring02/ReviewDialog';
+import {useOrderMutation} from './useOrderMutation';
 import {AccountForm} from './AccountForm';
 import {CommunityAccountChanged,CommunityRequestError,communityRequest,errorText,type Account,type Order,type Work} from './client';
 
@@ -13,8 +14,10 @@ type Props={
 };
 
 export function WorkRequestDialog({work,account,onLogin,onClose,onAccountChanged,onWithdrawn}:Props){
-  const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
+  const unknownResult='尚未确认工作室是否收到申请。重试会查询或创建同一笔申请。';
+  const mutation=useOrderMutation(account?.name,()=>setError('等待超时。'+unknownResult));
+  const {busy}=mutation;
   const [receipt,setReceipt]=useState<Order>();
   const trackingLink=useRef<HTMLAnchorElement>(null);
   const confirmButton=useRef<HTMLButtonElement>(null);
@@ -29,15 +32,19 @@ export function WorkRequestDialog({work,account,onLogin,onClose,onAccountChanged
 
   async function submit(){
     if(!account||busy||receipt)return;
-    setBusy(true);
+    const signal=mutation.start();
+    if(!signal)return;
     setError('');
     try{
-      setReceipt(await communityRequest<Order>('works/'+work.id+'/orders',{expectedAccount:account.name}));
+      const accepted=await communityRequest<Order>('works/'+work.id+'/orders',{expectedAccount:account.name},signal);
+      if(!signal.aborted)setReceipt(accepted);
     }catch(cause){
+      if(signal.aborted)return;
       if(cause instanceof CommunityAccountChanged)onAccountChanged();
       else if(cause instanceof CommunityRequestError&&cause.status===404)onWithdrawn();
-      else setError(cause instanceof TypeError?'连接中断，请检查网络后重试。':errorText(cause));
-    }finally{setBusy(false);}
+      else if(cause instanceof TypeError)setError('连接中断。'+unknownResult);
+      else setError(errorText(cause));
+    }finally{mutation.finish(signal);}
   }
 
   return <ReviewDialog title={receipt?'同款申请回执':account?'确认同款申请':'登录后申请同款'} busy={busy} onClose={onClose}>

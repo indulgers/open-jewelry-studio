@@ -53,3 +53,28 @@ it('keeps account save outside the admin preview even for an already published t
   await screen.findByText('三维画布');
   expect(screen.queryByRole('button',{name:'保存设计'})).toBeNull();
 });
+
+it.each([404,409,200])('offers the current catalog instead of retrying a superseded price (%i)',async status=>{
+  const priced={...template,pricing:{base:100,head:0,band:0,pave:0}};
+  vi.stubGlobal('fetch',vi.fn(async(path:string)=>path.endsWith('/quote')
+    ?Response.json({amount:120,version:priced.revision,currency:'CNY',leadTime:'待确认'},{status})
+    :Response.json({account:null})));
+  render(<ManagedTemplateStudio template={priced}/>);
+  await screen.findByText('三维画布');
+  act(()=>renderState.report?.());
+  fireEvent.click(screen.getByRole('button',{name:'加入购物车'}));
+  expect(await screen.findByRole('link',{name:'查看当前在售款式'})).toHaveAttribute('href','#/diy/collection');
+  expect(screen.queryByRole('button',{name:'重试'})).toBeNull();
+  expect(screen.queryByRole('button',{name:'加入购物车'})).toBeNull();
+  expect(Object.keys(localStorage).some(key=>key.includes('diy-demo-order'))).toBe(false);
+});
+
+it('allows a transient quote error to retry from the same editor',async()=>{
+  vi.stubGlobal('fetch',vi.fn(async(path:string)=>path.endsWith('/quote')?new Response(null,{status:503}):Response.json({account:null})));
+  render(<ManagedTemplateStudio template={{...template,pricing:{base:100,head:0,band:0,pave:0}}}/>);
+  await screen.findByText('三维画布');
+  act(()=>renderState.report?.());
+  fireEvent.click(screen.getByRole('button',{name:'加入购物车'}));
+  expect(await screen.findByRole('button',{name:'重试'})).toBeEnabled();
+  expect(screen.queryByRole('link',{name:'查看当前在售款式'})).toBeNull();
+});

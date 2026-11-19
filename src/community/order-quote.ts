@@ -1,4 +1,6 @@
-export const maxQuoteFen = 999_999_999;
+import {maxPriceYuan} from '../stone-first/pricing.ts';
+
+export const maxQuoteFen = maxPriceYuan * 100;
 
 export type OrderQuote = {
   amountFen: number;

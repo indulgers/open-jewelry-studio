@@ -34,7 +34,7 @@ it('only converts the buyer’s current studio price into one immutable unpaid o
     expect((await request(adminRoute + 'quote', quote, buyer.cookie)).status).toBe(401);
     expect((await request(adminRoute + 'quote', quote, '', true)).status).toBe(409);
     expect((await request(adminRoute + 'status', {expected: '待人工核价', status: '已受理'}, '', true)).status).toBe(200);
-    for (const amountFen of [0, -2, 50.5, 1_000_000_000, '1290.99'])
+    for (const amountFen of [0, -2, 50.5, 100_000_001, '1290.99'])
       expect((await request(adminRoute + 'quote', {...quote, amountFen}, '', true)).status).toBe(422);
     for (const description of ['', '  ', '字'.repeat(501)])
       expect((await request(adminRoute + 'quote', {...quote, description}, '', true)).status).toBe(422);

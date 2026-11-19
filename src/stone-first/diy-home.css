@@ -87,7 +87,11 @@
   .diy-story{grid-template-columns:1fr;gap:25px;padding-block:48px}.diy-story h2{font-size:30px}.diy-story p{font-size:14px}
   .diy-footer{grid-template-columns:1fr;gap:24px}.diy-footer nav{justify-content:space-between;gap:12px}.diy-footer small{font-size:10px}
 }
-@media(max-width:480px){.product-actions{grid-template-columns:1fr}}
+@media(max-width:480px){
+  .product-actions{grid-template-columns:1fr}
+  .diy-template .diy-reference-price{align-items:flex-start;flex-direction:column;gap:2px}
+  .diy-reference-price span{white-space:nowrap}
+}
 
 .diy-wearing{padding-block:70px 0}
 .diy-wearing-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
@@ -114,7 +118,7 @@
   .hero-product-info strong{font-size:19px}
   .hero-tag-price strong{font-size:15px}
   .diy-template h3{font-size:20px}
-  .diy-template-image img{padding:12px}
+  .diy-template-image img{padding:2px}
   .diy-template .product-actions .shop-button{font-size:12px}
   .diy-reference-price strong{font-size:21px}
 }

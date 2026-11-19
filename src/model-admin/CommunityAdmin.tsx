@@ -1,11 +1,17 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {UploadWork} from '../community/UploadWork';
 import {communityRequest,errorText,quoteAmount,type Order,type Work} from '../community/client';
-import {maxQuoteFen} from '../community/order-quote';
+import {maxQuoteFen,type OrderStatus} from '../community/order-quote';
 import '../community/community.css';
 import '../community/order-quote.css';
 
 type ReceivedOrder=Order&{accountName:string;accountId:string;image:string;templateId?:string;revision?:string;design?:object};
+const orderStatuses:OrderStatus[]=['待人工核价','已受理','已报价','已下单','已关闭'];
+const displayStatus=(status:OrderStatus)=>status==='已下单'?'已下单 · 未支付':status;
+function hasRecordedPrice(quote:Order['quote']):quote is NonNullable<Order['quote']>{
+  return quote?.currency==='CNY'&&Number.isSafeInteger(quote.amountFen)&&quote.amountFen>0;
+}
+
 function AdminOrderCard({order,onUpdate,onReload}:{order:ReceivedOrder;onUpdate:(order:Order)=>void;onReload:()=>void}){
   const [mode,setMode]=useState<'view'|'quote'|'close'>('view');
   const [error,setError]=useState(''),[outdated,setOutdated]=useState(false),[busy,setBusy]=useState(false);
@@ -34,18 +40,18 @@ function AdminOrderCard({order,onUpdate,onReload}:{order:ReceivedOrder;onUpdate:
     const description=String(data.get('description')).trim();
     const parts=/^(\d{1,7})(?:\.(\d{1,2}))?$/.exec(amount);
     const amountFen=parts?Number(parts[1])*100+Number((parts[2]??'').padEnd(2,'0')):0;
-    if(amountFen<1||amountFen>maxQuoteFen){setError('请输入 0.01 至 9,999,999.99 元，保留最多两位小数。');return;}
+    if(amountFen<1||amountFen>maxQuoteFen){setError('请输入 0.01 至 '+(maxQuoteFen/100).toLocaleString('zh-CN')+' 元，保留最多两位小数。');return;}
     if(!description||description.length>500){setError('请用 1 至 500 字说明本件作品的配置和报价包含的费用。');return;}
     void submit('quote',{amountFen,description,expectedQuoteVersion:order.quote?.version??null});
   }
   function edit(next:typeof mode){setMode(next);if(!outdated)setError('');setNotice('');}
   return <details className="community-receipt">
-    <summary>{order.title} · {order.accountName} · {order.status==='已下单'?'已下单 · 未支付':order.status}</summary>
+    <summary>{order.title} · {order.accountName} · {displayStatus(order.status)}</summary>
     <img loading="lazy" src={order.image} alt={order.title+'申请时的预览'}/>
     <p>申请编号 {order.id}</p><p>提交时间 {new Date(order.createdAt).toLocaleString('zh-CN')}</p>
     {order.templateId&&<p>来源款式 {order.templateId} {order.revision}</p>}
     {order.design&&<details><summary>已冻结的设计配置</summary><pre>{JSON.stringify(order.design,null,2)}</pre></details>}
-    {order.quote&&<div className="order-quote-details"><div><span>一件报价</span><strong>{quoteAmount(order.quote)}</strong></div>
+    {hasRecordedPrice(order.quote)&&<div className="order-quote-details"><div><span>一件报价</span><strong>{quoteAmount(order.quote)}</strong></div>
       <p>{order.quote.description}</p></div>}
     {order.orderedAt&&<p>下单时间 {new Date(order.orderedAt).toLocaleString('zh-CN')}</p>}
     {notice&&<p role="status">{notice}</p>}
@@ -70,6 +76,7 @@ function AdminOrderCard({order,onUpdate,onReload}:{order:ReceivedOrder;onUpdate:
 
 function CommunityManager(){
   const [works,setWorks]=useState<Work[]>([]),[orders,setOrders]=useState<ReceivedOrder[]>([]);
+  const [orderFilter,setOrderFilter]=useState('all');
   const [epoch,setEpoch]=useState(0),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
   const [error,setError]=useState(''),[notice,setNotice]=useState(''),[uploading,setUploading]=useState(false);
   const reload=()=>setEpoch(v=>v+1);
@@ -89,6 +96,16 @@ function CommunityManager(){
       setNotice(work.published?'作品已撤回。':'作品已公开。');reload();}
     catch(e){setError(errorText(e));}finally{setBusy(false);}
   }
+  const counts=new Map<OrderStatus,number>();
+  let confirmedFen=0,missingPrices=0;
+  for(const order of orders){
+    counts.set(order.status,(counts.get(order.status)??0)+1);
+    if(order.status==='已下单'){
+      if(hasRecordedPrice(order.quote))confirmedFen+=order.quote.amountFen;
+      else missingPrices++;
+    }
+  }
+  const visibleOrders=orderFilter==='all'?orders:orders.filter(order=>order.status===orderFilter);
   return <main className="model-assets-page community-admin">
     <header className="page-heading"><h1>设计社区</h1><button className="primary" onClick={()=>setUploading(v=>!v)}>{uploading?'收起上传':'上传工作室作品'}</button></header>
     {uploading&&<UploadWork admin onSaved={()=>{setUploading(false);setNotice('作品已保存为草稿。');reload();}}/>}
@@ -102,7 +119,16 @@ function CommunityManager(){
         <button disabled={busy} onClick={()=>change(work)}>{work.published?'撤回作品':'发布到社区'}</button>
       </article>)}</div>}
       <h2>同款申请</h2>
-      {!orders.length?<p>消费者提交后，可在这里查看编号、来源作品和待核价配置。</p>:orders.map(o=><AdminOrderCard
+      <div className="admin-order-tools">
+        <label>申请状态<select value={orderFilter} onChange={event=>setOrderFilter(event.target.value)}>
+          <option value="all">全部（{orders.length}）</option>
+          {orderStatuses.map(status=><option key={status} value={status}>{displayStatus(status)}（{counts.get(status)??0}）</option>)}
+        </select></label>
+        <div><p>已确认未付款金额（全部申请） <strong>{(confirmedFen/100).toLocaleString('zh-CN',{style:'currency',currency:'CNY'})}</strong></p>
+          {missingPrices>0&&<small>{missingPrices} 笔已下单申请缺少有效报价，未计入合计。</small>}</div>
+      </div>
+      {!orders.length?<p>消费者提交后，可在这里查看编号、来源作品和待核价配置。</p>:!visibleOrders.length?
+        <p>此状态下暂无申请。</p>:visibleOrders.map(o=><AdminOrderCard
         key={o.accountId+'/'+o.id} order={o} onReload={reload} onUpdate={updated=>{
           setOrders(previous=>previous.map(receipt=>receipt.accountId===o.accountId&&receipt.id===o.id?{...receipt,...updated}:receipt));
         }}/>)}

@@ -17,7 +17,8 @@ import {ReviewDialog} from '../ring02/ReviewDialog';
 import {RING02_PRECISION_ROUTE} from '../ring02/assets';
 import {VIEWS,type RingView,type RingCapture} from '../ring02/Ring02Stage';
 import {engravingProblem} from '../ring02/engraving';
-import {confirmQuote} from '../purchase';
+import {CatalogQuoteChanged,confirmQuote} from '../purchase';
+import {CurrentCatalogLink} from '../CurrentCatalogLink';
 import {addDemoOrder,formatYuan,hasDemoOrder} from '../ring02/demoOrder';
 import {createReferenceLibrary} from './part-library';
 import {PartCard,PartLibrary,headChoices,bandImage} from './PartLibrary';
@@ -80,6 +81,7 @@ function Editor({template}:{template:CatalogRing}){
   const [compare,setCompare]=useState(false),[review,setReview]=useState(false);
   const [adding,setAdding]=useState(false);
   const [cartFeedback,setCartFeedback]=useState<Feedback>();
+  const [unavailableVersion,setUnavailableVersion]=useState<string>();
   const [saveError,setSaveError]=useState(false),[message,setMessage]=useState('');
   const [engraving,setEngraving]=useState(design.engraving);
   const [engravingStyle,setEngravingStyle]=useState<EngravingStyle>(design.engravingStyle??DEFAULT_ENGRAVING_STYLE);
@@ -113,6 +115,7 @@ function Editor({template}:{template:CatalogRing}){
   const swapping=!ring&&!loadingError;
   const previousParts=visiblePreview?referenceParts(template,visiblePreview.design):null;
   const quote=referenceQuote(template,design),details=referenceDetails(template,design,compare?null:pave);
+  const needsCatalog=unavailableVersion===quote.version;
   const engravingDirty=engraving!==design.engraving||engravingStyle.font!==(design.engravingStyle??DEFAULT_ENGRAVING_STYLE).font||engravingStyle.align!==(design.engravingStyle??DEFAULT_ENGRAVING_STYLE).align;
   const added=hasDemoOrder(revision);
   useEffect(()=>{
@@ -177,7 +180,10 @@ function Editor({template}:{template:CatalogRing}){
         stones:ring.stones.map(stone=>({id:stone.name,zone:stone.zone,appearance:design[stone.zone],placement:stone.matrix.toArray()})),
       });
       setReview(false);setCartFeedback({tone:'success',title:'已加入购物车',description:'你的戒指方案已保存。'});
-    }catch(error){setCartFeedback({tone:'error',title:'购物车未能保存',description:error instanceof Error?error.message:'当前配置仍在编辑器中。'});}finally{setAdding(false);}
+    }catch(error){
+      if(error instanceof CatalogQuoteChanged)setUnavailableVersion(quote.version);
+      setCartFeedback({tone:'error',title:'购物车未能保存',description:error instanceof Error?error.message:'当前配置仍在编辑器中。'});
+    }finally{setAdding(false);}
   }
   return <><div className="stone-first-main ring02-main source-ring-main">
     <section className="stone-first-preview" aria-label="戒指预览">
@@ -241,14 +247,14 @@ function Editor({template}:{template:CatalogRing}){
       <p className="ring02-status" role={saveError?'alert':undefined}>{saveError?'浏览器未能保存草稿，请保留此页面。':engravingDirty?'请确认或取消刻字修改。':'草稿已保留在本机'}</p>
     </section>
   </div>
-    <section className="ring02-purchase" aria-label="估价与演示加购"><div>{styled?<><p>改款方案 <strong>待核价</strong></p><small>主石、镶座与金属工艺需另行确认</small></>:<><p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p><small>示例交期 {quote.leadTime} · 待工艺确认</small></>}</div>
+    <section className="ring02-purchase" aria-label="估价与演示加购"><div>{styled?<><p>改款方案 <strong>待核价</strong></p><small>主石、镶座与金属工艺需另行确认</small></>:<><p>{needsCatalog?'此版本历史参考价':'参考估价'} <strong>{formatYuan(quote.amount)}</strong></p><small>示例交期 {quote.leadTime} · 待工艺确认</small></>}</div>
       <SaveCommunityDesign details={details} basis={referenceDesignBasis(template,head,band)} title={displayName} templateId={template.id} revision={revision} design={design} capture={()=>capture.current?.('inspection')} disabled={compare||engravingDirty||!canCapture}/>
       {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:part==='head'?<button className="shop-button" onClick={()=>setPart('shank')}>下一步 · 配置戒圈</button>:<button className="shop-button" disabled={compare||engravingDirty||!canCapture} onClick={()=>{setMessage('');setCartFeedback(undefined);setReview(true);}}>查看方案</button>}
     </section>
     {library&&<PartLibrary kind={library} trigger={libraryTrigger} selected={library==='head'?head.id:band.id}
       onClose={()=>setLibrary(null)} onSelect={library==='head'?selectHead:selectFinish}/>}
     {!review&&<FeedbackToast notice={cartFeedback?.tone==='success'?cartFeedback:undefined} onDismiss={()=>setCartFeedback(undefined)}/>}
-    {review&&<ReviewDialog title="确认你的戒指方案" busy={adding} onClose={()=>setReview(false)}><p>{displayName} · {styled?'待核价':'参考估价 '+formatYuan(quote.amount)}</p><dl>{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl>{styled?<p>方案包含改款效果图与所选规格，可下载交给工艺人员核对镶口、实石尺寸和报价。</p>:<p>当前为演示加购，价格、圈号与制作工艺待正式确认。</p>}<FeedbackToast inline notice={cartFeedback} onDismiss={()=>setCartFeedback(undefined)} onRetry={cartFeedback&&!adding?(styled?exportPreview:confirm):undefined}/><div className="ring02-dialog-actions"><button autoFocus disabled={adding} onClick={()=>setReview(false)}>继续修改</button><button className="shop-button" disabled={!canCapture||adding} onClick={styled?exportPreview:confirm}>{styled?'下载设计方案':adding?'正在加入…':'确认并加入演示购物车'}</button></div></ReviewDialog>}
+    {review&&<ReviewDialog title="确认你的戒指方案" busy={adding} onClose={()=>setReview(false)}><p>{displayName} · {styled?'待核价':(needsCatalog?'此版本历史参考价 ':'参考估价 ')+formatYuan(quote.amount)}</p><dl>{details.map(detail=><div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl>{styled?<p>方案包含改款效果图与所选规格，可下载交给工艺人员核对镶口、实石尺寸和报价。</p>:<p>当前为演示加购，价格、圈号与制作工艺待正式确认。</p>}<FeedbackToast inline notice={cartFeedback} onDismiss={()=>setCartFeedback(undefined)} onRetry={cartFeedback&&!adding&&(styled||!needsCatalog)?(styled?exportPreview:confirm):undefined}/><div className="ring02-dialog-actions"><button autoFocus disabled={adding} onClick={()=>setReview(false)}>继续修改</button>{!styled&&needsCatalog?<CurrentCatalogLink/>:<button className="shop-button" disabled={!canCapture||adding} onClick={styled?exportPreview:confirm}>{styled?'下载设计方案':adding?'正在加入…':'确认并加入演示购物车'}</button>}</div></ReviewDialog>}
   </>;
 }
 

@@ -1,7 +1,8 @@
-import {useEffect,useRef,useState} from 'react';
+import {useState} from 'react';
 import {ReviewDialog} from '../stone-first/ring02/ReviewDialog';
 import {CommunityAccountChanged,communityRequest,errorText,quoteAmount,type Order} from './client';
 import type {OrderQuote} from './order-quote';
+import {useOrderMutation} from './useOrderMutation';
 import './order-quote.css';
 
 type Props={
@@ -21,9 +22,9 @@ function QuoteDetails({quote}:{quote:OrderQuote}){
 export function OrderHistory({orders,accountName,onAccountChanged,onRefresh}:Props){
   const [review,setReview]=useState<{id:string;title:string;quote:OrderQuote;accountName:string}>();
   const [error,setError]=useState('');
-  const [busy,setBusy]=useState(false);
-  const pending=useRef<AbortController|null>(null);
-  useEffect(()=>()=>{pending.current?.abort();pending.current=null;},[accountName]);
+  const unknownResult='尚未确认下单结果。';
+  const mutation=useOrderMutation(accountName,()=>setError('等待超时。'+unknownResult));
+  const {busy}=mutation;
   const current=review&&orders.find(order=>order.id===review.id);
   const changed=review&&(current?.status!=='已报价'||current.quote?.version!==review.quote.version);
   function dismiss(){
@@ -31,24 +32,21 @@ export function OrderHistory({orders,accountName,onAccountChanged,onRefresh}:Pro
     if(changed||error)onRefresh();
   }
   async function confirm(){
-    if(!review||review.accountName!==accountName||changed||error||pending.current)return;
-    const controller=new AbortController();
-    pending.current=controller;
-    setBusy(true);
+    if(!review||review.accountName!==accountName||changed||error)return;
+    const signal=mutation.start();
+    if(!signal)return;
     try{
       await communityRequest('orders/'+review.id+'/confirm',{
         expectedAccount:review.accountName,quoteVersion:review.quote.version,
-      },controller.signal);
-      if(controller.signal.aborted)return;
+      },signal);
+      if(signal.aborted)return;
       setReview(undefined);
       onRefresh();
     }catch(cause){
-      if(controller.signal.aborted)return;
+      if(signal.aborted)return;
       if(cause instanceof CommunityAccountChanged){setReview(undefined);onAccountChanged();}
-      else setError(errorText(cause));
-    }finally{
-      if(!controller.signal.aborted){pending.current=null;setBusy(false);}
-    }
+      else setError(cause instanceof TypeError?'连接中断。'+unknownResult:errorText(cause));
+    }finally{mutation.finish(signal);}
   }
   return <section id="community-orders" className="community-orders">
     <h2>我的同款申请</h2>

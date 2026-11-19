@@ -5,7 +5,8 @@ import {useFitScope} from '../fit/FitSession';
 import {newDesignFit} from '../fit/profile';
 import {ringSizeDescription} from '../fit/sizing';
 import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
-import {confirmQuote} from '../purchase';
+import {CatalogQuoteChanged,confirmQuote} from '../purchase';
+import {CurrentCatalogLink} from '../CurrentCatalogLink';
 import {addDemoOrder,formatYuan} from '../ring02/demoOrder';
 import {templateQuote} from '../pricing';
 import {useCallback,useEffect,useMemo,useRef,useState,type RefObject} from 'react';
@@ -56,6 +57,7 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
   ];
   const [adding,setAdding]=useState(false);
   const [feedback,setFeedback]=useState<Feedback>();
+  const [needsCatalog,setNeedsCatalog]=useState(false);
   const captureReady=useCallback((frame:SourceFrame|null)=>{setFrame(frame);onReady(original?frame:null);},[onReady,original]);
   const quote=template.pricing?templateQuote(template.pricing,template.revision):undefined;
   async function addToCart(){
@@ -71,7 +73,10 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
           ...(['base','head','band','pave'] as const).map((key,index)=>({label:['基础价','戒头加价','戒圈加价','铺钻加价'][index],value:formatYuan(template.pricing![key])})),
           {label:'工艺状态',value:template.review?.status==='approved'?'复核通过':'待人工确认'}]});
       setFeedback({tone:'success',title:'已加入购物车',description:'你的戒指方案已保存。'});
-    }catch(error){setFeedback({tone:'error',title:'购物车未能保存',description:error instanceof Error?error.message:'当前配置仍在编辑器中。'});}
+    }catch(error){
+      if(error instanceof CatalogQuoteChanged)setNeedsCatalog(true);
+      setFeedback({tone:'error',title:'购物车未能保存',description:error instanceof Error?error.message:'当前配置仍在编辑器中。'});
+    }
     finally{setAdding(false);}
   }
 
@@ -115,11 +120,11 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
       {!thumbnailRef&&template.publishedAt&&<SaveCommunityDesign title={template.name} templateId={template.catalogId??template.id}
         basis={fixedDesignBasis(template)} revision={privateSnapshot.revision} design={privateSnapshot.design}
         details={designDetails} capture={()=>ready?capture.current?.('inspection'):undefined} disabled={!ready}/>}
-      {quote&&<section className="managed-price" aria-label="商品报价"><p>参考价 <strong>{formatYuan(quote.amount)}</strong></p>
+      {quote&&<section className="managed-price" aria-label="商品报价"><p>{needsCatalog?'此版本历史参考价':'参考价'} <strong>{formatYuan(quote.amount)}</strong></p>
         <details><summary>价格明细</summary><dl>{(['base','head','band','pave'] as const).map((key,index)=><div key={key}><dt>{['模板基础价','戒头加价','戒圈加价','铺钻加价'][index]}</dt><dd>{formatYuan(template.pricing![key])}</dd></div>)}</dl></details>
-        {!thumbnailRef&&template.publishedAt&&<><button className="shop-button" disabled={!ready||adding} onClick={addToCart}>{adding?'正在保存…':'加入购物车'}</button><a className="shop-text-link" href="#/diy/cart">查看购物车</a></>}
+        {!thumbnailRef&&template.publishedAt&&<>{needsCatalog?<CurrentCatalogLink/>:<button className="shop-button" disabled={!ready||adding} onClick={addToCart}>{adding?'正在保存…':'加入购物车'}</button>}<a className="shop-text-link" href="#/diy/cart">查看购物车</a></>}
       </section>}
-      <FeedbackToast notice={feedback} onDismiss={()=>setFeedback(undefined)} onRetry={feedback?.tone==='error'&&!adding?addToCart:undefined}/>
+      <FeedbackToast notice={feedback} onDismiss={()=>setFeedback(undefined)} onRetry={feedback?.tone==='error'&&!adding&&!needsCatalog?addToCart:undefined}/>
       <p>银色金属外观 · {template.review?.status==='approved'?'组合已完成工艺复核':'需人工确认制作要求'}</p>
       {template.review?.minDiameter!=null&&<p>登记戒圈内径 {template.review.minDiameter}–{template.review.maxDiameter} mm，档位步长 {template.review.step} mm。</p>}
     </section></div>

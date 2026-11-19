@@ -1,3 +1,4 @@
+import {communityMode} from './community/route';
 import {FitSession} from './stone-first/fit/FitSession';
 import {Fragment} from 'react';
 import {HALO_COMBINATION_ROUTE} from './stone-first/reference/parts';
@@ -124,13 +125,12 @@ function JewelryStudio({active}:{active:boolean}){
 type StudioRoute={tab:'showroom'|'modules'}|{tab:'stonefirst';page:'fit'|'community'|'mine'|'catalog'|'cart'|'ring02'|'recipes'|'reference'|'published';templateId?:string;revision?:string;section?:'collection'|'story'};
 function readRoute():StudioRoute{
   const hash=window.location.hash;
-  if(hash.startsWith('#/my-designs?'))return {tab:'stonefirst',page:'mine'};
+  const community=communityMode(hash);
+  if(community)return {tab:'stonefirst',page:community};
   switch(hash){
     case '#/diy':return {tab:'stonefirst',page:'catalog'};
     case '#/diy/collection':return {tab:'stonefirst',page:'catalog',section:'collection'};
     case '#/diy/story':return {tab:'stonefirst',page:'catalog',section:'story'};
-    case '#/community':return {tab:'stonefirst',page:'community'};
-    case '#/my-designs':return {tab:'stonefirst',page:'mine'};
     case '#/diy/fit':return {tab:'stonefirst',page:'fit'};
     case '#/diy/cart':return {tab:'stonefirst',page:'cart'};
     case HALO_COMBINATION_ROUTE:return {tab:'stonefirst',page:'reference',templateId:'ring-02'};

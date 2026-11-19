@@ -91,17 +91,17 @@ it('accepts and prices a request in integer fen, revises the terms, then closes 
   const input=screen.getByLabelText('一件总价（人民币元）');
   const terms=screen.getByLabelText('款式配置与费用范围');
   fireEvent.change(terms,{target:{value:quote.description}});
-  for(const value of ['0','-2','0.001','10000000','1e3']){
+  for(const value of ['0','-2','0.001','1000000.01','1e3']){
     fireEvent.change(input,{target:{value}});
     fireEvent.click(screen.getByRole('button',{name:'发送报价'}));
     expect(screen.getByRole('alert')).toHaveTextContent('最多两位小数');
   }
   expect(writes).toHaveLength(1);
-  fireEvent.change(input,{target:{value:'9999999.99'}});
+  fireEvent.change(input,{target:{value:'1000000.00'}});
   fireEvent.click(screen.getByRole('button',{name:'发送报价'}));
   await userEvent.click(await screen.findByRole('button',{name:'修改报价'}));
   expect(screen.getByLabelText('款式配置与费用范围')).toHaveValue(quote.description);
-  expect(screen.getByLabelText('一件总价（人民币元）')).toHaveValue('9999999.99');
+  expect(screen.getByLabelText('一件总价（人民币元）')).toHaveValue('1000000.00');
   fireEvent.change(screen.getByLabelText('一件总价（人民币元）'),{target:{value:'0.29'}});
   fireEvent.click(screen.getByRole('button',{name:'发送报价'}));
   await userEvent.click(await screen.findByRole('button',{name:'关闭申请'}));
@@ -109,7 +109,7 @@ it('accepts and prices a request in integer fen, revises the terms, then closes 
   expect(await screen.findByText('花瓣戒指 · limer · 已关闭')).toBeVisible();
   expect(writes).toEqual([
     {path:'admin/orders/buyer/receipt/status',body:{expected:'待人工核价',status:'已受理'}},
-    {path:'admin/orders/buyer/receipt/quote',body:{expected:'已受理',expectedQuoteVersion:null,amountFen:999999999,description:quote.description}},
+    {path:'admin/orders/buyer/receipt/quote',body:{expected:'已受理',expectedQuoteVersion:null,amountFen:100000000,description:quote.description}},
     {path:'admin/orders/buyer/receipt/quote',body:{expected:'已报价',expectedQuoteVersion:'v2',amountFen:29,description:quote.description}},
     {path:'admin/orders/buyer/receipt/status',body:{expected:'已报价',expectedQuoteVersion:'v3',status:'已关闭'}},
   ]);
