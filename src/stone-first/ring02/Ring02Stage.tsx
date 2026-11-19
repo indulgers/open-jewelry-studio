@@ -7,6 +7,7 @@ import type {EngravingStyle} from '../engraving/style';
 import {DoubleSide,NeutralToneMapping,OrthographicCamera,Vector3,type Texture} from 'three';
 import {JewelryLighting,clearJewelryLightingCache} from '../../viewer/JewelryLighting';
 import {JewelryPostprocessing} from '../../viewer/JewelryPostprocessing';
+import {createFacetAtlas} from '../../viewer/facetAtlas';
 import {createMountGeometry} from '../../viewer/mountGeometry';
 import {StudioFillLights} from '../../viewer/StudioFillLights';
 import {createMetalMaterial} from '../../viewer/materials';
@@ -148,17 +149,30 @@ export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady,si
 }
 
 export type PlacedGem=Pick<FittedStone,'name'|'geometry'|'appearance'|'matrix'>;
-export function GemBatch({stones,environment,studio=preset,mount,sample}:{stones:PlacedGem[];environment:Texture;studio?:StudioPreset;sample?:GemOpticsOptions['sample'];mount?:GemOpticsOptions['mount']}){
+export function GemBatch({stones,environment,studio=preset,mount,sample,worldScale=1}:{worldScale?:number;stones:PlacedGem[];environment:Texture;studio?:StudioPreset;sample?:GemOpticsOptions['sample'];mount?:GemOpticsOptions['mount']}){
   const {geometry,appearance}=stones[0];
   const environmentOnly=!mount;
-  const optics=useMemo(()=>createGemOptics(geometry,environment,'high',{environmentOnly}),[geometry,environment,environmentOnly]);
+  const optics=useMemo(()=>createGemOptics(geometry,environment,'high',{environmentOnly,inspection:true}),[geometry,environment,environmentOnly]);
+  const probes=useMemo(()=>stones.map(stone=>{
+    if(!mount?.tree)return null;
+    const center=geometry.boundingSphere!.center.clone().applyMatrix4(stone.matrix).multiplyScalar(worldScale);
+    return {center,texture:createFacetAtlas(mount.tree,center,stone.name.includes('center')?96:24,true)};
+  }),[stones,mount?.tree,geometry,worldScale]);
+  useEffect(()=>()=>probes.forEach(probe=>probe?.texture.dispose()),[probes]);
   useLayoutEffect(()=>{
     updateGemOptics(optics.material,{appearance,sample,mount,environmentRotation:studio.rotation,environmentIntensity:studio.gemIntensity,dispersion:studio.dispersion});
   },[optics,appearance,sample,mount,studio]);
   useEffect(()=>()=>optics.dispose(),[optics]);
-  return stones.map(stone=><mesh key={stone.name} name={stone.name} geometry={geometry} material={optics.material}
+  return stones.map((stone,index)=><mesh key={stone.name} name={stone.name} geometry={geometry} material={optics.material}
     matrix={stone.matrix} matrixAutoUpdate={false}
-    onBeforeRender={(renderer,_scene,camera)=>syncGemDraw(optics.material,renderer,camera)}/>);
+    onBeforeRender={(renderer,_scene,camera)=>{
+      const uniforms=optics.material.uniforms,probe=probes[index];
+      uniforms.hasMountAtlas.value=!!probe;
+      uniforms.mountAtlas.value=probe?.texture??null;
+      if(probe)uniforms.mountCenter.value.copy(probe.center);
+      optics.material.uniformsNeedUpdate=true;
+      syncGemDraw(optics.material,renderer,camera);
+    }}/>);
 }
 
 type SceneProps={template:ReturnType<typeof prepareTemplate>;design:RingDesign;stones:FittedStone[]};
@@ -177,18 +191,21 @@ function RingScene({template,design,stones,studio,engraving,engravingStyle,onRea
     try{return createMountGeometry(worldMetal);}finally{worldMetal.forEach(geometry=>geometry.dispose());}
   },[metal]);
   useEffect(()=>()=>mountGeometry.dispose(),[mountGeometry]);
-  const mount=useMemo(()=>({bvh:mountGeometry.bvh,color:metalMaterial.color,roughness:studio.roughness}),[mountGeometry,metalMaterial,studio]);
-  const batches=new Map<string,FittedStone[]>();
-  for(const stone of stones){
-    const key=stone.geometry.uuid+'/'+stone.appearance;
-    const existing=batches.get(key);
-    if(existing)existing.push(stone);
-    else batches.set(key,[stone]);
-  }
+  const mount=useMemo(()=>({tree:mountGeometry.tree,bvh:mountGeometry.bvh,color:metalMaterial.color,roughness:studio.roughness}),[mountGeometry,metalMaterial,studio]);
+  const batches=useMemo(()=>{
+    const groups=new Map<string,FittedStone[]>();
+    for(const stone of stones){
+      const key=stone.geometry.uuid+'/'+stone.appearance;
+      const existing=groups.get(key);
+      if(existing)existing.push(stone);
+      else groups.set(key,[stone]);
+    }
+    return groups;
+  },[stones]);
 
   return <JewelryLighting preset={studio}>{environment=><><group scale={.1} dispose={null}>
     {metal.map((part,index)=><mesh key={part.name} name={part.name} geometry={part.geometry} material={metalMaterial} frustumCulled={index!==0||!onReady} onAfterRender={index===0&&onReady?onReady:afterFrame}/>)}
-    {[...batches].map(([key,batch])=><GemBatch key={key} stones={batch} environment={environment} studio={studio} mount={mount}/>)}
+    {[...batches].map(([key,batch])=><GemBatch worldScale={.1} key={key} stones={batch} environment={environment} studio={studio} mount={mount}/>)}
   </group>{engraving&&<EngravingOverlay parts={metal} modelScale={.1} text={engraving} style={engravingStyle}/>}</>}</JewelryLighting>;
 }
 

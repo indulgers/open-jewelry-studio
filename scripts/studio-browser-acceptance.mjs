@@ -54,6 +54,31 @@ function compareInspectionFrame(moving,settled,mode){
   assert.ok(worstLoss<(mode==='pan'?.22:.48),'a shaded patch washed out during '+mode);
 }
 
+// The small preview above checks tone. Compare neighboring native pixels as
+// well so a low-resolution render enlarged to the canvas cannot pass as sharp.
+async function checkNativeDetail(canvas,held){
+  return canvas.evaluate((element,held)=>{
+    const c=document.createElement('canvas');
+    c.width=element.width;c.height=element.height;
+    const ctx=c.getContext('2d');ctx.drawImage(element,0,0);
+    const pixels=ctx.getImageData(0,0,c.width,c.height).data;
+    if(held){window.heldRingPixels=pixels;return;}
+    const moving=window.heldRingPixels;
+    delete window.heldRingPixels;
+    if(moving.length!==pixels.length)throw Error('canvas changed size during drag');
+    let motionEdge=0,restEdge=0,error=0,ink=0;
+    const stride=4*c.width;
+    for(let y=1;y<c.height;y++)for(let x=1;x<c.width;x++){
+      const n=y*stride+x*4;
+      for(let k=n;k<n+3;k++){
+        motionEdge+=Math.abs(moving[k]-moving[k-4])+Math.abs(moving[k]-moving[k-stride]);
+        restEdge+=Math.abs(pixels[k]-pixels[k-4])+Math.abs(pixels[k]-pixels[k-stride]);
+        error+=Math.abs(pixels[k]-moving[k]);ink+=255-pixels[k];
+      }
+    }
+    return {edgeRatio:motionEdge/restEdge,relativeError:error/ink};
+  },held);
+}
 async function checkInspectionLayout(){
   const canvas=page.locator('.stone-first-preview canvas').first();
   await canvas.waitFor({state:'visible',timeout:90000});
@@ -114,14 +139,18 @@ async function checkDesktopInspection(){
   await twoFrames();
   await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionDraw==='traced-motion');
   const rotation=await page.evaluate(()=>{const result=window.dragFrames;window.dragFrames=null;return result;});
-  assert.ok(rotation.length>=2&&rotation.at(-1).pixels>0&&rotation.at(-1).pixels<surfacePixels*.55);
+  assert.ok(rotation.length>=2&&rotation.at(-1).pixels===surfacePixels);
   const times=rotation.slice(1).map((frame,i)=>frame.time-rotation[i].time).sort((a,b)=>a-b);
   console.log('ROTATE_PROFILE',JSON.stringify({frames:rotation.length,medianMs:times[Math.floor(times.length*.5)],p95Ms:times[Math.ceil(times.length*.95)-1]}));
   assert.equal(await canvas.getAttribute('data-inspection-draw'),'traced-motion');
+  await checkNativeDetail(canvas,true);
   const movingRotation=await previewPixels(canvas);
   await capture('03-main-rotation-held');
   await page.mouse.up();
   await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionFrame==='settled');
+  const detail=await checkNativeDetail(canvas,false);
+  console.log('NATIVE_ROTATION_DETAIL',JSON.stringify(detail));
+  assert.ok(detail.edgeRatio>.85&&detail.edgeRatio<1.15&&detail.relativeError<.22,'native facet detail must match the settled view');
   compareInspectionFrame(movingRotation,await previewPixels(canvas),'rotation');
   await capture('03-main-rotation-settled');
   return canvas;
@@ -235,10 +264,12 @@ try{
   const orders=await page.request.get(origin+'/api/model-admin/community/orders',{headers:{'X-Expected-Account':'studio_reviewer'}});
   assert.equal(orders.status(),200);
   assert.equal((await orders.json()).length,1);
-  await page.goto(origin+'/#/stonefirst/combine/ring-02');
+  await page.goto(origin+'/#/stonefirst/ring-02');
   const save=page.getByRole('button',{name:'保存设计',exact:true});
   await save.waitFor({timeout:90000});
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
+  await page.getByRole('button',{name:'1 ct',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'));
   const canvas=await checkDesktopInspection();
   const originalFace=await previewPixels(canvas);
   await page.getByLabel('主石切形').selectOption('pear');

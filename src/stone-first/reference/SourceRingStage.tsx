@@ -61,7 +61,7 @@ function SourceScene({ring,design,environment,studio,onReady,cutGeometry}:SceneP
   useEffect(()=>()=>material.dispose(),[material]);
   const mountGeometry=useMemo(()=>createMountGeometry(ring.metal.map(part=>part.geometry),ring.metal.map(part=>part.offsetY??0)),[ring.metal]);
   useEffect(()=>()=>mountGeometry.dispose(),[mountGeometry]);
-  const mount=useMemo(()=>({bvh:mountGeometry.bvh,color:material.color,roughness:material.roughness}),[mountGeometry,material]);
+  const mount=useMemo(()=>({tree:mountGeometry.tree,bvh:mountGeometry.bvh,color:material.color,roughness:material.roughness}),[mountGeometry,material]);
   const batches=useMemo(()=>{
     const groups=new Map<string,PlacedGem[]>();
     for(const stone of ring.stones){

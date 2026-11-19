@@ -1,4 +1,5 @@
-import {Color,Matrix4,Vector2,Vector3,type BufferGeometry,type Camera,type ShaderMaterial,type Texture,type WebGLRenderTarget,type WebGLRenderer} from 'three';
+import {createFacetAtlas} from './facetAtlas';
+import {Color,Vector2,Vector3,type BufferGeometry,type Camera,type ShaderMaterial,type Texture,type WebGLRenderer} from 'three';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {MeshRefractionMaterial as BaseRefractionMaterial} from '@react-three/drei/materials/MeshRefractionMaterial';
 import {MeshBVH,MeshBVHUniformStruct,SAH,shaderStructs,shaderIntersectFunction} from 'three-mesh-bvh';
@@ -11,10 +12,7 @@ export function attenuationCoefficients(color:Color,distance:number){
 }
 
 export type GemOpticsOptions={sample?:{ior:number;transmittance:string;absorptionDistance:number;dispersionScale:number};environmentRotation?:number;environmentIntensity?:number;dispersion?:number;appearance?:StoneAppearance;
-  mount?:{bvh:MeshBVHUniformStruct;color:Color;roughness:number}};
-
-export type OpticalHistory={target:WebGLRenderTarget;projection:Matrix4;phase:number;refreshGroups:number};
-export const opticalHistory=new WeakMap<WebGLRenderTarget,OpticalHistory>();
+  mount?:{tree?:MeshBVH;bvh:MeshBVHUniformStruct;color:Color;roughness:number}};
 
 // Based on drei's MIT MeshRefractionMaterial (N8Programs). Bounded deterministic
 // internal reflection with exit-energy accumulation, plus optional static mount hits.
@@ -28,11 +26,12 @@ uniform float bounces;
 uniform float ior;
 uniform float aberrationStrength;
 uniform float stoneDiameter;
-uniform int refreshGroups;
-uniform int refreshPhase;
-uniform mat4 historyProjection;
-uniform sampler2D historyColor;
-uniform sampler2D historyDepth;
+uniform sampler2D facetAtlas;
+uniform vec3 facetCenter;
+uniform bool atlasMotion;
+uniform sampler2D mountAtlas;
+uniform bool hasMountAtlas;
+uniform vec3 mountCenter;
 uniform float environmentIntensity;
 uniform float environmentRotation;
 uniform bool hasMount;
@@ -68,6 +67,11 @@ float fresnelDielectric(float c,float n1,float n2){
   float rp=(n2*c-n1*t)/max(n2*c+n1*t,1e-6);
   return (rs*rs+rp*rp)*0.5;
 }
+vec2 atlasUv(vec3 direction){
+  vec2 uv=direction.xy/max(dot(abs(direction),vec3(1)),1e-12);
+  if(direction.z<0.0)uv=(1.0-abs(uv.yx))*mix(vec2(-1),vec2(1),step(vec2(0),uv));
+  return uv*.5+.5;
+}
 vec3 outsideRadiance(vec3 origin,vec3 direction,vec3 smoothRay){
   // A soft camera obstruction preserves dark facets against the white sweep.
   vec3 towardCamera=isOrthographic?-cameraForward:normalize(cameraPosition-origin);
@@ -77,7 +81,18 @@ vec3 outsideRadiance(vec3 origin,vec3 direction,vec3 smoothRay){
   #ifndef ENVIRONMENT_ONLY
   if(hasMount&&mountDetail>0.0){
     uvec4 face=uvec4(0u);vec3 normal=vec3(0.0,1.0,0.0),bary=vec3(0.0);float side=1.0,distance=0.0;
-    if(bvhIntersectFirstHit(mountBvh,origin+direction*0.00015,direction,face,normal,bary,side,distance)){
+    bool hit;
+    if(atlasMotion&&hasMountAtlas){
+      vec4 probe=textureLod(mountAtlas,atlasUv(direction),0.);
+      // Correct the direction for the offset between the actual exit and the
+      // center of the stone before reading the nearby metal normal.
+      if(probe.w>0.0){
+        vec3 atMount=origin-mountCenter+direction*probe.w;
+        probe=textureLod(mountAtlas,atlasUv(atMount),0.);
+      }
+      normal=probe.xyz;hit=probe.w>0.;
+    }else hit=bvhIntersectFirstHit(mountBvh,origin+direction*0.00015,direction,face,normal,bary,side,distance);
+    if(hit){
       normal=normalize(normal);if(dot(normal,direction)>0.0)normal=-normal;
       vec3 reflected=reflect(direction,normal);
       vec3 t=normalize(cross(abs(reflected.y)<0.9?vec3(0,1,0):vec3(1,0,0),reflected));
@@ -92,6 +107,24 @@ vec3 outsideRadiance(vec3 origin,vec3 direction,vec3 smoothRay){
   #endif
   return studio;
 }
+// Starting at the bounding sphere, intersect the candidate facet plane and
+// look up the resulting direction again. Ambiguous exits use the triangle BVH.
+bool atlasHit(vec3 origin,vec3 direction,out vec3 normal,out float dist){
+  vec3 p=origin-facetCenter;
+  float b=dot(p,direction),r=.5001*stoneDiameter;
+  dist=-b+sqrt(max(0.0,b*b+r*r-dot(p,p)));
+  for(int i=0;i<5;i++){
+    vec4 plane=textureLod(facetAtlas,atlasUv(p+direction*dist),0.);
+    float facing=dot(plane.xyz,direction);
+    if(abs(facing)<1e-6)return false;
+    float t=(plane.w-dot(plane.xyz,p))/facing;
+    if(t<1e-7||t>stoneDiameter*1.01)return false;
+    normal=plane.xyz;
+    if(abs(dist-t)<stoneDiameter*.00002){dist=t;return true;}
+    dist=t;
+  }
+  return false;
+}
 vec3 traceRadiance(vec3 incoming,vec3 normal,float eta,vec3 smoothRay){
   vec3 direction=refract(incoming,normal,1.0/eta);
   vec3 origin=(vModelMatrixInverse*vec4(vWorldPosition+direction*0.0001,1.0)).xyz;
@@ -102,7 +135,8 @@ vec3 traceRadiance(vec3 incoming,vec3 normal,float eta,vec3 smoothRay){
     uvec4 indices=uvec4(0u);
     vec3 faceNormal=vec3(0.0,0.0,1.0),barycoord=vec3(0.0);
     float side=1.0,dist=0.0;
-    bool hit=bvhIntersectFirstHit(bvh,origin,direction,indices,faceNormal,barycoord,side,dist);
+    bool hit=atlasMotion&&atlasHit(origin,direction,faceNormal,dist);
+    if(!hit)hit=bvhIntersectFirstHit(bvh,origin,direction,indices,faceNormal,barycoord,side,dist);
     if(!hit)break;
     if(dot(faceNormal,direction)>0.0)faceNormal=-faceNormal;
     throughput*=exp(-attenuation*length((modelMatrix*vec4(direction*dist,0.0)).xyz));
@@ -133,22 +167,6 @@ void main(){
   // Give the parallel rays a continuous filter footprint across the image.
   if(isOrthographic)smoothRay.z=-1.0;
   smoothRay=normalize((viewMatrixInverse*vec4(smoothRay,0.0)).xyz);
-  // Reproject actual traced radiance onto the current stone surface. Depth rejects
-  // newly revealed facets and prongs. Refresh coherent tiles with fresh spectral paths.
-  if(refreshGroups>1){
-    vec4 clip=historyProjection*vec4(vWorldPosition,1.0);
-    vec3 previous=clip.xyz/clip.w*.5+.5;
-    ivec2 historySize=textureSize(historyDepth,0);
-    ivec2 pixel=ivec2(floor(previous.xy*vec2(historySize)));
-    float tolerance=0.000012+min(0.00022,fwidth(previous.z));
-    ivec2 tile=ivec2(gl_FragCoord.xy)/4;
-    if((tile.x+3*tile.y+refreshPhase)%refreshGroups!=0
-      &&all(greaterThanEqual(pixel,ivec2(0)))&&all(lessThan(pixel,historySize))
-      &&abs(texelFetch(historyDepth,pixel,0).r-previous.z)<tolerance){
-      vec4 cached=texelFetch(historyColor,pixel,0);
-      if(cached.a>0.99){gl_FragColor=cached;return;}
-    }
-  }
   float scale=max(length(modelMatrix[0].xyz),max(length(modelMatrix[1].xyz),length(modelMatrix[2].xyz)));
   float pixelDiameter=stoneDiameter*scale*detailResolution.y*0.5*gl_FragCoord.w/projectionMatrixInverse[1][1];
   // A small accent samples the studio; resolve the nearby prongs as their reflection becomes visible.
@@ -174,18 +192,11 @@ void main(){
 
 export function syncGemDraw(material:ShaderMaterial,renderer:WebGLRenderer,camera:Camera){
   const uniforms=material.uniforms,target=renderer.getRenderTarget();
-  const history=target?opticalHistory.get(target):undefined;
-  uniforms.refreshGroups.value=history?.refreshGroups??0;
-  uniforms.historyColor.value=history?.target.texture??null;
-  uniforms.historyDepth.value=history?.target.depthTexture??null;
-  if(history){
-    uniforms.historyProjection.value.copy(history.projection);
-    uniforms.refreshPhase.value=history.phase;
-  }
+  uniforms.atlasMotion.value=!!uniforms.facetAtlas.value&&target?.texture.userData.opticalMotion===true;
   uniforms.viewMatrixInverse.value.copy(camera.matrixWorld);
   // Reflector oblique clipping changes projectionMatrix without updating its inverse.
   uniforms.projectionMatrixInverse.value.copy(camera.projectionMatrix).invert();
-  // Optical detail follows the display size, even when motion lowers the render resolution.
+  // Size-dependent optics follow the display even for offscreen draws.
   renderer.getDrawingBufferSize(uniforms.detailResolution.value);
   const resolution=uniforms.resolution.value as Vector2;
   if(target)resolution.set(target.width,target.height);else renderer.getDrawingBufferSize(resolution);
@@ -203,7 +214,7 @@ export function updateGemOptics(material:ShaderMaterial,options:GemOpticsOptions
   u.mountColor.value.copy(options.mount?.color??new Color('white'));
   u.mountRoughness.value=options.mount?.roughness??0.15;
 }
-export function createGemOptics(geometry:BufferGeometry,environment:Texture,quality:Quality,options:GemOpticsOptions&{environmentOnly?:boolean}={}){
+export function createGemOptics(geometry:BufferGeometry,environment:Texture,quality:Quality,options:GemOpticsOptions&{environmentOnly?:boolean;inspection?:boolean}={}){
   const settings=qualitySettings(quality),material=new BaseRefractionMaterial();
   const bvh=new MeshBVHUniformStruct();
   // Split-normal facet meshes are geometrically closed but topologically open: every
@@ -216,7 +227,14 @@ export function createGemOptics(geometry:BufferGeometry,environment:Texture,qual
   tracingSource.dispose();
   // Material groups create multiple roots; one optical medium needs one BVH root.
   tracingGeometry.clearGroups();
-  try{bvh.updateFrom(new MeshBVH(tracingGeometry,{strategy:SAH}));}
+  if(!geometry.boundingSphere)geometry.computeBoundingSphere();
+  const sphere=geometry.boundingSphere!;
+  let atlas;
+  try{
+    const tree=new MeshBVH(tracingGeometry,{strategy:SAH});
+    bvh.updateFrom(tree);
+    atlas=options.inspection?createFacetAtlas(tree,sphere.center,64):null;
+  }
   catch(error){bvh.dispose();material.dispose();throw error;}
   finally{tracingGeometry.dispose();}
   material.fragmentShader=fragmentShader;
@@ -226,10 +244,13 @@ export function createGemOptics(geometry:BufferGeometry,environment:Texture,qual
   material.uniforms.bounces.value=settings.bounces;
   material.uniforms.ior.value=2.42;
   if(!geometry.boundingSphere)geometry.computeBoundingSphere();
+  material.uniforms.facetAtlas={value:atlas};
+  material.uniforms.facetCenter={value:sphere.center.clone()};
+  material.uniforms.mountAtlas={value:null};
+  material.uniforms.mountCenter={value:new Vector3()};
+  material.uniforms.hasMountAtlas={value:false};
+  material.uniforms.atlasMotion={value:false};
   material.uniforms.detailResolution={value:new Vector2()};
-  material.uniforms.refreshPhase={value:0};material.uniforms.refreshGroups={value:0};
-  material.uniforms.historyProjection={value:new Matrix4()};
-  material.uniforms.historyColor={value:null};material.uniforms.historyDepth={value:null};
   material.uniforms.stoneDiameter={value:geometry.boundingSphere!.radius*2};
   material.uniforms.aberrationStrength.value=settings.aberrationStrength;
   material.uniforms.environmentIntensity={value:1.0};
@@ -239,5 +260,5 @@ export function createGemOptics(geometry:BufferGeometry,environment:Texture,qual
   material.toneMapped=true;
   updateGemOptics(material,options);
   let disposed=false;
-  return {material,dispose(){if(disposed)return;disposed=true;bvh.dispose();material.dispose();}};
+  return {material,dispose(){if(disposed)return;disposed=true;atlas?.dispose();bvh.dispose();material.dispose();}};
 }
