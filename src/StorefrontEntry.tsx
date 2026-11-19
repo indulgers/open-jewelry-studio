@@ -1,4 +1,4 @@
-import {lazy,Suspense,useEffect,useState,useSyncExternalStore} from 'react';
+import {Component,lazy,Suspense,type ReactNode,useEffect,useState,useSyncExternalStore} from 'react';
 import {communityMode} from './community/route';
 import {RING_CATALOG,type CatalogRing} from './stone-first/catalog';
 import {RING02_TEMPLATE} from './stone-first/ring02/assets';
@@ -7,6 +7,17 @@ import parts from './stone-first/reference/part-assets.json';
 import {setPriceBook,type PriceBook} from './stone-first/pricing';
 
 const CommunityEntry=lazy(()=>import('./community/CommunityEntry'));
+class CommunityLoadBoundary extends Component<{children:ReactNode},{failed:boolean}> {
+  state={failed:false};
+  static getDerivedStateFromError(){return {failed:true};}
+  render(){
+    if(this.state.failed)return <div role="alert" className="storefront-loading">
+      <p>作品页面暂时无法打开，请重新载入。</p>
+      <button className="shop-button" onClick={()=>window.location.reload()}>重新载入页面</button>
+    </div>;
+    return this.props.children;
+  }
+}
 const currentCommunity=()=>communityMode(window.location.hash);
 function watchRoute(changed:()=>void){
   window.addEventListener('hashchange',changed);
@@ -60,7 +71,9 @@ export function StorefrontEntry(){
   },[App,hosted,independent,attempt]);
 
   if(App)return <App/>;
-  if(hosted&&community)return <Suspense fallback={<p role="status">正在打开作品…</p>}><CommunityEntry mode={community}/></Suspense>;
+  if(hosted&&community)return <CommunityLoadBoundary>
+    <Suspense fallback={<p role="status">正在打开作品…</p>}><CommunityEntry mode={community}/></Suspense>
+  </CommunityLoadBoundary>;
   if(failed)return <div className="storefront-loading" role="alert">
     <p>款式暂时无法读取，请重试。</p>
     <button className="shop-button" onClick={()=>setAttempt(n=>n+1)}>重新加载</button>
