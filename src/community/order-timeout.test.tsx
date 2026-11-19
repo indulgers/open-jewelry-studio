@@ -32,7 +32,7 @@ it('unlocks a timed-out request, retries the same work once and ignores its late
   expect(screen.getByRole('alert')).toHaveTextContent('尚未确认工作室是否收到申请');
   expect(screen.getByRole('button',{name:'取消'})).toBeEnabled();
   await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'重试提交'}));});
-  const receipt=within(screen.getByRole('dialog',{name:'同款申请已受理'}));
+  const receipt=within(screen.getByRole('dialog',{name:'同款申请回执'}));
   expect(receipt.getByText('ticket')).toBeVisible();
   expect(send).toHaveBeenCalledTimes(2);
   expect(send.mock.calls.map(([url,init])=>[url,init.body])).toEqual(Array(2).fill([
