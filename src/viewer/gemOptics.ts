@@ -26,6 +26,7 @@ uniform float bounces;
 uniform float ior;
 uniform float aberrationStrength;
 uniform float stoneDiameter;
+uniform float accentTag;
 uniform sampler2D facetAtlas;
 uniform vec3 facetCenter;
 uniform bool atlasMotion;
@@ -50,14 +51,15 @@ uniform BVH mountBvh;
 #include <common>
 float mountDetail;
 vec3 cameraForward;
+vec2 envDx,envDy;
 
 vec3 rotateEnvironment(vec3 d){
   float c=cos(environmentRotation),s=sin(environmentRotation);
   return vec3(c*d.x-s*d.z,d.y,s*d.x+c*d.z);
 }
-vec3 environment(vec3 direction,vec3 smoothDirection){
-  vec2 uv=equirectUv(rotateEnvironment(direction)),smoothUv=equirectUv(rotateEnvironment(smoothDirection));
-  return textureGrad(envMap,uv,dFdx(smoothUv),dFdy(smoothUv)).rgb*environmentIntensity;
+vec3 environment(vec3 direction){
+  vec2 uv=equirectUv(rotateEnvironment(direction));
+  return textureGrad(envMap,uv,envDx,envDy).rgb*environmentIntensity;
 }
 float fresnelDielectric(float c,float n1,float n2){
   c=clamp(abs(c),0.0,1.0);float ratio=n1/n2;
@@ -72,12 +74,12 @@ vec2 atlasUv(vec3 direction){
   if(direction.z<0.0)uv=(1.0-abs(uv.yx))*mix(vec2(-1),vec2(1),step(vec2(0),uv));
   return uv*.5+.5;
 }
-vec3 outsideRadiance(vec3 origin,vec3 direction,vec3 smoothRay){
+vec3 outsideRadiance(vec3 origin,vec3 direction){
   // A soft camera obstruction preserves dark facets against the white sweep.
   vec3 towardCamera=isOrthographic?-cameraForward:normalize(cameraPosition-origin);
   float facingObserver=dot(direction,towardCamera);
   float obstruction=smoothstep(0.9563,0.9848,facingObserver);
-  vec3 studio=environment(direction,smoothRay)*mix(1.0,0.12,obstruction);
+  vec3 studio=environment(direction)*mix(1.0,0.12,obstruction);
   #ifndef ENVIRONMENT_ONLY
   if(hasMount&&mountDetail>0.0){
     uvec4 face=uvec4(0u);vec3 normal=vec3(0.0,1.0,0.0),bary=vec3(0.0);float side=1.0,distance=0.0;
@@ -97,9 +99,9 @@ vec3 outsideRadiance(vec3 origin,vec3 direction,vec3 smoothRay){
       vec3 reflected=reflect(direction,normal);
       vec3 t=normalize(cross(abs(reflected.y)<0.9?vec3(0,1,0):vec3(1,0,0),reflected));
       // A bounded environment-lobe approximation, not a second full metal path tracer.
-      vec3 radiance=environment(reflected,smoothRay)*0.5;
-      radiance+=environment(normalize(reflected+t*mountRoughness),smoothRay)*0.25;
-      radiance+=environment(normalize(reflected-t*mountRoughness),smoothRay)*0.25;
+      vec3 radiance=environment(reflected)*0.5;
+      radiance+=environment(normalize(reflected+t*mountRoughness))*0.25;
+      radiance+=environment(normalize(reflected-t*mountRoughness))*0.25;
       vec3 f=mix(mountColor,vec3(1),pow(1.0-clamp(dot(-direction,normal),0.0,1.0),5.0));
       return mix(studio,radiance*f,mountDetail);
     }
@@ -125,7 +127,7 @@ bool atlasHit(vec3 origin,vec3 direction,out vec3 normal,out float dist){
   }
   return false;
 }
-vec3 traceRadiance(vec3 incoming,vec3 normal,float eta,vec3 smoothRay){
+vec3 traceRadiance(vec3 incoming,vec3 normal,float eta){
   vec3 direction=refract(incoming,normal,1.0/eta);
   vec3 origin=(vModelMatrixInverse*vec4(vWorldPosition+direction*0.0001,1.0)).xyz;
   direction=normalize((vModelMatrixInverse*vec4(direction,0.0)).xyz);
@@ -139,14 +141,19 @@ vec3 traceRadiance(vec3 incoming,vec3 normal,float eta,vec3 smoothRay){
     if(!hit)hit=bvhIntersectFirstHit(bvh,origin,direction,indices,faceNormal,barycoord,side,dist);
     if(!hit)break;
     if(dot(faceNormal,direction)>0.0)faceNormal=-faceNormal;
-    throughput*=exp(-attenuation*length((modelMatrix*vec4(direction*dist,0.0)).xyz));
+    if(any(greaterThan(attenuation,vec3(0))))throughput*=exp(-attenuation*length((modelMatrix*vec4(direction*dist,0.0)).xyz));
     vec3 hitPosition=origin+direction*dist;
-    vec3 exitDirection=refract(direction,faceNormal,eta);
-    float f=fresnelDielectric(dot(-direction,faceNormal),eta,1.0);
-    if(dot(exitDirection,exitDirection)>0.000001){
+    float cosI=clamp(dot(-direction,faceNormal),0.,1.);
+    float cosT2=1.-eta*eta*(1.-cosI*cosI);
+    if(cosT2>0.){
+      float cosT=sqrt(cosT2);
+      vec3 exitDirection=eta*direction+(eta*cosI-cosT)*faceNormal;
+      float rs=(eta*cosI-cosT)/max(eta*cosI+cosT,1e-6);
+      float rp=(cosI-eta*cosT)/max(cosI+eta*cosT,1e-6);
+      float f=.5*(rs*rs+rp*rp);
       vec3 worldExit=(modelMatrix*vec4(hitPosition,1.0)).xyz;
       vec3 worldDirection=normalize((modelMatrix*vec4(exitDirection,0.0)).xyz);
-      radiance+=throughput*(1.0-f)*outsideRadiance(worldExit,worldDirection,smoothRay);
+      radiance+=throughput*(1.0-f)*outsideRadiance(worldExit,worldDirection);
       throughput*=f;
       if(max(throughput.r,max(throughput.g,throughput.b))<0.002)break;
     }
@@ -167,6 +174,8 @@ void main(){
   // Give the parallel rays a continuous filter footprint across the image.
   if(isOrthographic)smoothRay.z=-1.0;
   smoothRay=normalize((viewMatrixInverse*vec4(smoothRay,0.0)).xyz);
+  vec2 smoothUv=equirectUv(rotateEnvironment(smoothRay));
+  envDx=dFdx(smoothUv);envDy=dFdy(smoothUv);
   float scale=max(length(modelMatrix[0].xyz),max(length(modelMatrix[1].xyz),length(modelMatrix[2].xyz)));
   float pixelDiameter=stoneDiameter*scale*detailResolution.y*0.5*gl_FragCoord.w/projectionMatrixInverse[1][1];
   // A small accent samples the studio; resolve the nearby prongs as their reflection becomes visible.
@@ -178,14 +187,19 @@ void main(){
   int rayCount=spread>0.0?3:1;
   for(int ray=0;ray<rayCount;ray++){
     float eta=ray==0?ior:ray==1?ior*(1.0-spread):ior*(1.0+spread);
-    vec3 radiance=traceRadiance(incident,normal,eta,smoothRay);
+    vec3 radiance=traceRadiance(incident,normal,eta);
     if(ray==0)transmitted=radiance;
     else if(ray==1)transmitted.r=radiance.r;
     else transmitted.b=radiance.b;
   }
-  vec3 reflected=outsideRadiance(vWorldPosition,reflect(incident,normal),smoothRay);
+  vec3 reflected=outsideRadiance(vWorldPosition,reflect(incident,normal));
   float fresnel=fresnelDielectric(dot(-incident,normal),1.0,ior);
-  gl_FragColor=vec4(mix(transmitted,reflected,fresnel),1.0);
+  float alpha=1.;
+  if(accentTag>0.){
+    float filterStrength=1.-smoothstep(40.,88.,pixelDiameter);
+    if(filterStrength>0.)alpha+=accentTag+filterStrength*(2./3.)/accentTag;
+  }
+  gl_FragColor=vec4(mix(transmitted,reflected,fresnel),alpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
@@ -250,6 +264,7 @@ export function createGemOptics(geometry:BufferGeometry,environment:Texture,qual
   material.uniforms.hasMountAtlas={value:false};
   material.uniforms.atlasMotion={value:false};
   material.uniforms.detailResolution={value:new Vector2()};
+  material.uniforms.accentTag={value:0};
   material.uniforms.stoneDiameter={value:sphere.radius*2};
   material.uniforms.aberrationStrength.value=settings.aberrationStrength;
   material.uniforms.environmentIntensity={value:1.0};

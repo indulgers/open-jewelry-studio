@@ -156,6 +156,46 @@ async function checkDesktopInspection(){
   return canvas;
 }
 
+async function checkAccentShimmer(){
+  const canvas=await checkInspectionLayout();
+  const reset=page.getByRole('button',{name:'复位当前视角',exact:true});
+  await reset.click();await twoFrames();
+  await canvas.scrollIntoViewIfNeeded();
+  const probe=await canvas.evaluateHandle(async element=>{
+    const {createShimmerProbe}=await import('/scripts/measure-accent-shimmer.mjs');
+    return createShimmerProbe(element);
+  });
+  const bounds=await canvas.boundingBox(),x=bounds.x+bounds.width/2,y=bounds.y+bounds.height/2;
+  async function replay(reference){
+    await reset.click();await twoFrames();
+    await probe.evaluate((p,reference)=>p.begin(reference),reference);
+    await page.mouse.move(x,y);await page.mouse.down();
+    try{
+      for(let step=1;step<=24;step++){
+        await probe.evaluate((p,step)=>p.sample(step),step);
+      }
+      return await probe.evaluate(p=>p.result());
+    }finally{
+      await page.mouse.up();
+      await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionFrame==='settled');
+    }
+  }
+  try{
+    const reference=await replay(true),filtered=await replay(false);
+    console.log('ACCENT_SHIMMER',JSON.stringify({reference,filtered}));
+    for(const zone of ['halo','shoulder']){
+      const before=reference[zone],after=filtered[zone];
+      assert.ok(before.count>=100&&after.count===before.count,zone+' must track the same visible facet samples');
+      assert.ok(after.p95<before.p95*.9,zone+' must reduce high-frequency brightness jumps');
+      assert.ok(after.contrast>10&&after.contrast>=before.contrast*.65,zone+' must retain bright and dark facets');
+    }
+  }finally{
+    await probe.evaluate(p=>p.dispose());
+    await probe.dispose();
+    await reset.click();await twoFrames();
+  }
+}
+
 async function checkTouchZoom(canvas){
   await canvas.scrollIntoViewIfNeeded();
   const box=await canvas.boundingBox();
@@ -275,6 +315,7 @@ try{
   await page.getByRole('button',{name:'1 ct',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'));
   await page.getByRole('button',{name:'复位当前视角',exact:true}).click();
+  await checkAccentShimmer();
   const canvas=await checkDesktopInspection();
   const originalFace=await previewPixels(canvas);
   await page.getByLabel('主石切形').selectOption('pear');

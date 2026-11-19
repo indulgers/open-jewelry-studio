@@ -1,5 +1,5 @@
 import {useEffect,useMemo} from 'react';
-import {CanvasTexture,DoubleSide,SRGBColorSpace,MeshBasicMaterial} from 'three';
+import {CanvasTexture,CustomBlending,OneFactor,OneMinusSrcAlphaFactor,SrcAlphaFactor,ZeroFactor,DoubleSide,SRGBColorSpace,MeshBasicMaterial} from 'three';
 import type {Part} from '../reference/model';
 import {engravingSurface} from './surface';
 import {DEFAULT_ENGRAVING_STYLE,engravingFont,type EngravingStyle} from './style';
@@ -16,7 +16,10 @@ export function EngravingOverlay({parts,text,modelScale=1,style=DEFAULT_ENGRAVIN
     const map=new CanvasTexture(canvas);map.colorSpace=SRGBColorSpace;return map;
   },[text,style.font]);
   useEffect(()=>()=>texture?.dispose(),[texture]);
-  const material=useMemo(()=>new MeshBasicMaterial({map:texture,transparent:true,depthWrite:false,side:DoubleSide,toneMapped:false}),[texture]);
+  const material=useMemo(()=>new MeshBasicMaterial({map:texture,transparent:true,depthWrite:false,
+    // The ink lies on the metal. Blend its color and preserve the underlying coverage.
+    blending:CustomBlending,blendSrc:SrcAlphaFactor,blendDst:OneMinusSrcAlphaFactor,
+    blendSrcAlpha:ZeroFactor,blendDstAlpha:OneFactor,side:DoubleSide,toneMapped:false}),[texture]);
   useEffect(()=>()=>material.dispose(),[material]);
   if(!geometry||!texture)return null;
   return <mesh geometry={geometry} material={material} renderOrder={1} dispose={null}/>;

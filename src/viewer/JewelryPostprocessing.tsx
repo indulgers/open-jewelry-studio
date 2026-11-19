@@ -5,6 +5,7 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {TAARenderPass} from 'three/addons/postprocessing/TAARenderPass.js';
 import {liveResolve} from './liveResolve';
+import {installAccentFilter} from './accentFilter';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {movedSinceSample,nextRefinement,type RefinementState} from './progressiveState';
 import {qualitySettings,type Quality} from './quality';
@@ -30,6 +31,9 @@ export function JewelryPostprocessing({quality,contentKey,capturing,whiteBackgro
       composer.readBuffer.samples=Math.min(gl.capabilities.maxSamples,qualitySettings(quality).multisampling);
     }
     const output=new OutputPass();
+    if(motion && whiteBackground && !capturing){
+      installAccentFilter(output,composer.readBuffer);
+    }
     // Four bilinear taps integrate isolated subpixel highlights over a small, fixed screen footprint.
     const resolve=capturing?null:liveResolve(composer.readBuffer.width,composer.readBuffer.height,whiteBackground);
     composer.addPass(scenePass);composer.addPass(output);

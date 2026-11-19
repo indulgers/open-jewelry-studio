@@ -5,6 +5,7 @@ on:
       - 'src/**'
       - 'scripts/model-admin/**'
       - 'scripts/studio-browser-acceptance.mjs'
+      - 'scripts/measure-accent-shimmer.mjs'
       - '.github/workflows/studio-browser.yml'
 permissions:
   contents: read

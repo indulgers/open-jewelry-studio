@@ -11,6 +11,7 @@ import {createFacetAtlas} from '../../viewer/facetAtlas';
 import {createMountGeometry} from '../../viewer/mountGeometry';
 import {StudioFillLights} from '../../viewer/StudioFillLights';
 import {createMetalMaterial} from '../../viewer/materials';
+import {accentDrawTag} from '../../viewer/accentFilter';
 import {createGemOptics,syncGemDraw,updateGemOptics,type GemOpticsOptions} from '../../viewer/gemOptics';
 import {STUDIO_PRESETS,type StudioPreset} from '../../viewer/studioPresets';
 import {ViewerBoundary} from '../../viewer/ViewerBoundary';
@@ -148,7 +149,7 @@ export function RingThumbnail({captureRef,ready,frames=cameras,onCaptureReady,si
   return null;
 }
 
-export type PlacedGem=Pick<FittedStone,'name'|'geometry'|'appearance'|'matrix'>;
+export type PlacedGem=Pick<FittedStone,'name'|'zone'|'geometry'|'appearance'|'matrix'>;
 export function GemBatch({stones,environment,studio=preset,mount,sample,worldScale=1}:{worldScale?:number;stones:PlacedGem[];environment:Texture;studio?:StudioPreset;sample?:GemOpticsOptions['sample'];mount?:GemOpticsOptions['mount']}){
   const {geometry,appearance}=stones[0];
   const environmentOnly=!mount;
@@ -167,6 +168,7 @@ export function GemBatch({stones,environment,studio=preset,mount,sample,worldSca
     matrix={stone.matrix} matrixAutoUpdate={false}
     onBeforeRender={(renderer,_scene,camera)=>{
       const uniforms=optics.material.uniforms,probe=probes[index];
+      uniforms.accentTag.value=stone.zone==='center'?0:accentDrawTag(renderer);
       uniforms.hasMountAtlas.value=!!probe;
       uniforms.mountAtlas.value=probe?.texture??null;
       if(probe)uniforms.mountCenter.value.copy(probe.center);
