@@ -230,28 +230,39 @@ async function waitForCamera(){
 async function checkAccentShimmer(){
   const canvas=await checkInspectionLayout();
   const reset=page.getByRole('button',{name:'复位当前视角',exact:true});
-  await reset.click();await waitForCamera();
-  await canvas.scrollIntoViewIfNeeded();
-  const probe=await canvas.evaluateHandle(async element=>{
-    const {createShimmerProbe}=await import('/scripts/measure-accent-shimmer.mjs');
-    return createShimmerProbe(element);
-  });
-  const bounds=await canvas.boundingBox(),x=bounds.x+bounds.width/2,y=bounds.y+bounds.height/2;
-  async function replay(reference){
-    await reset.click();await waitForCamera();
-    await probe.evaluate((p,reference)=>p.begin(reference),reference);
-    await page.mouse.move(x,y);await page.mouse.down();
-    try{
-      for(let step=1;step<=24;step++){
-        await probe.evaluate((p,step)=>p.sample(step),step);
-      }
-      return await probe.evaluate(p=>p.result());
-    }finally{
-      await page.mouse.up();
-      await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionFrame==='settled');
-    }
-  }
+  // Match the original 1x desktop optical benchmark so the same facets and
+  // angular steps are sampled even when the storefront changes canvas size.
+  const width=824,height=690;
+  const measurementSize=await page.addStyleTag({content:`
+    .app-shell .source-ring-main .source-ring-canvas { width: ${width}px !important; height: ${height}px !important; }
+  `});
+  let probe;
   try{
+    await page.waitForFunction(({width,height})=>{
+      const surface=document.querySelector('.stone-first-preview canvas');
+      return surface?.width===width&&surface.height===height;
+    },{width,height});
+    await reset.click();await waitForCamera();
+    await canvas.scrollIntoViewIfNeeded();
+    probe=await canvas.evaluateHandle(async element=>{
+      const {createShimmerProbe}=await import('/scripts/measure-accent-shimmer.mjs');
+      return createShimmerProbe(element);
+    });
+    const bounds=await canvas.boundingBox(),x=bounds.x+bounds.width/2,y=bounds.y+bounds.height/2;
+    async function replay(reference){
+      await reset.click();await waitForCamera();
+      await probe.evaluate((p,reference)=>p.begin(reference),reference);
+      await page.mouse.move(x,y);await page.mouse.down();
+      try{
+        for(let step=1;step<=24;step++){
+          await probe.evaluate((p,step)=>p.sample(step),step);
+        }
+        return await probe.evaluate(p=>p.result());
+      }finally{
+        await page.mouse.up();
+        await waitForCamera();
+      }
+    }
     const reference=await replay(true),filtered=await replay(false);
     console.log('ACCENT_SHIMMER',JSON.stringify({reference,filtered}));
     for(const zone of ['halo','shoulder']){
@@ -261,8 +272,9 @@ async function checkAccentShimmer(){
       assert.ok(after.contrast>10&&after.contrast>=before.contrast*.65,zone+' must retain bright and dark facets');
     }
   }finally{
-    await probe.evaluate(p=>p.dispose());
-    await probe.dispose();
+    await probe?.evaluate(p=>p.dispose());
+    await probe?.dispose();
+    await measurementSize.evaluate(style=>style.remove());
     await reset.click();await waitForCamera();
   }
 }
