@@ -92,3 +92,12 @@ html:has(.source-library[open]) {overflow: hidden}
 .managed-price dl>div { display: flex; justify-content: space-between; gap: 16px; padding: 5px 0; }
 
 .source-ring-canvas > .viewer-boundary {height:100%}
+
+.source-ring-canvas .source-fit-issue {
+  position: absolute;
+  inset: auto 1rem 1rem;
+  padding: .75rem 1rem;
+  background: var(--surface, white);
+  color: var(--text, #222);
+  border: 1px solid currentColor;
+}

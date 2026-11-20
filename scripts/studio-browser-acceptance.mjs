@@ -443,6 +443,18 @@ try{
   await page.getByLabel('身高（cm）').waitFor();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'mobile overflow');
   await capture('05-mobile-fit');
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto(origin+'/#/stonefirst/ring-floral');
+  await page.getByLabel('宝石类别').selectOption('培育钻石');
+  await page.getByRole('button',{name:'粉色',exact:true}).click();
+  for(const [cut,size,angle] of [['wide-triangle','原款大小','戒面俯视'],['pear','3+ ct','镶嵌特写']]){
+    await page.getByLabel('主石切形').selectOption(cut);
+    await page.getByRole('button',{name:size,exact:true}).click();
+    await page.getByRole('button',{name:angle,exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
+    await twoFrames();
+    await page.locator('.stone-first-preview canvas').screenshot({path:join(directory,'floral-setting-'+cut+'.png')});
+  }
   assert.deepEqual(errors,[],'uncaught browser errors');
 } catch(error){
   if(page){

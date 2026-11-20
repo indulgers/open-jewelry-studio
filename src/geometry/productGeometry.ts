@@ -7,7 +7,7 @@ function bounds(geometry:BufferGeometry){
   return box;
 }
 function planWidth(box:Box3){const size=box.getSize(new Vector3()),width=Math.max(size.x,size.z);if(width<=1e-8)throw new Error('Empty gemstone width');return width;}
-function girdle(geometry:BufferGeometry,box:Box3){
+export function girdle(geometry:BufferGeometry,box:Box3){
   const center=box.getCenter(new Vector3()),p=geometry.getAttribute('position');let radius=0;
   for(let i=0;i<p.count;i++)radius=Math.max(radius,Math.hypot(p.getX(i)-center.x,p.getZ(i)-center.z));
   let total=0,count=0;
