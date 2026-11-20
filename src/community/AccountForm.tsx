@@ -42,6 +42,12 @@ export function AccountPanel({mode,onSuccess}:{mode:'register'|'login';onSuccess
   const pending=!onSuccess;
   return <section className="community-auth" inert={pending} aria-hidden={pending||undefined}>
     <h2>相言账户</h2><p>登录后可以保存设计、发布作品和查看报价。</p>
-    <AccountForm key={mode} pageMode={mode} onSuccess={onSuccess??(()=>{})}/>
+    {onSuccess?<AccountForm key={mode} pageMode={mode} onSuccess={onSuccess}/>:<div className="community-form auth-skeleton">
+      <div className="account-modes"><span>登录</span><span>注册账号</span></div>
+      <div className="auth-skeleton-field">账号名<i/></div>
+      <div className="auth-skeleton-field">密码<i/></div>
+      {mode==='register'&&<small>账号名可用 3–32 位字母、数字或下划线。密码至少 10 位。</small>}
+      <div className="community-actions"><i className="auth-skeleton-action"/></div>
+    </div>}
   </section>;
 }

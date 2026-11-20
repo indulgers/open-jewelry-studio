@@ -117,3 +117,15 @@ it('reads the owner’s saved Chinese configuration independently of the current
   expect(screen.getByText('历史版本未记录。')).toBeVisible();
   expect(screen.queryByText(/"kind"/)).toBeNull();
 });
+
+it('mounts account inputs only after the initial session check finishes',async()=>{
+  history.replaceState(null,'','/#/my-designs?auth=register');
+  let finish!:(response:Response)=>void;
+  vi.stubGlobal('fetch',vi.fn(()=>new Promise<Response>(resolve=>{finish=resolve;})));
+  const {container}=render(<CommunityStudio mode="mine"/>);
+  expect(screen.getByRole('status')).toHaveTextContent('正在打开账号页面');
+  expect(container.querySelector('input')).toBeNull();
+  finish(Response.json({account:null}));
+  expect(await screen.findByRole('button',{name:'注册账号'})).toBeVisible();
+  expect(screen.getByLabelText('账号名')).toBeEnabled();
+});
