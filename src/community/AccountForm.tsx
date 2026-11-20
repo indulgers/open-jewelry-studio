@@ -37,3 +37,11 @@ export function AccountForm({onSuccess,deferLocalAccountNotice=false,pageMode}:{
       {register?'已有账号，去登录':'创建消费者账号'}</button>}</div>
   </form>;
 }
+
+export function AccountPanel({mode,onSuccess}:{mode:'register'|'login';onSuccess?:(account:Account)=>void}){
+  const pending=!onSuccess;
+  return <section className="community-auth" inert={pending} aria-hidden={pending||undefined}>
+    <h2>相言账户</h2><p>登录后可以保存设计、发布作品和查看报价。</p>
+    <AccountForm key={mode} pageMode={mode} onSuccess={onSuccess??(()=>{})}/>
+  </section>;
+}

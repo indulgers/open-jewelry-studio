@@ -55,7 +55,7 @@ export function StorefrontEntry(){
   const hash=useSyncExternalStore(watchRoute,currentHash);
   const community=communityMode(hash);
   const hosted=Boolean(import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE);
-  const independent=hosted&&Boolean(community);
+  const independent=Boolean(community);
   const [App,setApp]=useState<typeof import('./App').default>();
   const [failed,setFailed]=useState(false);
   const [attempt,setAttempt]=useState(0);
@@ -75,7 +75,7 @@ export function StorefrontEntry(){
   },[App,hosted,independent,attempt]);
 
   if(App)return <App/>;
-  if(hosted&&community)return <CommunityLoadBoundary>
+  if(community)return <CommunityLoadBoundary>
     <Suspense fallback={<div className="app-shell"><ShopHeader page={community} verifyAccount={false}/><CommunityPlaceholder mine={community==='mine'}/></div>}><CommunityEntry mode={community}/></Suspense>
   </CommunityLoadBoundary>;
   const all=hash==='#/diy/collection';

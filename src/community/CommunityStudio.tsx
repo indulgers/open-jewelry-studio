@@ -1,12 +1,12 @@
 import {lazy,Suspense,useEffect,useState,useSyncExternalStore} from 'react';
 import {ReviewDialog} from '../stone-first/ring02/ReviewDialog';
-import {AccountForm} from './AccountForm';
+import {AccountPanel} from './AccountForm';
 import {OrderHistory} from './OrderHistory';
 import {WorkRequestDialog} from './WorkRequestDialog';
 import {UploadWork} from './UploadWork';
 import {CUSTOMER_SESSION_CHANGED,CommunityAccountChanged,communityRequest,errorText,type Account,type Order,type Work} from './client';
-import {CommunityHeading} from './CommunityPlaceholder';
-import {GallerySkeleton,ShopState} from '../components/ShopState';
+import {CommunityHeading,CommunityLoadingBody} from './CommunityPlaceholder';
+import {ShopState} from '../components/ShopState';
 
 const authIntent=()=>new URLSearchParams(window.location.hash.split('?')[1]).get('auth')??'';
 function watchIntent(fn:()=>void){window.addEventListener('hashchange',fn);return ()=>window.removeEventListener('hashchange',fn);}
@@ -111,12 +111,9 @@ export default function CommunityStudio({mode}:{mode:Mode}){
       })}>退出登录</button></div>}
     {notice&&<p role="status" className="community-notice">{notice}</p>}
     {error&&!loadFailed&&<p role="alert" className="community-notice">{error} <button onClick={()=>refresh(v=>v+1)}>重新加载</button></p>}
-    {loading?<GallerySkeleton type="community" label="正在读取作品…"/>:loadFailed?<ShopState kind="error" title="作品暂时无法读取" detail={error}>
+    {loading?<CommunityLoadingBody mine={mine} label="正在读取作品…"/>:loadFailed?<ShopState kind="error" title="作品暂时无法读取" detail={error}>
       <button className="shop-button" onClick={()=>refresh(v=>v+1)}>重新加载</button>
-    </ShopState>:mine&&!account?<section className="community-auth">
-      <h2>相言账户</h2><p>登录后可以保存设计、发布作品和查看报价。</p>
-      <AccountForm key={intent} pageMode={intent==='register'?'register':'login'} onSuccess={loggedIn}/>
-    </section>:<>
+    </ShopState>:mine&&!account?<AccountPanel mode={intent==='register'?'register':'login'} onSuccess={loggedIn}/>:<>
       {mine&&account&&<div className="community-actions">
         <button className="shop-button" onClick={()=>setUpload(!upload)} aria-expanded={upload}>{upload?'收起上传':'上传作品'}</button>
         <a className="shop-text-link" href="#/diy/collection">从款式开始设计</a></div>}

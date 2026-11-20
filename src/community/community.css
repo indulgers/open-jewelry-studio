@@ -66,3 +66,8 @@
 .account-modes a {flex:1;text-align:center;text-decoration:none;min-height:44px;padding:10px;color:var(--muted)}
 .account-modes a[aria-current] {box-shadow:inset 0 -2px var(--ink);color:var(--ink);font-weight:600}
 .community-auth .community-actions .shop-button {width:100%}
+
+.community-auth[inert] :is(input,.account-modes,.shop-button) {
+  color:transparent;background:var(--tint);border-color:transparent;box-shadow:none;
+}
+.community-auth[inert] .account-modes a {visibility:hidden}

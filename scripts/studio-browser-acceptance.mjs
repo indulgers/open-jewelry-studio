@@ -69,6 +69,21 @@ async function checkStorefrontStates(browser,width){
     assert.ok(statePage.url().includes('upload=1'),'auth mode switch preserves the upload destination');
     await header.getByRole('link',{name:'登录',exact:true}).click();
     await statePage.getByRole('button',{name:'登录',exact:true}).waitFor();
+    let showWork;
+    const worksGate=new Promise(resolve=>{showWork=resolve;});
+    await statePage.route('**/community/works',async route=>{
+      await worksGate;
+      await route.fulfill({json:[{id:'layout-check',title:'花冠侧影',image:'/media/diy/ring-floral.jpg',author:'相言工作室',published:true}]});
+    });
+    await statePage.goto(origin+'/#/community');
+    await statePage.getByText('正在读取作品…',{exact:true}).waitFor({state:'attached'});
+    const reserved=await statePage.locator('.gallery-loading .skeleton-photo').first().boundingBox();
+    showWork();
+    const picture=await statePage.getByRole('button',{name:'预览花冠侧影'}).boundingBox();
+    for(const key of ['x','y','width','height']){
+      assert.ok(Math.abs(reserved[key]-picture[key])<=1,'community '+width+' '+key+': '+reserved[key]+' => '+picture[key]);
+    }
+    console.log('COMMUNITY_GEOMETRY',width,JSON.stringify({reserved,picture}));
   }finally{await statePage.close();}
 }
 

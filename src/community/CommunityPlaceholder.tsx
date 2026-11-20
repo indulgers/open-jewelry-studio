@@ -1,3 +1,4 @@
+import {AccountPanel} from './AccountForm';
 import {GallerySkeleton} from '../components/ShopState';
 import './community.css';
 
@@ -9,6 +10,12 @@ export function CommunityHeading({mine,account}:{mine:boolean;account?:string}){
     </div>
   </header>;
 }
+export function CommunityLoadingBody({mine,label}:{mine:boolean;label:string}){
+  const intent=new URLSearchParams(window.location.hash.split('?')[1]).get('auth');
+  if(!mine||(intent!=='register'&&intent!=='login'))return <GallerySkeleton type="community" label={label}/>;
+  return <div role="status"><span className="sr-only">正在打开账号页面…</span>
+    <AccountPanel mode={intent}/></div>;
+}
 export function CommunityPlaceholder({mine}:{mine:boolean}){
-  return <main className="community-page"><CommunityHeading mine={mine}/><GallerySkeleton type="community" label="正在打开作品…"/></main>;
+  return <main className="community-page"><CommunityHeading mine={mine}/><CommunityLoadingBody mine={mine} label="正在打开作品…"/></main>;
 }
