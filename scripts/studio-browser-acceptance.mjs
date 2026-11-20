@@ -230,6 +230,11 @@ async function waitForCamera(){
 async function checkAccentShimmer(){
   const canvas=await checkInspectionLayout();
   const reset=page.getByRole('button',{name:'复位当前视角',exact:true});
+  const originalSize=await canvas.evaluate(element=>({width:element.width,height:element.height}));
+  const hasCanvasSize=({width,height})=>{
+    const surface=document.querySelector('.stone-first-preview canvas');
+    return surface?.width===width&&surface.height===height;
+  };
   // Match the original 1x desktop optical benchmark so the same facets and
   // angular steps are sampled even when the storefront changes canvas size.
   const width=824,height=690;
@@ -238,10 +243,7 @@ async function checkAccentShimmer(){
   `});
   let probe;
   try{
-    await page.waitForFunction(({width,height})=>{
-      const surface=document.querySelector('.stone-first-preview canvas');
-      return surface?.width===width&&surface.height===height;
-    },{width,height});
+    await page.waitForFunction(hasCanvasSize,{width,height});
     await reset.click();await waitForCamera();
     await canvas.scrollIntoViewIfNeeded();
     probe=await canvas.evaluateHandle(async element=>{
@@ -275,6 +277,7 @@ async function checkAccentShimmer(){
     await probe?.evaluate(p=>p.dispose());
     await probe?.dispose();
     await measurementSize.evaluate(style=>style.remove());
+    await page.waitForFunction(hasCanvasSize,originalSize);
     await reset.click();await waitForCamera();
   }
 }
@@ -449,7 +452,11 @@ try{
   await page.getByRole('button',{name:'戒头',exact:true}).click();
   await page.getByRole('button',{name:'1 ct',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'));
-  await page.getByRole('button',{name:'复位当前视角',exact:true}).click();
+  const views=page.getByRole('group',{name:'戒指观察视角'});
+  assert.equal(await views.getByRole('button',{name:'镶嵌特写',exact:true}).getAttribute('aria-pressed'),'true');
+  // Cached panning requires a view where the entire ring fits on the canvas.
+  await views.getByRole('button',{name:'整体',exact:true}).click();
+  await waitForCamera();
   await checkAccentShimmer();
   const canvas=await checkDesktopInspection();
   // Hold the session response across the paired events delivered when returning to the editor.
