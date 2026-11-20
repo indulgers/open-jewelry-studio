@@ -49,3 +49,21 @@ it('forwards the selected component IDs and revisions to the cloud quote endpoin
   const response=await fetch(base+'combination-quote?'+new URLSearchParams(parts));
   expect(await response.json()).toEqual(parts);
 });
+
+it('keeps the browser on its Vite origin for stock and released model downloads',async()=>{
+  cloud.enabled=true;
+  vi.stubEnv('XIANGYAN_ADMIN_PASSWORD','temporary-test-password');
+  cloud.handler.mockImplementation(async(request:Request,_store:unknown,_password:undefined,options:{streamPublicAssets:boolean})=>{
+    expect(options.streamPublicAssets).toBe(true);
+    const path=new URL(request.url).pathname;
+    expect(path).toMatch(/^\/api\/model-admin\/(assets\/models\/parts|public\/.*\/ring-)/);
+    return new Response('glTF',{headers:{'Content-Type':'model/gltf-binary'}});
+  });
+  const origin=new URL(await serve()).origin;
+  for(const path of ['/models/parts/test.glb','/api/model-admin/public/11111111-1111-1111-1111-111111111111/22222222-2222-2222-2222-222222222222/ring-aaaaaaaaaaaa.glb']){
+    const response=await fetch(origin+path,{redirect:'manual'});
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Location')).toBeNull();
+    expect(await response.text()).toBe('glTF');
+  }
+});

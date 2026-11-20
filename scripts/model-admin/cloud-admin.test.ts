@@ -31,18 +31,26 @@ it('serves only confirmed template revisions while keeping earlier releases read
   const password='test-only-password-with-at-least-32-characters';
   const origin='https://studio.invalid';
   let cookie:string|undefined;
-  function request(path:string,data?:object,authenticated=false){
+  function request(path:string,data?:object,authenticated=false,streamPublicAssets=false){
     const headers=new Headers({Origin:origin});
     if(authenticated&&cookie)headers.set('Cookie',cookie);
     if(data)headers.set('Content-Type','application/json');
     return cloudAdmin(new Request(origin+'/api/model-admin/'+path,{headers,
-      ...(data?{method:'POST',body:JSON.stringify(data)}:{})}),store,password);
+      ...(data?{method:'POST',body:JSON.stringify(data)}:{})}),store,password,{streamPublicAssets});
   }
   expect((await request('library')).status).toBe(401);
   const login=await request('session',{password});
   expect(login.status).toBe(204);
   cookie=login.headers.get('Set-Cookie')!.split(';')[0];
-  expect((await request('assets/models/parts/heads/test.glb')).status).toBe(302);
+  const stockAsset='assets/models/parts/heads/test.glb';
+  await store.put('studio/v1/'+stockAsset,new Uint8Array([0x67,0x6c,0x54,0x46]),'model/gltf-binary');
+  expect((await request(stockAsset)).status).toBe(302);
+  const localStock=await request(stockAsset,undefined,false,true);
+  expect(localStock.status).toBe(200);
+  expect(localStock.headers.get('Location')).toBeNull();
+  expect(localStock.headers.get('Content-Type')).toBe('model/gltf-binary');
+  expect(new Uint8Array(await localStock.arrayBuffer())).toEqual(new Uint8Array([0x67,0x6c,0x54,0x46]));
+  expect((await request('assets/stock/sources/ring-02/source.obj',undefined,false,true)).status).toBe(404);
   expect((await request('assets/stock/sources/ring-02/source.obj')).status).toBe(404);
   expect((await request('public/storefront.json')).status).toBe(200);
   const rates={components:{'ring-02':{head:10.1,band:0,pave:0},'ring-solstice':{head:0,band:20.2,pave:0}},bases:{}};
@@ -173,6 +181,31 @@ it('serves only confirmed template revisions while keeping earlier releases read
     return pixels;
   }));
   expect(previews[0].equals(previews[1])).toBe(false);
+  const partPath=before.parts[beforeRing.headSourceId].head.replace('/api/model-admin/','');
+  const localPart=await request(partPath,undefined,false,true);
+  expect(localPart.status).toBe(200);
+  expect(localPart.headers.get('Location')).toBeNull();
+  expect(Buffer.from(await localPart.arrayBuffer()).toString('ascii',0,4)).toBe('glTF');
+
+  // Simulate a valid older release created before visible component images were stored.
+  const oldRevisionKey='studio/v1/releases/'+importedPath+'/template.json';
+  const oldRevision=await (await store.get(oldRevisionKey))!.json();
+  const {partViews:_savedViews,...legacy}=oldRevision;
+  legacy.files=legacy.files.filter((name:string)=>name!=='head-top.png'&&name!=='band-side.png');
+  await store.put(oldRevisionKey,JSON.stringify(legacy),'application/json');
+  const legacyStorefront=await (await request('public/storefront.json')).json();
+  expect(legacyStorefront.catalog.find((item:any)=>item.id===importedDraft.id).partViews).toEqual(views);
+  for(const [index,url] of Object.values(views).entries()){
+    const view=await request(url.replace('/api/model-admin/',''));
+    expect(view.status).toBe(200);
+    expect(view.headers.get('Content-Type')).toBe('image/png');
+    const png=Buffer.from(await view.arrayBuffer());
+    expect(inflateSync(png.subarray(41,41+png.readUInt32BE(33)))).toEqual(previews[index]);
+  }
+  const missingHead=legacy.library[legacy.headId].head.split('/').at(-1);
+  await store.put(oldRevisionKey,JSON.stringify({...legacy,files:legacy.files.filter((name:string)=>name!==missingHead)}),'application/json');
+  expect((await request(views.head.replace('/api/model-admin/',''))).status).toBe(404);
+  await store.put(oldRevisionKey,JSON.stringify(legacy),'application/json');
   expect(before.parts[beforeRing.headSourceId].head).toContain('/public/'+importedPath+'/');
   expect(before.parts[beforeRing.bandSourceId].sourceId).toBe(versionId);
   const query=new URLSearchParams({head:beforeRing.id,band:beforeRing.id,headRevision:beforeRing.revision,bandRevision:beforeRing.revision});
@@ -198,4 +231,4 @@ it('serves only confirmed template revisions while keeping earlier releases read
   expect((await request(archivePath,{archived:false},true)).status).toBe(200);
   expect((await request('templates',imported,true)).status).toBe(201);
 
-});
+},15_000);

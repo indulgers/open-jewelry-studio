@@ -22,27 +22,38 @@ function png(rgb:Buffer){
   return Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),chunk('IHDR',header),chunk('IDAT',deflateSync(rows)),chunk('IEND',Buffer.alloc(0))]);
 }
 
+export const partViewNames={head:'head-top.png',band:'band-side.png'} as const;
+type Role=keyof typeof partViewNames;
+
+export function partViewInputs(template:ManagedTemplate,base:string,role:Role){
+  const id=role==='head'?template.headId:template.bandId;
+  const part=template.library[id];
+  if(!part||Object.hasOwn(stockAssets,id))return;
+  const urls=role==='head'?[part.head,part.headStones]:[part.band,...(part.pave?[part.pave]:[])];
+  if(urls.some(url=>!url||!url.startsWith(base)))return;
+  const names=urls.map(url=>url.slice(base.length));
+  if(names.every(name=>/^ring(?:-(?:head|pave|adapter))?-[a-f0-9]{12}\.glb$/.test(name)))return names;
+}
+
+export async function renderPartView(bytes:Uint8Array[],role:Role){
+  return png(await renderPartPixels(bytes,role,size));
+}
+
 // Assets have already been copied into the immutable release. Read only those files.
 export async function publishPartViews(template:ManagedTemplate,base:string,read:(name:string)=>Promise<Uint8Array>,save:(name:string,data:Buffer<ArrayBuffer>)=>Promise<void>){
   const views:PartViews={};
   for(const role of ['head','band'] as const){
-    const sourceId=role==='head'?template.headId:template.bandId;
-    if(Object.hasOwn(stockAssets,sourceId))continue;
-    const part=template.library[sourceId];
-    if(!part)continue;
-    const urls=role==='head'?[part.head,part.headStones]:[part.band,...(part.pave?[part.pave]:[])];
-    if(urls.some(url=>!url||!url.startsWith(base)))continue;
-    const names=urls.map(url=>url.slice(base.length));
-    if(names.some(name=>!/^ring(?:-(?:head|pave|adapter))?-[a-f0-9]{12}\.glb$/.test(name)))continue;
-    const bytes=await Promise.all(names.map(read));
-    let rgb:Buffer;
-    try{rgb=await renderPartPixels(bytes,role,size);}
+    const inputs=partViewInputs(template,base,role);
+    if(!inputs)continue;
+    const bytes=await Promise.all(inputs.map(read));
+    let image:Buffer<ArrayBuffer>;
+    try{image=await renderPartView(bytes,role);}
     catch(error){
       console.warn('无法生成发布部件图',template.id,role,error instanceof Error?error.message:'无法读取几何');
       continue;
     }
-    const name=role==='head'?'head-top.png':'band-side.png';
-    await save(name,png(rgb));
+    const name=partViewNames[role];
+    await save(name,image);
     views[role]=base+name;
   }
   return views;

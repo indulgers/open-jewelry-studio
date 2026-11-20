@@ -38,7 +38,7 @@ const VIEW_ICONS={
 
 preloadJewelryLighting();
 
-type PartChoice={id:string;name:string;image:string};
+type PartChoice={id:string;name:string;image?:string};
 const listed=(id:string)=>RING_CATALOG.some(item=>item.id===id&&item.listed);
 const bandChoices=BAND_STYLES.filter(style=>style.finishes.some(finish=>listed(finish.id))).map(style=>({id:style.name,name:style.name,image:bandImage((style.finishes.find(finish=>listed(finish.id))??style.finishes[0]).id)}));
 

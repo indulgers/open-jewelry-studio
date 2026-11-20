@@ -347,6 +347,20 @@ try{
   const save=page.getByRole('button',{name:'保存设计',exact:true});
   await save.waitFor({timeout:90000});
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
+  for(const [tab,kind] of [['戒圈与铺钻','band'],['戒头','head']]){
+    await page.getByRole('button',{name:tab,exact:true}).click();
+    await page.getByRole('button',{name:'查看全部',exact:true}).click();
+    const library=page.getByRole('dialog');
+    const images=library.locator('.source-part-image img');
+    assert.equal(await images.count(),7,'all stock parts have a '+kind+' view');
+    for(const image of await images.all()){
+      await image.scrollIntoViewIfNeeded();
+      await image.evaluate(async element=>{await element.decode();});
+      assert.match(await image.getAttribute('src'),new RegExp('/part-views/[^/]+-'+kind+'\\.webp$'));
+      assert.equal(await image.evaluate(element=>element.naturalWidth),256);
+    }
+    await library.getByRole('button',{name:'返回选款',exact:true}).click();
+  }
   await page.getByRole('button',{name:'戒圈与铺钻',exact:true}).click();
   await page.getByRole('button',{name:'纤细戒圈',exact:true}).click();
   await page.getByText('39 颗宝石',{exact:true}).waitFor();

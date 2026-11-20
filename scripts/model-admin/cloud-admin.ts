@@ -1,4 +1,4 @@
-import {publishPartViews} from './publish-part-views.ts';
+import {partViewInputs,partViewNames,publishPartViews,renderPartView} from './publish-part-views.ts';
 import {createHash,randomUUID} from 'node:crypto';
 import {mkdir,mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -31,6 +31,20 @@ const fail=(status:number,message:string):never=>{throw new RequestError(status,
 const modelKey=(id:string)=>root+'models/'+id+'/';
 const releaseKey=(id:string,revision:string)=>root+'releases/'+id+'/'+revision+'/';
 const publicPath=(id:string,revision:string)=>prefix+'/public/'+id+'/'+revision+'/';
+function legacyPartViewInputs(release:Release,role:keyof typeof partViewNames){
+  const inputs=partViewInputs(release,publicPath(release.id,release.revision),role);
+  if(inputs?.every(name=>release.files.includes(name)))return inputs;
+}
+
+function publishedPartViews(release:Release){
+  const views={...release.partViews};
+  for(const role of ['head','band'] as const){
+    if(!views[role]&&legacyPartViewInputs(release,role))
+      views[role]=publicPath(release.id,release.revision)+partViewNames[role];
+  }
+  return views;
+}
+
 async function body(request:Request,limit=16*1024){
   if(request.headers.get('content-type')?.split(';')[0]!=='application/json')fail(400,'请提交 JSON。');
   if(Number(request.headers.get('content-length'))>limit)fail(413,'提交内容超过大小限制。');
@@ -256,7 +270,7 @@ function cloudLibrary(store:CloudStore){
         editor:product.catalogId?'#/stonefirst/'+id:'#/stonefirst/template/'+product.id+'/'+product.revision,
         legacyRevision:original?.revision,revision:product.revision,model:'',image:product.image,campaign:product.campaign??'',
         price:{base:release.pricing?.base??original?.price.base??0,version:product.revision,leadTime:'7–10 个工作日'},
-        headSourceId,bandSourceId,partViews:release.partViews,headLabel:product.headName,bandLabel:product.bandName,
+        headSourceId,bandSourceId,partViews:publishedPartViews(release),headLabel:product.headName,bandLabel:product.bandName,
         headStructures:release.headSettings?.headStructure?[release.headSettings.headStructure]:original?.headStructures??[],
         bandStructure:release.bandSettings?.bandStructure,bandFinish:release.bandSettings?.bandFinish,
         automaticPave:release.bandSettings?.automaticPave!==false,
@@ -276,7 +290,8 @@ function redirect(url:string){
   return new Response(null,{status:302,headers:{Location:url,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'}});
 }
 
-export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passwordOverride?:string):Promise<Response>{
+export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passwordOverride?:string,
+  options?:{streamPublicAssets:boolean}):Promise<Response>{
   try{
     const url=new URL(request.url);
     const route=(url.searchParams.get('path')??url.pathname.slice(prefix.length)).replace(/^\/|\/$/g,'');
@@ -287,6 +302,16 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     const method=request.method;
     const store=storeOverride??cloudStore();
     const password=passwordOverride??process.env.XIANGYAN_ADMIN_PASSWORD;
+    async function publicAsset(key:string){
+      if(!options?.streamPublicAssets)return redirect(await store!.sign(key,'GET'));
+      const asset=await store!.get(key);
+      if(!asset)return fail(404,'文件不存在。');
+      return new Response(asset.body,{headers:{
+        'Content-Type':asset.headers.get('Content-Type')??'application/octet-stream',
+        'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
+      }});
+    }
+
     if(id==='community'){
       if(!store)return json({error:'社区存储尚未配置。'},503);
       return communityApi(request,route.slice('community/'.length),store,!!password&&password.length>=32&&adminSessionValid(request,password));
@@ -296,7 +321,7 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
       const path=[action,revision,...rest].filter(Boolean).join('/');
       const inventory=await store.get(root+'stock/assets.json');
       if(!inventory||!Object.hasOwn(await inventory.json(),path))fail(404,'文件不存在。');
-      return redirect(await store.sign(root+'assets/'+path,'GET'));
+      return await publicAsset(root+'assets/'+path);
     }
     if(id==='public'&&method==='GET'){
       if(!store)return json({error:'发布目录未配置。'},503);
@@ -334,7 +359,20 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
           const {files,...template}=release;
           return json(template);
         }
-        if(release.files.includes(rest[0]))return redirect(await store.sign(key+rest[0],'GET'));
+        if(release.files.includes(rest[0]))return await publicAsset(key+rest[0]);
+        const role=rest[0]===partViewNames.head?'head':rest[0]===partViewNames.band?'band':undefined;
+        const inputs=role&&legacyPartViewInputs(release,role);
+        if(role&&inputs){
+          const files=await Promise.all(inputs.map(async name=>{
+            const asset=await store.get(key+name);
+            if(!asset)return fail(404,'发布部件文件不存在。');
+            return new Uint8Array(await asset.arrayBuffer());
+          }));
+          const png=await renderPartView(files,role);
+          return new Response(new Uint8Array(png),{headers:{
+            'Content-Type':'image/png','Cache-Control':'private, max-age=300','X-Content-Type-Options':'nosniff',
+          }});
+        }
       }
       return json({error:'找不到已发布版本。'},404);
     }

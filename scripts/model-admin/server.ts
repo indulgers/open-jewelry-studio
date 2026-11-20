@@ -1,4 +1,5 @@
 import {Readable} from 'node:stream';
+import {pipeline} from 'node:stream/promises';
 import {localCommunity} from './local-community.ts';
 import {cloudAdmin} from './cloud-admin.ts';
 import {cloudStore} from './cloud-store.ts';
@@ -280,10 +281,14 @@ export function modelAdmin():Plugin{
           url.searchParams.delete('path');
           const request=new Request(url,{method:req.method,headers:req.headers as HeadersInit,
             ...(req.method==='POST'?{body:Readable.toWeb(req),duplex:'half'}:{})} as RequestInit);
-          void cloudAdmin(request,cloud).then(response=>{
+          void cloudAdmin(request,cloud,undefined,{streamPublicAssets:true}).then(async response=>{
             res.writeHead(response.status,Object.fromEntries(response.headers));
-            if(response.body)Readable.fromWeb(response.body as any).pipe(res);else res.end();
-          }).catch(()=>json(res,502,{error:'R2 暂不可用，请重试。'}));
+            if(response.body)await pipeline(Readable.fromWeb(response.body as any),res);
+            else res.end();
+          }).catch(()=>{
+            if(!res.headersSent&&!res.destroyed)json(res,502,{error:'R2 暂不可用，请重试。'});
+            else res.destroy();
+          });
           return;
         }
         if(!path||!/^\/api\/model-admin(?:\/|$)/.test(path))return next();

@@ -18,7 +18,6 @@
 .source-part-image {position: relative; display: block; width: 100%; height: 88px; overflow: hidden; background: #fff}
 .source-part-image img {position: absolute; display: block; width: 100%; height: 100%; max-width: none; object-fit: contain}
 .source-finish-options .source-part-image {height: 70px}
-.source-cover-note {color: var(--muted); font-size: 11px; padding-top: 3px}
 .source-part-image small {display: grid; height: 100%; place-items: center; color: var(--muted); font-size: 12px}
 .source-part-name {display: flex; min-height: 36px; align-items: center; justify-content: center; gap: 6px; padding: 5px 4px; font-size: 13px}
 .source-part-name .ring02-spinner {width: 11px; height: 11px; flex: 0 0 auto}
