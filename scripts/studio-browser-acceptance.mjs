@@ -195,11 +195,6 @@ async function checkDesktopInspection(){
   assert.ok(magnification>100,'scroll wheel magnifies the current inspection angle');
   const enlarged=await previewPixels(canvas);
   assert.ok(enlarged.centroid<panned.centroid,'zooming at a point right of the ring must shift it left');
-  const theme=page.getByLabel('网站风格');
-  const nextTheme=await theme.evaluate(select=>[...select.options].find(option=>option.value!==select.value).value);
-  await theme.selectOption(nextTheme);await twoFrames();
-  assert.equal(Number.parseInt(await zoom.innerText(),10),magnification);
-  assert.ok(Math.abs((await previewPixels(canvas)).centroid-enlarged.centroid)<1.5,'theme change must retain the pan');
   await capture('03-editor-desktop-inspection');
   await page.getByRole('button',{name:'旋转',exact:true}).click();
   await page.mouse.move(x,y);await page.mouse.down();
@@ -225,31 +220,51 @@ async function checkDesktopInspection(){
   return canvas;
 }
 
+async function waitForCamera(){
+  await page.waitForFunction(()=>{
+    const canvas=document.querySelector('.stone-first-preview canvas');
+    return canvas?.dataset.inspectionFrame==='settled'&&!canvas.dataset.cameraTransition;
+  });
+}
+
 async function checkAccentShimmer(){
   const canvas=await checkInspectionLayout();
   const reset=page.getByRole('button',{name:'复位当前视角',exact:true});
-  await reset.click();await twoFrames();
-  await canvas.scrollIntoViewIfNeeded();
-  const probe=await canvas.evaluateHandle(async element=>{
-    const {createShimmerProbe}=await import('/scripts/measure-accent-shimmer.mjs');
-    return createShimmerProbe(element);
-  });
-  const bounds=await canvas.boundingBox(),x=bounds.x+bounds.width/2,y=bounds.y+bounds.height/2;
-  async function replay(reference){
-    await reset.click();await twoFrames();
-    await probe.evaluate((p,reference)=>p.begin(reference),reference);
-    await page.mouse.move(x,y);await page.mouse.down();
-    try{
-      for(let step=1;step<=24;step++){
-        await probe.evaluate((p,step)=>p.sample(step),step);
-      }
-      return await probe.evaluate(p=>p.result());
-    }finally{
-      await page.mouse.up();
-      await page.waitForFunction(()=>document.querySelector('.stone-first-preview canvas')?.dataset.inspectionFrame==='settled');
-    }
-  }
+  const originalSize=await canvas.evaluate(element=>({width:element.width,height:element.height}));
+  const hasCanvasSize=({width,height})=>{
+    const surface=document.querySelector('.stone-first-preview canvas');
+    return surface?.width===width&&surface.height===height;
+  };
+  // Match the original 1x desktop optical benchmark so the same facets and
+  // angular steps are sampled even when the storefront changes canvas size.
+  const width=824,height=690;
+  const measurementSize=await page.addStyleTag({content:`
+    .app-shell .source-ring-main .source-ring-canvas { width: ${width}px !important; height: ${height}px !important; }
+  `});
+  let probe;
   try{
+    await page.waitForFunction(hasCanvasSize,{width,height});
+    await reset.click();await waitForCamera();
+    await canvas.scrollIntoViewIfNeeded();
+    probe=await canvas.evaluateHandle(async element=>{
+      const {createShimmerProbe}=await import('/scripts/measure-accent-shimmer.mjs');
+      return createShimmerProbe(element);
+    });
+    const bounds=await canvas.boundingBox(),x=bounds.x+bounds.width/2,y=bounds.y+bounds.height/2;
+    async function replay(reference){
+      await reset.click();await waitForCamera();
+      await probe.evaluate((p,reference)=>p.begin(reference),reference);
+      await page.mouse.move(x,y);await page.mouse.down();
+      try{
+        for(let step=1;step<=24;step++){
+          await probe.evaluate((p,step)=>p.sample(step),step);
+        }
+        return await probe.evaluate(p=>p.result());
+      }finally{
+        await page.mouse.up();
+        await waitForCamera();
+      }
+    }
     const reference=await replay(true),filtered=await replay(false);
     console.log('ACCENT_SHIMMER',JSON.stringify({reference,filtered}));
     for(const zone of ['halo','shoulder']){
@@ -259,9 +274,11 @@ async function checkAccentShimmer(){
       assert.ok(after.contrast>10&&after.contrast>=before.contrast*.65,zone+' must retain bright and dark facets');
     }
   }finally{
-    await probe.evaluate(p=>p.dispose());
-    await probe.dispose();
-    await reset.click();await twoFrames();
+    await probe?.evaluate(p=>p.dispose());
+    await probe?.dispose();
+    await measurementSize.evaluate(style=>style.remove());
+    await page.waitForFunction(hasCanvasSize,originalSize);
+    await reset.click();await waitForCamera();
   }
 }
 
@@ -347,11 +364,12 @@ try{
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(origin);
   await page.getByRole('button',{name:'原款图'}).waitFor();
-  await page.locator('.hero-photo img').evaluate(img=>img.decode());
+  assert.equal(await page.getByLabel('网站风格').count(),0,'Maison has a single storefront identity');
+  await page.locator('.diy-hero-art img').evaluate(img=>img.decode());
   await capture('01-home');
   await page.getByRole('button',{name:'原款图'}).click();
-  await page.locator('.hero-photo img').evaluate(img=>img.decode());
-  assert.match(await page.locator('.hero-photo img').getAttribute('src'),/ring-02.jpg$/);
+  await page.locator('.diy-hero-art img').evaluate(img=>img.decode());
+  assert.match(await page.locator('.diy-hero-art img').getAttribute('src'),/ring-02.jpg$/);
   await page.getByRole('banner').getByRole('link',{name:'注册',exact:true}).click();
   await page.getByLabel('账号名').fill('studio_reviewer');
   await page.getByLabel('密码',{exact:true}).fill('local-test-account-only');
@@ -434,7 +452,11 @@ try{
   await page.getByRole('button',{name:'戒头',exact:true}).click();
   await page.getByRole('button',{name:'1 ct',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'));
-  await page.getByRole('button',{name:'复位当前视角',exact:true}).click();
+  const views=page.getByRole('group',{name:'戒指观察视角'});
+  assert.equal(await views.getByRole('button',{name:'镶嵌特写',exact:true}).getAttribute('aria-pressed'),'true');
+  // Cached panning requires a view where the entire ring fits on the canvas.
+  await views.getByRole('button',{name:'整体',exact:true}).click();
+  await waitForCamera();
   await checkAccentShimmer();
   const canvas=await checkDesktopInspection();
   // Hold the session response across the paired events delivered when returning to the editor.
@@ -461,6 +483,7 @@ try{
     await page.unroute(sessionRoute,holdSession);
   }
   assert.ok(await canvas.evaluate((current,original)=>current===original,mountedCanvas));
+  await waitForCamera();
   const originalFace=await previewPixels(canvas);
   await page.getByLabel('主石切形').selectOption('pear');
   await page.getByLabel('宝石类别').selectOption('培育钻石');
@@ -469,7 +492,7 @@ try{
   await page.getByRole('button',{name:'戒圈与铺钻',exact:true}).click();
   await page.getByRole('group',{name:'表面处理'}).getByRole('button',{name:'哑面'}).click();
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
-  await twoFrames();
+  await waitForCamera();
   assert.notDeepEqual((await previewPixels(canvas)).shade,originalFace.shade,'custom styling must change visible pixels');
   await capture('03-editor-pear-gem');
   await canvas.scrollIntoViewIfNeeded();
@@ -502,7 +525,8 @@ try{
   await page.evaluate(()=>scrollTo(0,0));await twoFrames();
   const mobileCanvas=await checkInspectionLayout();
   await checkTouchZoom(mobileCanvas);
-  await page.getByRole('button',{name:'镶嵌特写'}).click();await twoFrames();
+  await page.getByRole('button',{name:'镶嵌特写'}).click();await waitForCamera();
+  assert.ok(await page.getByRole('button',{name:'放大模型'}).isVisible(),'mobile also provides button zoom');
   await capture('04-editor-mobile-detail');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'mobile editor overflow');
   await page.goto(origin+'/#/stonefirst/precision/ring-02');
@@ -528,6 +552,7 @@ try{
   await page.getByRole('button',{name:/查看内圈效果/}).click();
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
   await twoFrames();
+  await waitForCamera();
   await assertCurrentSnapshot(precision,save);
   await page.getByRole('button',{name:'返回编辑器'}).click();
   await page.goto(origin+'/#/diy/fit');
@@ -544,6 +569,7 @@ try{
     await page.getByRole('button',{name:angle,exact:true}).click();
     await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
     await twoFrames();
+    await waitForCamera();
     await page.locator('.stone-first-preview canvas').screenshot({path:join(directory,'floral-setting-'+cut+'.png')});
   }
   assert.deepEqual(errors,[],'uncaught browser errors');

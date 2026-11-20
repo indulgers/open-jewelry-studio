@@ -4,7 +4,7 @@ import {createInspectionOrbit,setInspectionDrag} from './inspection-camera';
 import {RingInspectionTools,useRingInspection,MIN_INSPECTION_ZOOM,MAX_INSPECTION_ZOOM,type Inspection} from './RingInspection';
 import {EngravingOverlay} from '../engraving/EngravingOverlay';
 import type {EngravingStyle} from '../engraving/style';
-import {DoubleSide,NeutralToneMapping,OrthographicCamera,Vector3,type Texture} from 'three';
+import {DoubleSide,NeutralToneMapping,OrthographicCamera,Spherical,Vector3,type Texture} from 'three';
 import {JewelryLighting,clearJewelryLightingCache} from '../../viewer/JewelryLighting';
 import {JewelryPostprocessing} from '../../viewer/JewelryPostprocessing';
 import {createFacetAtlas} from '../../viewer/facetAtlas';
@@ -79,10 +79,46 @@ export function RingCamera({view,reset,frames=cameras,engravingView=false,inspec
       camera.zoom=Math.max(orbit.minZoom,Math.min(orbit.maxZoom,camera.zoom));
       camera.updateProjectionMatrix();orbit.update();setZoom(Math.round(camera.zoom/naturalZoom*100));invalidate();
     };
-    const resetCamera=()=>{
+    const snap=()=>{
       camera.position.fromArray(framing.position);
       orbit.target.fromArray(framing.target);
       camera.zoom=naturalZoom;update();
+    };
+    // Glide to a framing: orbit around a moving target on a sphere so the stone stays in view.
+    let glide=0;
+    const cancelTravel=()=>{
+      if(!glide)return;
+      cancelAnimationFrame(glide);
+      glide=0;
+      delete gl.domElement.dataset.cameraTransition;
+      motion.current.active=false;
+      orbit.removeEventListener('start',cancelTravel);
+      invalidate();
+    };
+    const travel=()=>{
+      cancelTravel();
+      if(matchMedia('(prefers-reduced-motion: reduce)').matches){snap();return;}
+      const fromTarget=orbit.target.clone(),toTarget=new Vector3().fromArray(framing.target);
+      const from=new Spherical().setFromVector3(camera.position.clone().sub(fromTarget));
+      const to=new Spherical().setFromVector3(new Vector3().fromArray(framing.position).sub(toTarget));
+      let dTheta=to.theta-from.theta;
+      if(dTheta>Math.PI)dTheta-=Math.PI*2;else if(dTheta<-Math.PI)dTheta+=Math.PI*2;
+      const fromZoom=camera.zoom,started=performance.now(),duration=760;
+      orbit.addEventListener('start',cancelTravel);
+      gl.domElement.dataset.cameraTransition='moving';
+      const target=new Vector3(),sphere=new Spherical();
+      const step=(now:number)=>{
+        const t=Math.min(1,(now-started)/duration),k=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+        target.lerpVectors(fromTarget,toTarget,k);
+        sphere.set(from.radius+(to.radius-from.radius)*k,from.phi+(to.phi-from.phi)*k,from.theta+dTheta*k);
+        orbit.target.copy(target);
+        camera.position.setFromSpherical(sphere).add(target);
+        camera.zoom=fromZoom+(naturalZoom-fromZoom)*k;
+        motion.current.active=t<1;
+        update();
+        if(t<1)glide=requestAnimationFrame(step);else cancelTravel();
+      };
+      glide=requestAnimationFrame(step);
     };
     const prior=last.current;
     if(prior&&prior.view===view&&prior.reset===reset&&prior.engravingView===engravingView){
@@ -93,10 +129,10 @@ export function RingCamera({view,reset,frames=cameras,engravingView=false,inspec
         camera.position.add(delta);orbit.target.add(delta);
       }
       update();
-    }else resetCamera();
+    }else if(prior)travel();else snap();
     last.current={framing,view,reset,engravingView,width:size.width,height:size.height};
-    cameraActions.current={zoom:factor=>{camera.zoom*=factor;update();},reset:resetCamera};
-    return ()=>{cameraActions.current=null;};
+    cameraActions.current={zoom:factor=>{cancelTravel();camera.zoom*=factor;update();},reset:travel};
+    return ()=>{cancelTravel();cameraActions.current=null;};
   },[camera,gl,size.width,size.height,frames,reset,view,engravingView,cameraActions,setZoom,invalidate]);
   return null;
 }

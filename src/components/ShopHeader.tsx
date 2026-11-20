@@ -3,18 +3,6 @@ import {communityRequest,CUSTOMER_SESSION_CHANGED,type Account} from '../communi
 import {XiangyanWordmark} from './XiangyanWordmark';
 import {CART_CHANGED,demoOrders} from '../stone-first/ring02/demoOrder';
 
-const styles=[['paris','巴黎极简'],['french','法式浪漫'],['italian','意式雕塑'],['arch','建筑黑白']] as const;
-type ShopStyle=typeof styles[number][0];
-const STYLE_KEY='xiangyan:shop-style';
-
-function initialStyle():ShopStyle{
-  try{
-    const saved=localStorage.getItem(STYLE_KEY);
-    if(styles.some(([id])=>id===saved))return saved as ShopStyle;
-  }catch{/* Style selection remains available when browser storage is blocked. */}
-  return 'paris';
-}
-
 export function ShopHeader({page,verifyAccount=true}:{page:string|null;verifyAccount?:boolean}){
   const [member,setMember]=useState(false);
   useEffect(()=>{
@@ -34,8 +22,9 @@ export function ShopHeader({page,verifyAccount=true}:{page:string|null;verifyAcc
     window.addEventListener('pageshow',read);
     return ()=>{active.abort();window.removeEventListener(CUSTOMER_SESSION_CHANGED,read);window.removeEventListener('storage',storage);window.removeEventListener('pageshow',read);};
   },[verifyAccount]);
-  const [style,setStyle]=useState(initialStyle);
   const [count,setCount]=useState(0);
+  const [bump,setBump]=useState(0);
+  const lastCount=useRef<number|null>(null);
   const [menu,setMenu]=useState(false);
   const menuButton=useRef<HTMLButtonElement>(null);
   const header=useRef<HTMLElement>(null);
@@ -57,9 +46,13 @@ export function ShopHeader({page,verifyAccount=true}:{page:string|null;verifyAcc
     };
   },[menu]);
   useEffect(()=>{
-    document.documentElement.dataset.style=style;
-    try{localStorage.setItem(STYLE_KEY,style);}catch{}
-  },[style]);
+    // The four switchable themes were retired; clear the attribute an older session may have left.
+    delete document.documentElement.dataset.style;
+  },[]);
+  useEffect(()=>{
+    if(lastCount.current!==null&&count>lastCount.current)setBump(value=>value+1);
+    lastCount.current=count;
+  },[count]);
   useEffect(()=>{
     const refresh=()=>{try{setCount(demoOrders().length);}catch{setCount(0);}};
     const close=()=>setMenu(false);
@@ -91,17 +84,14 @@ export function ShopHeader({page,verifyAccount=true}:{page:string|null;verifyAcc
       </button>
       <a className="brand" href="#/diy" aria-label="相言首页"><XiangyanWordmark/><span>XIANGYAN</span></a>
       <div className="shop-header-actions">
-        <label className="shop-style"><span className="sr-only">网站风格</span>
-          <select value={style} onChange={event=>setStyle(event.target.value as ShopStyle)}>{styles.map(([id,label])=><option key={id} value={id}>{label}</option>)}</select>
-        </label>
         <div className="header-account" aria-label="消费者账号">
           {member?<a href="#/my-designs" aria-current={page==='mine'?'page':undefined}>我的账户</a>:<>
             <a href="#/my-designs?auth=login">登录</a><span aria-hidden="true">/</span><a href="#/my-designs?auth=register">注册</a>
           </>}
         </div>
         <a className="header-cart" aria-label={'购物车'+(count?'，'+count+' 件':'')} href="#/diy/cart" aria-current={page==='cart'?'page':undefined}>
-          <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M5 8h14l-1 13H6L5 8Zm4 0V6a3 3 0 0 1 6 0v2"/></svg>
-          <span className="cart-label">购物车</span>{count>0&&<span className="cart-count">{count}</span>}
+          <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M4.5 8.5h15l-1.2 12h-12.6l-1.2-12Zm4-.2V7a3.5 3.5 0 0 1 7 0v1.3"/></svg>
+          <span className="cart-label">购物车</span>{count>0&&<span key={bump} className="cart-count" data-bump={bump?'':undefined}>{count}</span>}
         </a>
       </div>
       <nav className="shop-mobile-menu" id="shop-mobile-menu" aria-label="移动端导航" hidden={!menu}>

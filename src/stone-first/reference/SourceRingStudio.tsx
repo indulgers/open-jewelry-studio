@@ -13,6 +13,7 @@ import {preloadJewelryLighting} from '../../viewer/JewelryLighting';
 import {STONE_APPEARANCES,STONE_APPEARANCE_IDS,type StoneAppearance} from '../../viewer/stoneAppearance';
 import {RING_CATALOG,type CatalogRing} from '../catalog';
 import {RingStylePicker} from '../RingStylePicker';
+import {StageHint} from '../StageHint';
 import {ReviewDialog} from '../ring02/ReviewDialog';
 import {RING02_PRECISION_ROUTE} from '../ring02/assets';
 import {VIEWS,type RingView,type RingCapture} from '../ring02/Ring02Stage';
@@ -127,6 +128,11 @@ function Editor({template}:{template:CatalogRing}){
     if(JSON.stringify(next)===JSON.stringify(design))return;
     setHistory({design:next,revision:crypto.randomUUID(),past:[...past,design].slice(-10)});setMessage('');
   }
+  // Moving between parts also moves the camera: the head in close-up, the band in full.
+  function choosePart(next:'head'|'shank'){
+    if(next===part)return;
+    setPart(next);setEngravingView(false);setView(next==='head'?'macro':'overall');setReset(n=>n+1);
+  }
   const styled=isCustomStyling(design.styling);
   function changeStyling(styling:ReferenceStyling){
     change({...design,styling:isCustomStyling(styling)?styling:undefined});
@@ -187,6 +193,7 @@ function Editor({template}:{template:CatalogRing}){
   }
   return <><div className="stone-first-main ring02-main source-ring-main">
     <section className="stone-first-preview" aria-label="戒指预览">
+      <StageHint/>
       <div className="ring02-preview-bar"><div><strong>{visiblePreview?.name??sceneName}</strong><span>{visiblePreview?visiblePreview.ring.stones.length+' 颗宝石':''}</span></div><button aria-pressed={compare} onClick={()=>setCompare(!compare)}>对比原款</button></div>
       <div className="stone-first-camera-views source-camera-toolbar" role="group" aria-label="戒指观察视角">
         {VIEWS.map(([id,label])=><button key={id} aria-pressed={!engravingView&&view===id} onClick={()=>{setEngravingView(false);setView(id);setReset(n=>n+1);}}>
@@ -204,7 +211,7 @@ function Editor({template}:{template:CatalogRing}){
     </section>
     <section className="stone-first-panel" aria-label="戒指配置">
       <header className="ring02-product"><h1>专属定制</h1><p>{displayName} · {PLATING[design.styling?.plating??'white']}</p></header>
-      <div className="source-part-tabs" role="group" aria-label="选择戒指部件"><button aria-pressed={part==='head'} onClick={()=>setPart('head')}>戒头</button><button aria-pressed={part==='shank'} onClick={()=>setPart('shank')}>戒圈与铺钻</button></div>
+      <div className="source-part-tabs" role="group" aria-label="选择戒指部件"><button aria-pressed={part==='head'} onClick={()=>choosePart('head')}>戒头</button><button aria-pressed={part==='shank'} onClick={()=>choosePart('shank')}>戒圈与铺钻</button></div>
       <div className="stone-first-fields ring02-fields source-ring-fields">
         <button type="button" className="source-library-trigger shop-text-link" ref={libraryTrigger} aria-haspopup="dialog"
           aria-label={part==='head'?'查看全部戒头':'查看全部戒圈'} disabled={compare} onClick={()=>setLibrary(part==='head'?'head':'band')}>查看全部</button>
@@ -247,9 +254,9 @@ function Editor({template}:{template:CatalogRing}){
       <p className="ring02-status" role={saveError?'alert':undefined}>{saveError?'浏览器未能保存草稿，请保留此页面。':engravingDirty?'请确认或取消刻字修改。':'草稿已保留在本机'}</p>
     </section>
   </div>
-    <section className="ring02-purchase" aria-label="估价与演示加购"><div>{styled?<><p>改款方案 <strong>待核价</strong></p><small>主石、镶座与金属工艺需另行确认</small></>:<><p>{needsCatalog?'此版本历史参考价':'参考估价'} <strong>{formatYuan(quote.amount)}</strong></p><small>示例交期 {quote.leadTime} · 待工艺确认</small></>}</div>
+    <section className="ring02-purchase" aria-label="估价与演示加购"><div>{styled?<><p>改款方案 <strong>待核价</strong></p><small>主石、镶座与金属工艺需另行确认</small></>:<><p>{needsCatalog?'此版本历史参考价':'参考估价'} <strong key={quote.amount} className="price-flip">{formatYuan(quote.amount)}</strong></p><small>示例交期 {quote.leadTime} · 待工艺确认</small></>}</div>
       <SaveCommunityDesign details={details} basis={referenceDesignBasis(template,head,band)} title={displayName} templateId={template.id} revision={revision} design={design} capture={()=>capture.current?.('inspection')} disabled={compare||engravingDirty||!canCapture}/>
-      {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:part==='head'?<button className="shop-button" onClick={()=>setPart('shank')}>下一步 · 配置戒圈</button>:<button className="shop-button" disabled={compare||engravingDirty||!canCapture} onClick={()=>{setMessage('');setCartFeedback(undefined);setReview(true);}}>查看方案</button>}
+      {added&&!engravingDirty?<a className="shop-button" href="#/diy/cart">查看购物车</a>:part==='head'?<button className="shop-button" onClick={()=>choosePart('shank')}>下一步 · 配置戒圈</button>:<button className="shop-button" disabled={compare||engravingDirty||!canCapture} onClick={()=>{setMessage('');setCartFeedback(undefined);setReview(true);}}>查看方案</button>}
     </section>
     {library&&<PartLibrary kind={library} trigger={libraryTrigger} selected={library==='head'?head.id:band.id}
       onClose={()=>setLibrary(null)} onSelect={library==='head'?selectHead:selectFinish}/>}
