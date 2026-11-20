@@ -1,12 +1,12 @@
-import {isRingSize,ringSizeDescription} from '../fit/sizing';
-import {PLATING,SURFACES,centerStoneLabel,parseStyling,type ReferenceStyling} from './styling';
-import {parseEngravingStyle,engravingStyleLabel,type EngravingStyle} from '../engraving/style';
-import {combinationQuote} from '../pricing';
-import {STONE_APPEARANCES,type StoneAppearance} from '../../viewer/stoneAppearance';
-import {engravingProblem} from '../ring02/engraving';
-import {RING_CATALOG,type CatalogRing} from '../catalog';
-import {bandName,headName} from './parts';
-import {PAVE_DIAMETERS,PAVE_LENGTHS,describePaveGap,type PaveDiameter,type PaveLength,type PaveSummary} from './pave-options';
+import {isRingSize,ringSizeDescription} from '../fit/sizing.ts';
+import {PLATING,SURFACES,centerStoneLabel,parseStyling,type ReferenceStyling} from './styling.ts';
+import {parseEngravingStyle,engravingStyleLabel,type EngravingStyle} from '../engraving/style.ts';
+import {combinationQuote} from '../pricing.ts';
+import {STONE_APPEARANCES,type StoneAppearance} from '../../viewer/stoneAppearance.ts';
+import {engravingProblem} from '../ring02/engraving.ts';
+import {RING_CATALOG,type CatalogRing} from '../catalog.ts';
+import {bandName,headName} from './parts.ts';
+import {PAVE_DIAMETERS,PAVE_LENGTHS,describePaveGap,type PaveDiameter,type PaveLength,type PaveSummary} from './pave-options.ts';
 
 export type ReferenceDesign={kind:'reference';ringSizeUS?:number;styling?:ReferenceStyling;center:StoneAppearance;halo:StoneAppearance;shoulder:StoneAppearance;engraving:string;engravingStyle?:EngravingStyle;headId?:string;bandId?:string;paveDiameter?:PaveDiameter;paveLength?:PaveLength};
 export const ORIGINAL_REFERENCE:ReferenceDesign={kind:'reference',center:'diamond',halo:'diamond',shoulder:'diamond',engraving:''};

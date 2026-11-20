@@ -18,6 +18,15 @@ jobs:
           node-version: '22.22.2'
           cache: npm
       - run: npm ci
+      - name: Verify the serverless entry loads under Node
+        run: |
+          node --experimental-transform-types --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import api from './api/jewelry-admin.ts';
+          const reply = await api.fetch(new Request('http://localhost/api/model-admin/community/session'));
+          assert.equal(reply.status, 503);
+          assert.deepEqual(await reply.json(), {error:'社区存储尚未配置。'});
+          NODE
       - run: npm test
       - run: npm run build:public
       - name: Verify public assets

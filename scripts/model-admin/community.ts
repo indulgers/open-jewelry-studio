@@ -2,7 +2,7 @@ import {verifyDesignBasis,type PublishedReleaseReader} from './design-basis.ts';
 import type {DesignBasis} from '../../src/community/design-basis.ts';
 import {createHash,randomUUID} from 'node:crypto';
 import {parseReferenceDesign} from '../../src/stone-first/reference/design.ts';
-import {parseDesign} from '../../src/stone-first/ring02/model.ts';
+import {parseDesign} from '../../src/stone-first/ring02/design.ts';
 import {RequestError,uuid} from './templates.ts';
 import type {CommunityStore} from './community-store.ts';
 import {accountAction,communityRoot,digest,fail,getJson,memberOf,putJson,reply} from './community-account.ts';

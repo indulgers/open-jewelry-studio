@@ -4,12 +4,8 @@ import {recipeDesign,type Site} from '../recipe';
 import {cappedCurve} from '../solid/fusionInput';
 import type {FittedStone} from './model';
 
-export const HEADS=[
-  ['halo','原款围钻','四段围钻与四颗隔断装饰钻'],
-  ['four-prong','四爪单钻','开放式篮托，露出主石侧面'],
-  ['bezel','包镶单钻','金属圈贴合主石外缘'],
-] as const;
-export type Head=typeof HEADS[number][0];
+import {type Head} from './design.ts';
+export {HEADS,type Head} from './design.ts';
 
 const mountingDesign=recipeDesign('floral-solitaire');
 export function buildSolitaireHead(head:Exclude<Head,'halo'>,stone:FittedStone){
