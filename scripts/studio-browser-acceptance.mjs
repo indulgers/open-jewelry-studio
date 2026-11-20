@@ -437,6 +437,30 @@ try{
   await page.getByRole('button',{name:'复位当前视角',exact:true}).click();
   await checkAccentShimmer();
   const canvas=await checkDesktopInspection();
+  // Hold the session response across the paired events delivered when returning to the editor.
+  const sessionRoute='**/community/session';
+  let resumeRequests=0,releaseSession;
+  const sessionGate=new Promise(resolve=>{releaseSession=resolve;});
+  const holdSession=async route=>{resumeRequests++;await sessionGate;await route.continue();};
+  await page.route(sessionRoute,holdSession);
+  const mountedCanvas=await canvas.elementHandle();
+  const scrollPosition=await page.evaluate(()=>window.scrollY);
+  try{
+    await Promise.all([page.waitForRequest(request=>request.url().endsWith('/community/session')),page.evaluate(()=>{
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+    })]);
+    await twoFrames();
+    assert.ok(await mountedCanvas.isVisible(),'session refresh must keep the ring visible');
+    assert.equal(await page.evaluate(()=>window.scrollY),scrollPosition);
+    assert.equal(resumeRequests,1);
+  }finally{
+    const completed=page.waitForResponse(response=>response.url().endsWith('/community/session'));
+    releaseSession();
+    await completed;
+    await page.unroute(sessionRoute,holdSession);
+  }
+  assert.ok(await canvas.evaluate((current,original)=>current===original,mountedCanvas));
   const originalFace=await previewPixels(canvas);
   await page.getByLabel('主石切形').selectOption('pear');
   await page.getByLabel('宝石类别').selectOption('培育钻石');
