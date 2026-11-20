@@ -19,28 +19,19 @@ const localDemoProducts:StorefrontProduct[]=RING_CATALOG.filter(ring=>ring.liste
 function warmEditor(product:PublishedTemplate){const source=RING_CATALOG.find(item=>item.id===product.catalogId);if(source)void loadReferenceRing(source).catch(()=>{});}
 const Arrow=()=> <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>;
 
-function FeaturedImage({product, purchaseAction}:{
-  product:PublishedTemplate;
-  purchaseAction:ReactNode;
-}){
+function FeaturedImage({product}:{product:PublishedTemplate}){
   const [view,setView]=useState<'wearing'|'original'>('wearing');
   const wearing=view==='wearing' && Boolean(product.campaign);
-  return <figure className="diy-hero-art">
-    <div className="hero-photo" data-view={wearing?'wearing':'original'}>
-      <img src={wearing?product.campaign:product.image}
-        alt={product.name+(wearing?' AI 佩戴示意':'原款图')}
-        width={1122} height={1402} fetchPriority="high"/>
-      {product.campaign&&<div className="hero-photo-switch" role="group" aria-label="图片视图">
+  return <figure className="diy-hero-art" data-view={wearing?'wearing':'original'}>
+    <img key={wearing?'wearing':'original'} src={wearing?product.campaign:product.image}
+      alt={product.name+(wearing?' AI 佩戴示意':'原款图')}
+      width={1122} height={1402} fetchPriority="high"/>
+    <figcaption>
+      <span>{wearing?'AI 佩戴示意 · 细节以三维模型为准':'原款三维模型图'}</span>
+      {product.campaign&&<span className="hero-photo-switch" role="group" aria-label="图片视图">
         <button aria-pressed={wearing} onClick={()=>setView('wearing')}>佩戴图</button>
         <button aria-pressed={!wearing} onClick={()=>setView('original')}>原款图</button>
-      </div>}
-    </div>
-    <figcaption className="diy-hero-tag">
-      <div className="hero-product-info"><strong>{product.name}</strong>
-        <span>{wearing?'AI 佩戴示意，细节以三维模型为准':'原款参考图'}</span></div>
-      <div className="hero-tag-price"><strong>{product.pricing?formatYuan(templateQuote(product.pricing,product.revision).amount):'待报价'}</strong>
-        {product.pricing&&<small>演示参考价</small>}</div>
-      {purchaseAction}
+      </span>}
     </figcaption>
   </figure>;
 }
@@ -110,30 +101,26 @@ export function DiyHome({section}:{section?:'collection'|'story'}){
     return ()=>cancelAnimationFrame(frame);
   },[section,featured?.id]);
 
+  const price=(product:PublishedTemplate)=>product.pricing?formatYuan(templateQuote(product.pricing,product.revision).amount):'待报价';
+  const warm=(product:PublishedTemplate)=>({onMouseEnter:()=>warmEditor(product),onFocus:()=>warmEditor(product)});
   return <main className="diy-home">
     {!all&&catalog.status==='loading'&&<HeroPlaceholder/>}
-    {!all&&featured&&<>
-    <section className="diy-hero" aria-labelledby="diy-title">
-      <div className="shop-wrap diy-hero-grid">
-        <div className="diy-hero-content">
-          {featured.collection&&<p className="collection-label">{featured.collection}</p>}
-          <HeroCopy/>
-          <div className="diy-hero-ctas">
-            <a className="shop-button" href={productRoute(featured)} onMouseEnter={()=>warmEditor(featured)} onFocus={()=>warmEditor(featured)}>开始专属定制 <Arrow/></a>
-            <a className="shop-text-link" href="#/diy/collection">浏览原款</a>
-          </div>
+    {!all&&featured&&<section className="diy-hero" aria-labelledby="diy-title">
+      <div className="diy-hero-content">
+        <p className="shop-eyebrow">{featured.collection?featured.collection+' · ':''}Xiangyan Atelier</p>
+        <HeroCopy/>
+        <div className="diy-hero-ctas">
+          <a className="shop-button" href={productRoute(featured)} {...warm(featured)}>开始专属定制 <Arrow/></a>
+          <a className="shop-text-link" href="#/diy/collection">浏览原款</a>
         </div>
-        <FeaturedImage key={featured.id} product={featured} purchaseAction={purchaseAction(featured,'feature')}/>
+        <div className="diy-hero-piece">
+          <img src={featured.image} alt="" aria-hidden="true" width={822} height={598}/>
+          <div><strong>{featured.name}</strong><span>{price(featured)}{featured.pricing&&<small> · 演示参考价</small>}</span></div>
+          {purchaseAction(featured,'feature')}
+        </div>
       </div>
-    </section>
-    {wearingProducts.length>0&&<section className="diy-wearing shop-wrap" aria-labelledby="wearing-title">
-      <div className="shop-section-heading"><div><h2 id="wearing-title">佩戴图集</h2><p>从上手比例挑选轮廓，再进入三维工作台查看款式。</p></div><a className="shop-text-link" href="#/diy/collection">查看全部款式 <Arrow/></a></div>
-      <div className="diy-wearing-grid" data-count={wearingProducts.length}>{wearingProducts.map(template=><a key={template.id} className="diy-wearing-item" href={productRoute(template)} onMouseEnter={()=>warmEditor(template)} onFocus={()=>warmEditor(template)}>
-        <img src={template.campaign??template.image} alt={template.name+(template.campaign?' AI 佩戴示意':'款式参考图')} width={1122} height={1402} loading="lazy"/>
-        <div><h3>{template.name}</h3><span>定制这一款 <Arrow/></span></div>
-      </a>)}</div><p className="diy-wearing-note">佩戴图为 AI 示意，款式结构以三维模型为准。</p>
+      <FeaturedImage key={featured.id} product={featured}/>
     </section>}
-    </>}
     <section className="diy-collection shop-wrap" id="diy-collection" aria-labelledby="collection-title">
       <CatalogHeading all={all} featured={!!featured||catalog.status==='loading'} count={products.length} loading={catalog.status==='loading'}/>
       {catalog.status==='loading'&&<GallerySkeleton type="catalog" label="正在读取款式…"/>}
@@ -146,32 +133,58 @@ export function DiyHome({section}:{section?:'collection'|'story'}){
       </ShopState>}
       {products.length>0&&<div className="diy-template-grid" data-count={products.length}>
         {products.map(template=><article key={template.id} className="diy-template" aria-labelledby={'card-title-'+template.id}>
-          <a href={productRoute(template)} className="diy-template-image" onMouseEnter={()=>warmEditor(template)} onFocus={()=>warmEditor(template)} aria-label={'定制'+template.name}>
+          <a href={productRoute(template)} className="diy-template-image" data-alternate={template.campaign?'':undefined} {...warm(template)} aria-label={'定制'+template.name}>
             <img src={template.image} alt={template.name+'三维模型原款图'} width={822} height={598} loading="lazy"/>
+            {template.campaign&&<img className="diy-template-alt" src={template.campaign} alt="" aria-hidden="true" width={1122} height={1402} loading="lazy"/>}
+            <span className="diy-template-cta" aria-hidden="true">开始定制</span>
           </a>
           <div className="diy-template-details">
             <span className="collection-label">{template.collection??'相言定制'}</span>
             <h3 id={'card-title-'+template.id}>{template.name}</h3>
             <p className="template-description">{template.description}</p>
-            <p className="diy-reference-price"><strong>{template.pricing?formatYuan(templateQuote(template.pricing,template.revision).amount):'待报价'}</strong>{template.pricing&&<span>演示参考价</span>}</p>
-            <div className="product-actions"><a className="shop-button" aria-label={'开始定制 · '+template.name} href={productRoute(template)} onMouseEnter={()=>warmEditor(template)} onFocus={()=>warmEditor(template)}>开始定制 <Arrow/></a>{purchaseAction(template,'card')}</div>
+            <p className="diy-reference-price"><strong>{price(template)}</strong>{template.pricing&&<span>演示参考价</span>}</p>
+            <div className="product-actions"><a className="shop-button" aria-label={'开始定制 · '+template.name} href={productRoute(template)} {...warm(template)}>开始定制 <Arrow/></a>{purchaseAction(template,'card')}</div>
           </div>
         </article>)}
       </div>}
     </section>
+    {!all&&wearingProducts.length>0&&<section className="diy-wearing" aria-labelledby="wearing-title">
+      <div className="shop-wrap shop-section-heading shop-section-heading-split">
+        <div><p className="shop-eyebrow">On the Hand</p><h2 id="wearing-title">佩戴图集</h2><p>从上手比例挑选轮廓，再进入三维工作台查看款式。</p></div>
+        <a className="shop-text-link" href="#/diy/collection">查看全部款式 <Arrow/></a>
+      </div>
+      <div className="diy-wearing-grid" data-count={wearingProducts.length}>{wearingProducts.map((template,index)=><a key={template.id} className="diy-wearing-item" href={productRoute(template)} {...warm(template)}>
+        <span className="diy-wearing-photo"><img src={template.campaign??template.image} alt={template.name+(template.campaign?' AI 佩戴示意':'款式参考图')} width={1122} height={1402} loading="lazy"/></span>
+        <span className="diy-wearing-caption"><small>{String(index+1).padStart(2,'0')}</small><strong>{template.name}</strong><em>定制这一款 <Arrow/></em></span>
+      </a>)}</div>
+      <p className="shop-wrap diy-wearing-note">佩戴图为 AI 示意，款式结构以三维模型为准。</p>
+    </section>}
     {!all&&featured&&<section className="diy-editorial" aria-labelledby="editorial-title">
-      <div className="shop-wrap diy-editorial-grid">
-        <figure><img src={featured.image} alt={featured.name+'款式图'} width={822} height={598} loading="lazy"/><figcaption>原款三维模型</figcaption></figure>
-        <div><h2 id="editorial-title">细节之间，<br/><em>都是你的选择。</em></h2><p>戒头勾勒第一眼的轮廓，戒圈承接日常的陪伴。换一种主石，调整围钻或戒臂的排列，在三维预览中看见你的每一次选择。</p>
-          <ul><li><span>戒头</span>围钻、四爪与包镶造型</li><li><span>宝石</span>切形、大小与色彩搭配</li><li><span>戒圈</span>铺钻长度与心意刻字</li></ul>
-          <a className="shop-button shop-button-light" href={productRoute(featured)} onMouseEnter={()=>warmEditor(featured)} onFocus={()=>warmEditor(featured)}>进入定制工作台 <Arrow/></a>
-        </div>
+      <figure><img src={featured.image} alt={featured.name+'款式图'} width={822} height={598} loading="lazy"/><figcaption>原款三维模型</figcaption></figure>
+      <div className="diy-editorial-copy">
+        <p className="shop-eyebrow">The Atelier</p>
+        <h2 id="editorial-title">细节之间，<br/>都是你的选择。</h2>
+        <p>戒头勾勒第一眼的轮廓，戒圈承接日常的陪伴。换一种主石，调整围钻或戒臂的排列，在三维预览中看见你的每一次选择。</p>
+        <ol><li><span>01</span><b>戒头</b>围钻、四爪与包镶造型</li><li><span>02</span><b>宝石</b>切形、大小与色彩搭配</li><li><span>03</span><b>戒圈</b>铺钻长度与心意刻字</li></ol>
+        <a className="shop-button" href={productRoute(featured)} {...warm(featured)}>进入定制工作台 <Arrow/></a>
       </div>
     </section>}
     {!all&&<section className="diy-story shop-wrap" id="diy-story" aria-labelledby="story-title">
-      <div><span className="collection-label">关于相言</span><h2 id="story-title">有些话，<br/>留给一枚戒指来说。</h2></div>
-      <div><p>相，是彼此看见；言，是心意的表达。我们希望一枚戒指，既有初见时的美，也能留下属于你的选择。</p><p>挑一枚原款，试试不同的戒头与戒圈。已标参考价的原款可加入演示购物车。需要工作室核价的搭配，可登录后把预览图和配置保存到「我的设计」。</p><a className="shop-text-link" href="#/diy/collection">探索款式系列 <Arrow/></a></div>
+      <p className="shop-eyebrow">关于相言 · Our Story</p>
+      <h2 id="story-title">有些话，<br/>留给一枚戒指来说。</h2>
+      <div><p>相，是彼此看见；言，是心意的表达。我们希望一枚戒指，既有初见时的美，也能留下属于你的选择。</p><p>挑一枚原款，试试不同的戒头与戒圈。已标参考价的原款可加入演示购物车。需要工作室核价的搭配，可登录后把预览图和配置保存到「我的设计」。</p></div>
+      <a className="shop-text-link" href="#/diy/collection">探索款式系列 <Arrow/></a>
     </section>}
-    <footer className="diy-footer shop-wrap"><div><b>相言</b><p>让心意，有自己的形状。</p></div><nav aria-label="页脚导航"><a href="#/diy/collection">款式系列</a><a href="#/diy/cart">购物车</a><a href="#/community">设计社区</a><a href="#/my-designs">我的设计</a><a href="#/showroom">珠宝展台</a></nav><small>目前提供定制预览与演示购物车，价格及交期以正式确认为准。</small></footer>
+    {!all&&<section className="diy-services shop-wrap" aria-label="定制服务">
+      <a href={featured?productRoute(featured):'#/diy/collection'}><b>三维定制预览</b><span>旋转、俯视与镶嵌特写</span></a>
+      <a href="#/diy/fit"><b>尺寸指南</b><span>手指测量与圈号对照</span></a>
+      <a href="#/community"><b>设计社区</b><span>浏览作品，申请同款报价</span></a>
+      <a href="#/my-designs"><b>我的设计</b><span>保存方案，跨设备查看</span></a>
+    </section>}
+    <footer className="diy-footer"><div className="shop-wrap diy-footer-grid">
+      <div className="diy-footer-brand"><b>相言</b><span>XIANGYAN</span><p>让心意，有自己的形状。</p></div>
+      <nav aria-label="页脚导航"><a href="#/diy/collection">款式系列</a><a href="#/diy/cart">购物车</a><a href="#/community">设计社区</a><a href="#/my-designs">我的设计</a><a href="#/showroom">珠宝展台</a></nav>
+      <small>目前提供定制预览与演示购物车，价格及交期以正式确认为准。</small>
+    </div></footer>
   </main>;
 }

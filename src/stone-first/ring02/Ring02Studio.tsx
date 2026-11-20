@@ -21,6 +21,7 @@ import {newDraft,readDraft,writeDraft,type Draft} from './draft';
 import {addDemoOrder,estimateRing02,formatYuan,hasDemoOrder,priceNote,RING02_PRICE,type DemoOrder} from './demoOrder';
 import {ReviewDialog} from './ReviewDialog';
 import {RingStylePicker} from '../RingStylePicker';
+import {StageHint} from '../StageHint';
 import {RING02_TEMPLATE} from './assets';
 import {Ring02Loading} from './Ring02Loading';
 import '../stone-first.css';
@@ -181,6 +182,11 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
     }
   }
 
+  function choosePart(next:'head'|'shank'){
+    if(next===part)return;
+    setPart(next);setEngravingView(false);setView(next==='head'?'macro':'overall');setViewReset(token=>token+1);
+  }
+
   function jumpTo(field:string){
     setPart(field==='shoulder'||field==='engraving'||field==='fit'?'shank':'head');
     if(field==='center'||field==='halo')setHeadZone(field);
@@ -233,6 +239,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
   const headName=HEAD_NAMES[visible.head];
   return <><div className="stone-first-main ring02-main source-ring-main">
     <section className="stone-first-preview" aria-label="戒指预览">
+      <StageHint/>
       <div className="ring02-preview-bar">
         <div><strong>{compare?'原款':headName}</strong><span>{stones.length} 颗宝石</span></div>
         <button aria-pressed={compare} onClick={()=>setCompare(!compare)}>对比原款</button>
@@ -248,8 +255,8 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
         <p>银色金属外观</p>
       </header>
       <div className="ring02-zones" role="group" aria-label="选择戒指部件">
-        <button aria-pressed={part==='head'} onClick={()=>setPart('head')}><span aria-hidden="true">01</span> 戒头</button>
-        <button aria-pressed={part==='shank'} onClick={()=>setPart('shank')}><span aria-hidden="true">02</span> 戒圈</button>
+        <button aria-pressed={part==='head'} onClick={()=>choosePart('head')}><span aria-hidden="true">01</span> 戒头</button>
+        <button aria-pressed={part==='shank'} onClick={()=>choosePart('shank')}><span aria-hidden="true">02</span> 戒圈</button>
       </div>
       <div className="stone-first-fields ring02-fields">
         {part==='head'&&<>
@@ -325,7 +332,7 @@ function Editor({template}:{template:ReturnType<typeof prepareTemplate>}){
   </div>
   <section className="ring02-purchase" aria-label="估价与演示加购">
     <div>
-      <p>参考估价 <strong>{formatYuan(quote.amount)}</strong></p>
+      <p>参考估价 <strong key={quote.amount} className="price-flip">{formatYuan(quote.amount)}</strong></p>
       <small>示例交期 {quote.leadTime} · 待工艺确认</small>
     </div>
     <SaveCommunityDesign details={details} basis={fixedDesignBasis({id:'ring-02',revision:TEMPLATE_REVISION})} title="围钻戒指" templateId="ring-02" revision={draft.revision} design={current} capture={()=>captureThumbnail.current?.('inspection')} disabled={!canCapture}/>
