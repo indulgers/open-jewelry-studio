@@ -1,4 +1,5 @@
-import {Component,lazy,Suspense,type ReactNode,useEffect,useState,useSyncExternalStore} from 'react';
+import {lazy,Suspense,useEffect,useState,useSyncExternalStore} from 'react';
+import {CommunityLoadBoundary} from './community/CommunityLoadBoundary';
 import {CommunityPlaceholder} from './community/CommunityPlaceholder';
 import {CatalogPlaceholder} from './stone-first/CatalogPlaceholder';
 import {ShopHeader} from './components/ShopHeader';
@@ -11,16 +12,6 @@ import parts from './stone-first/reference/part-assets.json';
 import {setPriceBook,type PriceBook} from './stone-first/pricing';
 
 const CommunityEntry=lazy(()=>import('./community/CommunityEntry'));
-class CommunityLoadBoundary extends Component<{children:ReactNode},{failed:boolean}> {
-  state={failed:false};
-  static getDerivedStateFromError(){return {failed:true};}
-  render(){
-    if(this.state.failed)return <div className="app-shell"><ShopState kind="error" title="作品页面暂时无法打开，请重新载入。">
-      <button className="shop-button" onClick={()=>window.location.reload()}>重新载入页面</button>
-    </ShopState></div>;
-    return this.props.children;
-  }
-}
 const currentHash=()=>window.location.hash;
 function watchRoute(changed:()=>void){
   window.addEventListener('hashchange',changed);
@@ -75,7 +66,7 @@ export function StorefrontEntry(){
   },[App,hosted,independent,attempt]);
 
   if(App)return <App/>;
-  if(community)return <CommunityLoadBoundary>
+  if(community)return <CommunityLoadBoundary standalone key={community}>
     <Suspense fallback={<div className="app-shell"><ShopHeader page={community} verifyAccount={false}/><CommunityPlaceholder mine={community==='mine'}/></div>}><CommunityEntry mode={community}/></Suspense>
   </CommunityLoadBoundary>;
   const all=hash==='#/diy/collection';
