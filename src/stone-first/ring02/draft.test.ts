@@ -20,7 +20,7 @@ it('migrates old metal finishes without reusing a possible cart revision',()=>{
 
 it('restores confirmed engraving exactly on refresh',()=>{
   const draft=readDraft();
-  draft.design={...draft.design,engraving:'A & B - 2026'};
+  draft.design={...draft.design,engraving:'A & B - 2026',engravingStyle:{font:'italic',align:'center'}};
   writeDraft(draft);
   expect(readDraft()).toEqual(draft);
 });
@@ -46,4 +46,18 @@ it('gives repacked old designs a new revision and keeps original layouts on the 
   expect(draft.revision).not.toBe(revision);
   writeDraft(draft);
   expect(readDraft()).toEqual(draft);
+});
+
+it('keeps saved draft measurements and new profile defaults within a verified identity',()=>{
+  const alice='member:alice',bob='member:bob';
+  const guestDraft=readDraft('guest');
+  writeDraft({...guestDraft,design:{...guestDraft.design,ringSizeUS:5}},'guest');
+  const personal=readDraft(alice);
+  expect(personal.design.ringSizeUS).toBeUndefined();
+  writeDraft({...personal,design:{...personal.design,ringSizeUS:8.25}},alice);
+  expect(readDraft(bob).design.ringSizeUS).toBeUndefined();
+  expect(readDraft(null).design.ringSizeUS).toBeUndefined();
+  expect(()=>writeDraft(personal,null)).toThrow();
+  expect(readDraft('guest').design.ringSizeUS).toBe(5);
+  expect(readDraft(alice).design.ringSizeUS).toBe(8.25);
 });

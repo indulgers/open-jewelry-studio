@@ -17,9 +17,8 @@
 .ring02-workspace .source-part-card:focus-visible,.ring02-workspace .source-part-tabs button:focus-visible {outline: 2px solid var(--ink); outline-offset: 2px}
 .source-part-image {position: relative; display: block; width: 100%; height: 88px; overflow: hidden; background: #fff}
 .source-part-image img {position: absolute; display: block; width: 100%; height: 100%; max-width: none; object-fit: contain}
-.source-head-options img {width: 235%; height: auto; top: -4%; left: -67.5%}
-.source-finish-options .source-part-image {height: 62px; container-type: inline-size}
-.source-finish-options img {width: 240%; height: auto; top: calc(50% - 59cqw); left: -105%}
+.source-finish-options .source-part-image {height: 70px}
+.source-part-image small {display: grid; height: 100%; place-items: center; color: var(--muted); font-size: 12px}
 .source-part-name {display: flex; min-height: 36px; align-items: center; justify-content: center; gap: 6px; padding: 5px 4px; font-size: 13px}
 .source-part-name .ring02-spinner {width: 11px; height: 11px; flex: 0 0 auto}
 .source-fixed-finish {margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--shop-radius); font-size: 13px}
@@ -58,11 +57,10 @@ html:has(.source-library[open]) {overflow: hidden}
 .source-library-results {flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 3px 20px max(20px,env(safe-area-inset-bottom))}
 .source-library .source-part-grid {grid-template-columns: repeat(2,minmax(0,1fr))}
 .source-library .source-part-image {height: 112px}
-.source-library .source-head-options img {top: -5%}
 .source-library .source-part-name {min-height: 26px; padding-bottom: 0}
 .source-part-detail {padding: 0 4px 8px; color: var(--muted); font-size: 12px}
 .source-library-empty {padding: 16px 0; color: var(--muted); font-size: 13px}
-.source-ring-swap-status {position: absolute; right: 12px; bottom: 46px; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--shop-radius); background: var(--panel); color: var(--ink); font-size: 12px}
+.source-ring-swap-status {position: absolute; right: 12px; top: 146px; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--shop-radius); background: var(--panel); color: var(--ink); font-size: 12px}
 .ring02-workspace .source-ring-swap-status button {min-height: 32px; padding-block: 3px}
 @media (max-width: 800px) {
   .source-ring-entry .source-style-picker {font-size: 0; gap: 0}
@@ -84,7 +82,7 @@ html:has(.source-library[open]) {overflow: hidden}
 
 @media (max-width: 800px) and (min-height: 700px) {
   .ring02-main.source-ring-main .stone-first-preview {position: sticky; top: 64px; z-index: 1}
-  .source-ring-main .stone-first-panel :is(button,input,summary) {scroll-margin-top: calc(154px + clamp(180px,51vw,310px))}
+  .source-ring-main .stone-first-panel :is(button,input,summary) {scroll-margin-top: calc(200px + clamp(180px,51vw,310px))}
 }
 
 .managed-price { margin: 24px 0; display: grid; gap: 16px; }
@@ -94,3 +92,12 @@ html:has(.source-library[open]) {overflow: hidden}
 .managed-price dl>div { display: flex; justify-content: space-between; gap: 16px; padding: 5px 0; }
 
 .source-ring-canvas > .viewer-boundary {height:100%}
+
+.source-ring-canvas .source-fit-issue {
+  position: absolute;
+  inset: auto 1rem 1rem;
+  padding: .75rem 1rem;
+  background: var(--surface, white);
+  color: var(--text, #222);
+  border: 1px solid currentColor;
+}

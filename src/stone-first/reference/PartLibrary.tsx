@@ -1,9 +1,10 @@
 import {useId,useLayoutEffect,useRef,useState,type RefObject} from 'react';
 import {RING_CATALOG} from '../catalog';
+import {partCardImage} from './part-card-image';
 import {BAND_STYLES,bandStyle,headName} from './parts';
 
-type PartChoice={id:string;name:string;image:string;detail?:string};
-export const sourceImage=(id:string)=>RING_CATALOG.find(ring=>ring.id===id)!.image;
+type PartChoice={id:string;name:string;image?:string;detail?:string};
+export const bandImage=(id:string)=>partCardImage(RING_CATALOG.find(ring=>ring.id===id)!,'band');
 const HEAD_STRUCTURES={
   'ring-02':['围镶'],
   'ring-floral':['围镶','花形'],
@@ -15,18 +16,20 @@ const HEAD_STRUCTURES={
 } as const;
 const headStructures=['围镶','花形','高托','其他'];
 export const headChoices=RING_CATALOG.map(ring=>({
-  id:ring.id,name:ring.headLabel??headName(ring.name),image:ring.image,
+  id:ring.id,name:ring.headLabel??headName(ring.name),image:partCardImage(ring,'head'),
   detail:ring.subtitle.split(' · ')[1],
   structures:ring.headStructures?.length?ring.headStructures:HEAD_STRUCTURES[ring.id as keyof typeof HEAD_STRUCTURES]??['其他'],
 }));
 const bandFinishes=BAND_STYLES.flatMap(style=>style.finishes.map(finish=>({
-  id:finish.id,name:style.name,image:sourceImage(finish.id),detail:finish.name,
+  id:finish.id,name:style.name,image:bandImage(finish.id),detail:finish.name,
 })));
 const finishes=[...new Set(bandFinishes.map(item=>item.detail))];
 
 export function PartCard({item,selected,pending,onSelect}:{item:PartChoice;selected:boolean;pending?:boolean;onSelect:(id:string)=>void}){
+  const [failedImage,setFailedImage]=useState<string>();
+  const showImage=Boolean(item.image)&&failedImage!==item.image;
   return <button type="button" className="source-part-card" aria-pressed={selected} onClick={()=>onSelect(item.id)}>
-    <span className="source-part-image"><img src={item.image} alt="" decoding="async" loading="lazy"/></span>
+    <span className="source-part-image">{showImage?<img src={item.image} alt="" decoding="async" loading="lazy" onError={()=>setFailedImage(item.image)}/>:<small>暂无部件图</small>}</span>
     <span className="source-part-name">{item.name}{pending&&selected&&<span className="ring02-spinner" aria-hidden="true"/>}</span>
     {item.detail&&<span className="source-part-detail">{item.detail}</span>}
   </button>;

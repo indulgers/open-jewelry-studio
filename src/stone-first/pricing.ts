@@ -2,10 +2,20 @@ export type ComponentPrices={head:number;band:number;pave:number};
 export type TemplatePrice=ComponentPrices&{base:number};
 export type PriceBook={revision:string;components:Record<string,ComponentPrices>;bases:Record<string,number>};
 export const ZERO_COMPONENT_PRICES:ComponentPrices={head:0,band:0,pave:0};
-export const isMoney=(value:unknown):value is number=>typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=1000000&&Math.abs(value*100-Math.round(value*100))<1e-7;
+export const maxPriceYuan=1_000_000;
+export const isMoney=(value:unknown):value is number=>typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=maxPriceYuan&&Math.abs(value*100-Math.round(value*100))<1e-7;
 export const sumMoney=(values:number[])=>values.reduce((sum,value)=>sum+Math.round(value*100),0)/100;
 export function templateQuote(pricing:TemplatePrice,version:string){
   return {amount:sumMoney([pricing.base,pricing.head,pricing.band,pricing.pave]),currency:'CNY' as const,version,leadTime:'7–10 个工作日'};
+}
+
+export type PriceQuote=ReturnType<typeof templateQuote>;
+export function isPriceQuote(value:unknown):value is PriceQuote{
+  if(!value||typeof value!=='object')return false;
+  const quote=value as Partial<PriceQuote>;
+  return isMoney(quote.amount)&&quote.amount>0&&quote.currency==='CNY'
+    &&typeof quote.version==='string'&&quote.version.trim().length>0
+    &&typeof quote.leadTime==='string'&&quote.leadTime.trim().length>0;
 }
 
 // The published price book is fixed for the current browser visit; cart entries keep that snapshot.

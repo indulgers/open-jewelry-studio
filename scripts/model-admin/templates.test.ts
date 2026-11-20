@@ -25,16 +25,21 @@ test('publishes a reviewed part selection as an immutable consumer revision',asy
     await expect(library.save({...selection,headStones:band.id})).rejects.toMatchObject({status:422});
     const draft=await library.save(selection);
     expect((await library.list()).published).toEqual([]);
+    await expect(library.quote(draft.id,draft.revision)).rejects.toMatchObject({status:404});
     const preview=await library.preview(draft.id,draft.revision);
     expect(preview.library[head.id].head).toBe(head.assets.head);
     expect(preview.library[band.id].band).toBe(band.assets.band);
     const release=await library.publish(draft.id,draft.revision,Buffer.from('test image'));
     expect((await library.list()).published).toEqual([release]);
     expect(await readFile(join(publicDir,release.image.slice(1)),'utf8')).toBe('test image');
-    const next=await library.save({...draft,name:'新草稿',expectedRevision:draft.revision});
+    const next=await library.save({...draft,name:'新草稿',basePrice:2099.35,expectedRevision:draft.revision});
+    expect(await library.quote(draft.id,draft.revision)).toMatchObject({amount:2000,version:draft.revision,currency:'CNY'});
     expect(next.revision).not.toBe(draft.revision);
     await expect(library.preview(draft.id,draft.revision)).rejects.toMatchObject({status:409});
     await expect(library.save({...draft,expectedRevision:draft.revision})).rejects.toMatchObject({status:409});
+    await library.publish(next.id,next.revision,Buffer.from('new image'));
+    await expect(library.quote(draft.id,draft.revision)).rejects.toMatchObject({status:409});
+    expect(await library.quote(next.id,next.revision)).toMatchObject({amount:2099.35,version:next.revision});
     expect(JSON.parse(await readFile(join(publicDir,release.url.slice(1)),'utf8')).name).toBe('测试模板');
   }finally{await rm(directory,{recursive:true,force:true});}
 });

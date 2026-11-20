@@ -1,0 +1,25 @@
+.ring02-workspace .ring-inspection {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 10px;
+  padding: 4px 12px;
+  margin: 0;
+  background: var(--panel);
+  border: 0;
+  border-block: 1px solid var(--line);
+}
+.ring-inspection :is(.ring-inspection-drag,.ring-inspection-zoom) {display: inline-flex; align-items: center; gap: 2px}
+.ring-inspection-drag {margin-inline-end: auto}
+.ring-inspection-zoom span {min-width: 4ch; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums}
+.ring02-workspace .ring-inspection button {min-width: 36px; min-height: 40px; border: 1px solid transparent; border-radius: var(--shop-radius); padding: 2px 6px; background: none; font-size: 12px}
+.ring02-workspace .ring-inspection button[aria-pressed=true] {color: var(--ink); background: var(--tint); border-color: var(--line)}
+.ring-inspection button:focus-visible {outline: 2px solid var(--accent); outline-offset: -2px}
+.ring-inspection button:disabled,.ring-inspection:disabled button {opacity: .44}
+.ring02-workspace .stone-first-preview:has(.ring-inspection) canvas {cursor: grab}
+.ring02-workspace .stone-first-preview:has(.ring-inspection) canvas:active {cursor: grabbing}
+@media (max-width: 800px){
+  .ring02-workspace .ring-inspection {padding-inline: 4px; column-gap: 3px}
+  .ring02-workspace .ring-inspection button {min-height: 44px}
+}

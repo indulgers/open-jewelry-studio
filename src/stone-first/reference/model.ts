@@ -6,7 +6,7 @@ import type {RingFraming,RingView} from '../ring02/Ring02Stage';
 import {isBandMetal,LEGACY_HALO_COLLARS,SEAT_Y} from './parts';
 import {prepareReferencePave} from './pave';
 
-export type Part={name:string;geometry:BufferGeometry;offsetY?:number;sourceOrder?:number};
+export type Part={name:string;geometry:BufferGeometry;offsetY?:number;headMetal?:boolean;sourceOrder?:number};
 export type SourceGem=Part&{zone:'center'|'halo'|'shoulder';matrix:Matrix4};
 export type RingAssembly={metal:Part[];stones:SourceGem[];frames:Record<RingView,RingFraming>};
 export type ReferenceHead=Pick<RingAssembly,'metal'|'stones'>&{id?:string;seatY:number;classified?:boolean;profileId?:string};
@@ -56,6 +56,7 @@ export function prepareReferenceRing(scene:Object3D,id?:string):ReferenceRing{
     parts.dispose();
     throw new Error('模型缺少主石或戒托');
   }
+  for(const part of parts.metal)part.headMetal=!!id&&!isBandMetal(id,part.name);
   const band=prepareReferenceBand({id,seatY:((id?SEAT_Y[id]:0)-axisY)*scale,...parts});
   return {...band,frames:ringFrames(parts.metal,parts.stones),dispose(){band.disposePave();parts.dispose();}};
 }

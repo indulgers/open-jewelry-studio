@@ -1,6 +1,6 @@
 import {BoxGeometry,Group,Mesh,MeshBasicMaterial,Vector3} from 'three';
 import {describe,expect,it} from 'vitest';
-import {normalizeLooseGem,fitRoundGem,prepareProductRing} from './productGeometry';
+import {normalizeLooseGem,fitGemToSeat,prepareProductRing} from './productGeometry';
 
 describe('atelier asset preparation',()=>{
   it('normalizes without stretching the cut or changing source geometry',()=>{
@@ -13,7 +13,7 @@ describe('atelier asset preparation',()=>{
   });
   it('fits round diameter uniformly and preserves pavilion/crown proportions',()=>{
     const source=new BoxGeometry(10,6.4,10),target=new BoxGeometry(0.6,0.4,0.6);target.translate(0,1.3,0);
-    const result=fitRoundGem(source,target);result.computeBoundingBox();
+    const result=fitGemToSeat(source,target);result.computeBoundingBox();
     const size=result.boundingBox!.getSize(new Vector3());
     expect(size.x).toBeCloseTo(0.6);expect(size.y/size.x).toBeCloseTo(0.64);
     expect(result.boundingBox!.getCenter(new Vector3()).y).toBeCloseTo(1.3);
@@ -29,4 +29,14 @@ describe('atelier asset preparation',()=>{
     let disposed=0;result.gems[0].geometry.addEventListener('dispose',()=>disposed++);result.dispose();result.dispose();expect(disposed).toBe(1);
   });
   it('rejects zero-sized stone geometry',()=>{const bad=new BoxGeometry(0,1,0);expect(()=>normalizeLooseGem(bad)).toThrow();bad.dispose();});
+});
+
+it('previews a different cut at a target carat while preserving its proportions and the original setting',()=>{
+  const pearBounds=new BoxGeometry(2,1,3),seat=new BoxGeometry(.6,.4,.6).translate(2,1.3,-.5);
+  const result=fitGemToSeat(pearBounds,seat,Math.cbrt(2));
+  const size=result.boundingBox!.getSize(new Vector3());
+  expect(size.z).toBeCloseTo(.756,3);
+  expect(size.x/size.z).toBeCloseTo(2/3);
+  expect(result.boundingBox!.getCenter(new Vector3()).distanceTo(new Vector3(2,1.3,-.5))).toBeLessThan(1e-6);
+  result.dispose();pearBounds.dispose();seat.dispose();
 });

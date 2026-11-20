@@ -1,9 +1,17 @@
+import {fixedDesignBasis} from '../../community/design-basis';
+import {SaveCommunityDesign} from '../../community/SaveCommunityDesign';
+import {RingFitField} from '../fit/RingFitField';
+import {useFitScope} from '../fit/FitSession';
+import {newDesignFit} from '../fit/profile';
+import {ringSizeDescription} from '../fit/sizing';
 import {FeedbackToast,type Feedback} from '../../components/FeedbackToast';
-import {addDemoOrder,formatYuan,type DemoOrder} from '../ring02/demoOrder';
+import {CatalogQuoteChanged,confirmQuote} from '../purchase';
+import {CurrentCatalogLink} from '../CurrentCatalogLink';
+import {addDemoOrder,formatYuan} from '../ring02/demoOrder';
 import {templateQuote} from '../pricing';
 import {useCallback,useEffect,useMemo,useRef,useState,type RefObject} from 'react';
 import {STONE_APPEARANCES,STONE_APPEARANCE_IDS,type StoneAppearance} from '../../viewer/stoneAppearance';
-import {VIEWS,type RingView} from '../ring02/Ring02Stage';
+import {VIEWS,type RingView,type RingCapture} from '../ring02/Ring02Stage';
 import {SourceRingStudio} from './SourceRingStudio';
 import {RING_CATALOG} from '../catalog';
 import {ORIGINAL_REFERENCE} from './design';
@@ -26,34 +34,49 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
   const [attempt,setAttempt]=useState(0);
   const [view,setView]=useState<RingView>('overall');
   const [reset,setReset]=useState(0);
+  const scope=useFitScope();
+  const [ringSizeUS,setRingSizeUS]=useState(()=>thumbnailRef?undefined:newDesignFit(scope).ringSizeUS);
   const [center,setCenter]=useState<StoneAppearance>('diamond');
   const [loaded,setLoaded]=useState<{stock?:RingAssembly;band?:ReferenceBand;error?:boolean}>({});
   const [diameter,setDiameter]=useState<PaveDiameter>(100),[length,setLength]=useState<PaveLength>(100);
   const layout=useMemo(()=>{try{return {ring:loaded.stock&&loaded.band?applyReferencePave(loaded.stock,loaded.band,diameter,length):undefined};}catch(error){return {error:error instanceof Error?error.message:'排钻失败，请核对配钻和镶爪分区。'};}},[loaded,diameter,length]);
   const original=diameter===100&&length===100;
   const ring=layout.ring;
-  const capture=useRef<(()=>string|undefined)|null>(null);
-  const design=useMemo(()=>({...ORIGINAL_REFERENCE,center}),[center]);
-  const [ready,setReady]=useState(false);
+  const capture=useRef<RingCapture|null>(null);
+  const design=useMemo(()=>({...ORIGINAL_REFERENCE,center,ringSizeUS}),[center,ringSizeUS]);
+  const [frame,setFrame]=useState<SourceFrame|null>(null);
+  const ready=!!frame&&frame.ring===ring&&frame.design===design;
+  const privateSnapshot=useMemo(()=>({
+    revision:crypto.randomUUID(),
+    design:{...design,headId:template.headId,bandId:template.bandId,...(ring?.pave?{paveDiameter:diameter,paveLength:length}:{})},
+  }),[template.id,template.revision,template.headId,template.bandId,design,!!ring?.pave,diameter,length]);
+  const designDetails=[
+    {label:'款式',value:template.name},{label:'戒头',value:template.headName},{label:'戒圈',value:template.bandName},
+    {label:'主石外观',value:STONE_APPEARANCES[center].name},{label:'实物圈号',value:ringSizeDescription(ringSizeUS)},
+    ...(ring?.pave?[{label:'戒臂配钻',value:ring.pave.count+' 颗 · 石径 '+diameter+'% · 铺钻长度 '+length+'%'}]:[]),
+  ];
   const [adding,setAdding]=useState(false);
   const [feedback,setFeedback]=useState<Feedback>();
-  const captureReady=useCallback((frame:SourceFrame|null)=>{setReady(!!frame);onReady(original?frame:null);},[onReady,original]);
+  const [needsCatalog,setNeedsCatalog]=useState(false);
+  const captureReady=useCallback((frame:SourceFrame|null)=>{setFrame(frame);onReady(original?frame:null);},[onReady,original]);
   const quote=template.pricing?templateQuote(template.pricing,template.revision):undefined;
   async function addToCart(){
     if(!quote||!ready||adding)return;
     setAdding(true);setFeedback(undefined);
     try{
-      const confirmed=await fetchManaged<DemoOrder['quote']>(template.id+'/'+template.revision+'/quote',new AbortController().signal);
-      if(confirmed.amount!==quote.amount||confirmed.version!==quote.version)throw new Error('价格已更新，请重新打开商品。');
+      const confirmed=await confirmQuote(template.id+'/'+template.revision+'/quote',quote);
       const thumbnail=capture.current?.();
       if(!thumbnail)throw new Error('款式图片还未准备好，请稍后重试。');
       addDemoOrder({templateRevision:template.revision,revision:crypto.randomUUID(),confirmedAt:new Date().toISOString(),
         managed:{id:template.id,revision:template.revision,name:template.name},design,quote:confirmed,thumbnail,stones:[],
-        details:[{label:'戒头',value:template.headName},{label:'戒圈',value:template.bandName},{label:'主石外观',value:STONE_APPEARANCES[center].name},
+        details:[{label:'实物圈号',value:ringSizeDescription(ringSizeUS)},{label:'戒头',value:template.headName},{label:'戒圈',value:template.bandName},{label:'主石外观',value:STONE_APPEARANCES[center].name},
           ...(['base','head','band','pave'] as const).map((key,index)=>({label:['基础价','戒头加价','戒圈加价','铺钻加价'][index],value:formatYuan(template.pricing![key])})),
           {label:'工艺状态',value:template.review?.status==='approved'?'复核通过':'待人工确认'}]});
       setFeedback({tone:'success',title:'已加入购物车',description:'你的戒指方案已保存。'});
-    }catch(error){setFeedback({tone:'error',title:'购物车未能保存',description:error instanceof Error?error.message:'当前配置仍在编辑器中。'});}
+    }catch(error){
+      if(error instanceof CatalogQuoteChanged)setNeedsCatalog(true);
+      setFeedback({tone:'error',title:'购物车未能保存',description:error instanceof Error?error.message:'当前配置仍在编辑器中。'});
+    }
     finally{setAdding(false);}
   }
 
@@ -69,16 +92,16 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
 
   return <div className="stone-first-workspace ring02-workspace source-ring-workspace managed-editor">
     <div className="stone-first-main ring02-main source-ring-main"><section className="stone-first-preview">
-      {ring?<SourceRingStage ring={ring} design={design} template={template}
-        view={view} reset={reset} captureRef={thumbnailRef??capture} captureSize={thumbnailRef?768:320} onCaptureReady={captureReady}/>
-        :<div className="stone-first-canvas ring02-canvas"><SourceLoading template={template} retry={loaded.error?()=>{
-          setLoaded({});setAttempt(value=>value+1);
-        }:undefined}/></div>}
       <div className="stone-first-camera-views" aria-label="查看角度">
         {VIEWS.map(([id,label])=><button type="button" key={id} aria-pressed={view===id} onClick={()=>{
           setView(id);setReset(value=>value+1);
         }}>{label}</button>)}
       </div>
+      {ring?<SourceRingStage ring={ring} design={design} template={template}
+        view={view} reset={reset} captureRef={thumbnailRef??capture} captureSize={thumbnailRef?768:320} onCaptureReady={captureReady}/>
+        :<div className="stone-first-canvas ring02-canvas"><SourceLoading template={template} retry={loaded.error?()=>{
+          setLoaded({});setAttempt(value=>value+1);
+        }:undefined}/></div>}
     </section>
     <section className="stone-first-panel">
       <h2>{template.name}</h2>
@@ -93,11 +116,15 @@ export function ManagedTemplateStudio({template,onReady=ignoreCapture,thumbnailR
         {layout.error&&<p role="alert">{layout.error}</p>}
         {!original&&<><p>检查后恢复原款，再确认发布。</p><button type="button" onClick={()=>{setDiameter(100);setLength(100);}}>恢复原款排钻</button></>}
       </fieldset>}
-      {quote&&<section className="managed-price" aria-label="商品报价"><p>参考价 <strong>{formatYuan(quote.amount)}</strong></p>
+      {!thumbnailRef&&<RingFitField value={ringSizeUS} onChange={setRingSizeUS}/>}
+      {!thumbnailRef&&template.publishedAt&&<SaveCommunityDesign title={template.name} templateId={template.catalogId??template.id}
+        basis={fixedDesignBasis(template)} revision={privateSnapshot.revision} design={privateSnapshot.design}
+        details={designDetails} capture={()=>ready?capture.current?.('inspection'):undefined} disabled={!ready}/>}
+      {quote&&<section className="managed-price" aria-label="商品报价"><p>{needsCatalog?'此版本历史参考价':'参考价'} <strong>{formatYuan(quote.amount)}</strong></p>
         <details><summary>价格明细</summary><dl>{(['base','head','band','pave'] as const).map((key,index)=><div key={key}><dt>{['模板基础价','戒头加价','戒圈加价','铺钻加价'][index]}</dt><dd>{formatYuan(template.pricing![key])}</dd></div>)}</dl></details>
-        {!thumbnailRef&&template.publishedAt&&<><button className="shop-button" disabled={!ready||adding} onClick={addToCart}>{adding?'正在保存…':'加入购物车'}</button><a className="shop-text-link" href="#/diy/cart">查看购物车</a></>}
+        {!thumbnailRef&&template.publishedAt&&<>{needsCatalog?<CurrentCatalogLink/>:<button className="shop-button" disabled={!ready||adding} onClick={addToCart}>{adding?'正在保存…':'加入购物车'}</button>}<a className="shop-text-link" href="#/diy/cart">查看购物车</a></>}
       </section>}
-      <FeedbackToast notice={feedback} onDismiss={()=>setFeedback(undefined)} onRetry={feedback?.tone==='error'&&!adding?addToCart:undefined}/>
+      <FeedbackToast notice={feedback} onDismiss={()=>setFeedback(undefined)} onRetry={feedback?.tone==='error'&&!adding&&!needsCatalog?addToCart:undefined}/>
       <p>银色金属外观 · {template.review?.status==='approved'?'组合已完成工艺复核':'需人工确认制作要求'}</p>
       {template.review?.minDiameter!=null&&<p>登记戒圈内径 {template.review.minDiameter}–{template.review.maxDiameter} mm，档位步长 {template.review.step} mm。</p>}
     </section></div>
@@ -110,10 +137,11 @@ export default function PublishedTemplateStudio({id,revision}:{id:string;revisio
   const [attempt,setAttempt]=useState(0);
   useEffect(()=>{
     const controller=new AbortController();
+    setError(false);
     fetchManaged<ManagedTemplate>(id+'/'+revision+'/template.json',controller.signal)
       .then((value:ManagedTemplate)=>{
         if(value.id!==id||value.revision!==revision||!value.publishedAt)throw new Error('未发布');
-        setTemplate(value);
+        if(!controller.signal.aborted)setTemplate(value);
       }).catch(()=>{if(!controller.signal.aborted)setError(true);});
     return ()=>controller.abort();
   },[id,revision,attempt]);
@@ -121,7 +149,7 @@ export default function PublishedTemplateStudio({id,revision}:{id:string;revisio
   if(current)return <SourceRingStudio templateId={current.id}/>;
   return <main className="shop-wrap">
     <a href="#/diy/collection">返回全部款式</a>
-    {template?<ManagedTemplateStudio template={template}/>:error
+    {template?.id===id&&template.revision===revision?<ManagedTemplateStudio key={id+'/'+revision} template={template}/>:error
       ?<p role="alert">款式暂不可用。 <button onClick={()=>{setError(false);setAttempt(value=>value+1);}}>重试</button></p>
       :<p role="status">正在读取款式…</p>}
   </main>;

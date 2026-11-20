@@ -1,0 +1,36 @@
+.community-orders .order-history {
+  display:grid;
+  gap:0;
+  margin:12px 0;
+}
+.community-orders .order-history li {
+  display:grid;
+  gap:10px;
+  justify-items:start;
+  align-items:start;
+  padding:20px 0;
+  scroll-margin-block-start:6rem;
+}
+.order-history li:focus-visible {
+  outline:2px solid var(--accent,currentColor);
+  outline-offset:4px;
+}
+.order-heading {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:6px 20px;
+  width:100%;
+}
+.order-heading h3 {margin:0;font-size:1.1rem;overflow-wrap:anywhere}
+.order-heading span,.order-history small {font-size:.85rem;color:var(--muted)}
+.order-quote-details {padding:12px 0;min-width:0}
+.order-quote-details>div {display:flex;align-items:baseline;gap:12px}
+.order-quote-details strong {font-size:1.35rem;font-variant-numeric:tabular-nums}
+.order-quote-details p {margin:.4em 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.quote-form {display:grid;gap:12px;margin:14px 0;max-width:32rem}
+.quote-form label {display:grid;gap:5px}
+.quote-form input,.quote-form textarea {box-sizing:border-box;width:100%;font:inherit;color:inherit;padding:8px}
+.quote-form textarea {resize:vertical;min-height:4.5rem}
+.quote-form button {justify-self:start}

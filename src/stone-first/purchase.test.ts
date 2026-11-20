@@ -7,10 +7,19 @@ afterEach(()=>{vi.unstubAllGlobals();localStorage.clear();});
 it('adds the published product with its confirmed price and cover identity',async()=>{
   vi.stubGlobal('fetch',vi.fn(async()=>Response.json({amount:2680,currency:'CNY',version:product.revision,leadTime:'待确认'})));
   await purchasePublished(product);
+  expect(fetch).toHaveBeenCalledWith('/api/model-admin/public/'+product.id+'/'+product.revision+'/quote',{cache:'no-store'});
   expect(demoOrders()[0]).toMatchObject({quote:{amount:2680},managed:{id:product.id,revision:product.revision,name:'星环'}});
 });
 it('does not add a product whose live price has changed',async()=>{
-  vi.stubGlobal('fetch',vi.fn(async()=>Response.json({amount:2700,version:product.revision})));
+  vi.stubGlobal('fetch',vi.fn(async()=>Response.json({amount:2700,version:product.revision,currency:'CNY',leadTime:'待确认'})));
   await expect(purchasePublished(product)).rejects.toThrow('价格已更新');
   expect(demoOrders()).toHaveLength(0);
+});
+
+it.each([
+  {currency:'USD'}, {leadTime:undefined}, {amount:2680.001},
+])('rejects invalid quote fields before writing to the cart: %j',async invalid=>{
+  vi.stubGlobal('fetch',vi.fn(async()=>Response.json({amount:2680,currency:'CNY',version:product.revision,leadTime:'待确认',...invalid})));
+  await expect(purchasePublished(product)).rejects.toThrow('报价信息');
+  expect(localStorage.length).toBe(0);
 });

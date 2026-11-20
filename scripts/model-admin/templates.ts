@@ -1,3 +1,4 @@
+import {publishPartViews} from './publish-part-views.ts';
 import {randomUUID} from 'node:crypto';
 import {copyFile,mkdir,readFile,readdir,rename,rm,stat,writeFile} from 'node:fs/promises';
 import {basename,join} from 'node:path';
@@ -110,6 +111,13 @@ export function createTemplateLibrary(storage:string,publicDir:string){
     try{return await readJson<PublishedTemplate[]>(indexFile);}
     catch(error){if((error as NodeJS.ErrnoException).code==='ENOENT')return [];throw error;}
   }
+  async function quote(id:string,revision:string){
+    const product=(await index()).find(item=>item.id===id);
+    if(!product)throw new RequestError(404,'该商品暂不可用，请重新选择款式。');
+    if(product.revision!==revision)throw new RequestError(409,'该商品已更新，请从商品目录打开最新版本。');
+    requirePrice(product);
+    return templateQuote(product.pricing!,revision);
+  }
   async function list(){
     await mkdir(draftsDir,{recursive:true});
     const drafts=await Promise.all((await readdir(draftsDir)).filter(name=>uuid.test(name.slice(0,-5))&&name.endsWith('.json'))
@@ -176,6 +184,9 @@ export function createTemplateLibrary(storage:string,publicDir:string){
             assets[key]=url+filename;
           }
         }
+        const partViews=await publishPartViews(template,url,name=>readFile(join(stage,name)),
+          (name,bytes)=>writeFile(join(stage,name),bytes));
+        if(Object.keys(partViews).length)template.partViews=partViews;
         await writeFile(join(stage,'cover.jpg'),image);
         await writeFile(join(stage,'template.json'),JSON.stringify({...template,publishedAt:new Date().toISOString()},null,2)+'\n');
         await rename(stage,release);
@@ -186,7 +197,7 @@ export function createTemplateLibrary(storage:string,publicDir:string){
     return published;
   }
 
-  return {list,save,preview,publish,stock};
+  return {list,save,preview,publish,stock,quote};
 }
 
 export function priceSelection(draft:TemplateSelection,sources:LibrarySource[]){
@@ -195,7 +206,7 @@ export function priceSelection(draft:TemplateSelection,sources:LibrarySource[]){
   const band=sources.find(source=>source.id===draft.band)?.surcharges??ZERO_COMPONENT_PRICES;
   return {base:draft.basePrice,head:head.head,band:band.band,pave:draft.pave?band.pave:0};
 }
-export function requirePrice(template:ManagedTemplate){
+export function requirePrice(template:Pick<ManagedTemplate,'pricing'|'revision'>){
   if(!template.pricing||!Object.values(template.pricing).every(isMoney)||(!isMoney(templateQuote(template.pricing,template.revision).amount)||templateQuote(template.pricing,template.revision).amount<=0)){
     throw new RequestError(422,'请先设置基础价和部件加价，合计须大于 0 且不超过 1000000 元。');
   }

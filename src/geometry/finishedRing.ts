@@ -1,6 +1,6 @@
 import {Box3, Euler, Matrix4, Mesh, Vector3, type BufferGeometry, type Object3D} from 'three';
 import {GROUND_Y} from '../viewer/contactShadowResources';
-import {fitRoundGem} from './productGeometry';
+import {fitGemToSeat} from './productGeometry';
 
 export type FinishedPart = {name: string; kind: 'metal' | 'gem'; geometry: BufferGeometry};
 export type FinishedRingGeometry = {
@@ -56,7 +56,7 @@ export function prepareFinishedRing(
       if (!kind) return;
       let geometry = object.geometry.clone().applyMatrix4(object.matrixWorld).applyMatrix4(roll);
       if (replaceCenter && replacementGeometry && /center/i.test(object.name)) {
-        const next = fitRoundGem(replacementGeometry, geometry);
+        const next = fitGemToSeat(replacementGeometry, geometry);
         geometry.dispose();
         geometry = next;
         replacedCenter = true;

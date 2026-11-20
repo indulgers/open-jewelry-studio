@@ -4,6 +4,7 @@ import {MeshBVH} from 'three-mesh-bvh';
 import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+import {engravingSurface} from '../engraving/surface';
 import {RING02_MODEL,RING02_OVAL} from './assets';
 import {createGemOptics} from '../../viewer/gemOptics';
 import {describe,expect,it} from 'vitest';
@@ -19,6 +20,18 @@ async function fixture() {
 }
 
 describe('ring 02 template',()=>{
+  it('places the fixed lettering on the scaled inner band of the precision model',async()=>{
+    const template=await fixture();
+    const metal=buildMetal(template,BASE_DESIGN,fitStones(template,BASE_DESIGN));
+    const surface=engravingSurface(metal,.1);
+    try{
+      expect(surface).not.toBeNull();
+      surface!.computeBoundingBox();
+      expect(surface!.boundingBox!.max.y).toBeLessThan(-.6);
+      expect(surface!.boundingBox!.min.y).toBeGreaterThan(-1.1);
+    }finally{surface?.dispose();metal.forEach(part=>{if(part.owned)part.geometry.dispose();});}
+  });
+
   it('reflows the editable halo without moving the four divider stones or orphaning their seats',async()=>{
     const template=await fixture();
     const before=fitStones(template,BASE_DESIGN);

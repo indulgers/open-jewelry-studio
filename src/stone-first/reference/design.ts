@@ -1,3 +1,5 @@
+import {isRingSize,ringSizeDescription} from '../fit/sizing';
+import {PLATING,SURFACES,centerStoneLabel,parseStyling,type ReferenceStyling} from './styling';
 import {parseEngravingStyle,engravingStyleLabel,type EngravingStyle} from '../engraving/style';
 import {combinationQuote} from '../pricing';
 import {STONE_APPEARANCES,type StoneAppearance} from '../../viewer/stoneAppearance';
@@ -6,20 +8,23 @@ import {RING_CATALOG,type CatalogRing} from '../catalog';
 import {bandName,headName} from './parts';
 import {PAVE_DIAMETERS,PAVE_LENGTHS,describePaveGap,type PaveDiameter,type PaveLength,type PaveSummary} from './pave-options';
 
-export type ReferenceDesign={kind:'reference';center:StoneAppearance;halo:StoneAppearance;shoulder:StoneAppearance;engraving:string;engravingStyle?:EngravingStyle;headId?:string;bandId?:string;paveDiameter?:PaveDiameter;paveLength?:PaveLength};
+export type ReferenceDesign={kind:'reference';ringSizeUS?:number;styling?:ReferenceStyling;center:StoneAppearance;halo:StoneAppearance;shoulder:StoneAppearance;engraving:string;engravingStyle?:EngravingStyle;headId?:string;bandId?:string;paveDiameter?:PaveDiameter;paveLength?:PaveLength};
 export const ORIGINAL_REFERENCE:ReferenceDesign={kind:'reference',center:'diamond',halo:'diamond',shoulder:'diamond',engraving:''};
-export function parseReferenceDesign(value:unknown):ReferenceDesign|null{
+export function parseReferenceDesign(value:unknown,additionalPartIds:readonly string[]=[]):ReferenceDesign|null{
   if(!value||typeof value!=='object')return null;
   const v=value as Record<string,unknown>;
   if(v.kind!=='reference'||typeof v.engraving!=='string'||v.engraving!==v.engraving.trim()||engravingProblem(v.engraving))return null;
   if(!['center','halo','shoulder'].every(zone=>typeof v[zone]==='string'&&Object.hasOwn(STONE_APPEARANCES,v[zone] as string)))return null;
-  if([v.headId,v.bandId].some(id=>id!==undefined&&!RING_CATALOG.some(ring=>ring.id===id)))return null;
+  if([v.headId,v.bandId].some(id=>id!==undefined&&!RING_CATALOG.some(ring=>ring.id===id)&&!additionalPartIds.some(part=>part===id)))return null;
+  if(v.ringSizeUS!==undefined&&!isRingSize(v.ringSizeUS))return null;
+  const styling=v.styling===undefined?undefined:parseStyling(v.styling);
+  if(styling===null)return null;
   const engravingStyle=v.engravingStyle===undefined?undefined:parseEngravingStyle(v.engravingStyle);
   if(engravingStyle===null)return null;
   const paveDiameter=PAVE_DIAMETERS.find(diameter=>diameter===v.paveDiameter);
   const paveLength=PAVE_LENGTHS.find(length=>length===v.paveLength);
   if((v.paveDiameter!==undefined&&paveDiameter===undefined)||(v.paveLength!==undefined&&paveLength===undefined))return null;
-  return {kind:'reference',...(engravingStyle?{engravingStyle}:{}),...(paveDiameter===undefined?{}:{paveDiameter}),...(paveLength===undefined?{}:{paveLength}),...(typeof v.headId==='string'?{headId:v.headId}:{}),
+  return {kind:'reference',...(v.ringSizeUS===undefined?{}:{ringSizeUS:v.ringSizeUS}),...(styling?{styling}:{}),...(engravingStyle?{engravingStyle}:{}),...(paveDiameter===undefined?{}:{paveDiameter}),...(paveLength===undefined?{}:{paveLength}),...(typeof v.headId==='string'?{headId:v.headId}:{}),
     ...(typeof v.bandId==='string'?{bandId:v.bandId}:{}),center:'diamond',halo:'diamond',shoulder:'diamond',engraving:v.engraving};
 }
 export function referenceParts(template:CatalogRing,design:ReferenceDesign){
@@ -40,15 +45,15 @@ export function referenceDetails(template:CatalogRing,design:ReferenceDesign,pav
     ...(head.id===template.id&&band.id===template.id
       ?[{label:'款式',value:template.name+' · 原款镶座'}]
       :[{label:'戒头',value:headName(head.name)},{label:'戒圈',value:bandName(band.id)}]),
-    ...zones.map(zone=>({label:ZONE_NAMES[zone],value:STONE_APPEARANCES[design[zone]].name+(zone==='shoulder'&&pave
+    ...zones.map(zone=>({label:ZONE_NAMES[zone],value:zone==='center'&&design.styling?centerStoneLabel(design.styling):STONE_APPEARANCES[design[zone]].name+(zone==='shoulder'&&pave
       ?' · '+pave.count+' 颗'
       :' · 原款切形与大小')})),
     ...(pave?[
       {label:'配钻石径 / 铺钻长度',value:(design.paveDiameter??100)+'% / '+(design.paveLength??100)+'%'},
       {label:'同列配钻间距',value:describePaveGap(pave)},
     ]:[]),
-    {label:'金属外观',value:'银色'},
+    {label:'金属外观',value:design.styling?PLATING[design.styling.plating]+' · '+SURFACES[design.styling.surface]:'银色'},
     {label:'内圈刻字',value:design.engraving?(design.engraving+' · '+engravingStyleLabel(design.engravingStyle)):'未添加'},
-    {label:'实物圈号',value:'待工艺确认'},
+    {label:'实物圈号',value:ringSizeDescription(design.ringSizeUS)},
   ];
 }

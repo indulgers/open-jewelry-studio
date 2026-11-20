@@ -1,7 +1,10 @@
-import {createHash,createHmac,randomUUID,timingSafeEqual} from 'node:crypto';
+import {partViewInputs,partViewNames,publishPartViews,renderPartView} from './publish-part-views.ts';
+import {createHash,randomUUID} from 'node:crypto';
 import {mkdir,mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {basename,join} from 'node:path';
+import {adminSessionCookie,adminSessionValid,sameSecret} from './admin-session.ts';
+import {communityApi} from './community.ts';
 import {cloudStore,type CloudStore} from './cloud-store.ts';
 import {processModel} from './process.mjs';
 import {assetKeys,RequestError,selectTemplate,priceSelection,requirePrice,uuid,validateTemplateInput} from './templates.ts';
@@ -16,8 +19,6 @@ import type {LibrarySource,ManagedTemplate,PublishedTemplate,TemplateDraft} from
 const prefix='/api/model-admin';
 const root='studio/v1/';
 const maxUpload=25*1024*1024;
-const cookieName='__Host-xiangyan-admin';
-const sessionSeconds=8*60*60;
 const partFile=/^parts\/(heads|bands|stones)\/ring(?:-(?:head|pave|adapter))?-[a-f0-9]{12}\.glb$/;
 type Job={id:string;filename:string;createdAt:string;size:number};
 type Version={assignments?:Record<string,string>;settings?:LibrarySource['settings'];name?:string;partNames?:LibrarySource['partNames'];metadataRevision?:string;archived?:boolean;id:string;createdAt:string;parts:ReferenceAssets;profileId?:string};
@@ -30,14 +31,20 @@ const fail=(status:number,message:string):never=>{throw new RequestError(status,
 const modelKey=(id:string)=>root+'models/'+id+'/';
 const releaseKey=(id:string,revision:string)=>root+'releases/'+id+'/'+revision+'/';
 const publicPath=(id:string,revision:string)=>prefix+'/public/'+id+'/'+revision+'/';
-const same=(a:string,b:string)=>timingSafeEqual(createHash('sha256').update(a).digest(),createHash('sha256').update(b).digest());
-const signature=(password:string,claims:string)=>createHmac('sha256',password).update(claims).digest('base64url');
-
-function sessionIsValid(request:Request,password:string){
-  const session=request.headers.get('cookie')?.split(';').map(value=>value.trim()).find(value=>value.startsWith(cookieName+'='))?.slice(cookieName.length+1);
-  const match=/^(\d{10,13}\.[0-9a-f-]{36})\.([A-Za-z0-9_-]{43})$/.exec(session??'');
-  return !!match&&Number(match[1].split('.')[0])>Date.now()&&same(signature(password,match[1]),match[2]);
+function legacyPartViewInputs(release:Release,role:keyof typeof partViewNames){
+  const inputs=partViewInputs(release,publicPath(release.id,release.revision),role);
+  if(inputs?.every(name=>release.files.includes(name)))return inputs;
 }
+
+function publishedPartViews(release:Release){
+  const views={...release.partViews};
+  for(const role of ['head','band'] as const){
+    if(!views[role]&&legacyPartViewInputs(release,role))
+      views[role]=publicPath(release.id,release.revision)+partViewNames[role];
+  }
+  return views;
+}
+
 async function body(request:Request,limit=16*1024){
   if(request.headers.get('content-type')?.split(';')[0]!=='application/json')fail(400,'请提交 JSON。');
   if(Number(request.headers.get('content-length'))>limit)fail(413,'提交内容超过大小限制。');
@@ -216,6 +223,15 @@ function cloudLibrary(store:CloudStore){
           files.push(file);
         }
       }
+      const partViews=await publishPartViews(template,base,async name=>{
+        const asset=await store.get(release+name);
+        if(!asset)return fail(422,'发布部件文件缺失。');
+        return new Uint8Array(await asset.arrayBuffer());
+      },async (name,bytes)=>{
+        await store.put(release+name,bytes,'image/png',{etag:null});
+        files.push(name);
+      });
+      if(Object.keys(partViews).length)template.partViews=partViews;
       if(template.cover){
         const cover=await store.get(uuid.test(template.cover)?root+'covers/'+template.cover+'.jpg':root+'assets/'+template.cover.slice(1));
         if(!cover)fail(422,'封面文件缺失，请重新上传。');
@@ -254,7 +270,7 @@ function cloudLibrary(store:CloudStore){
         editor:product.catalogId?'#/stonefirst/'+id:'#/stonefirst/template/'+product.id+'/'+product.revision,
         legacyRevision:original?.revision,revision:product.revision,model:'',image:product.image,campaign:product.campaign??'',
         price:{base:release.pricing?.base??original?.price.base??0,version:product.revision,leadTime:'7–10 个工作日'},
-        headSourceId,bandSourceId,headLabel:product.headName,bandLabel:product.bandName,
+        headSourceId,bandSourceId,partViews:publishedPartViews(release),headLabel:product.headName,bandLabel:product.bandName,
         headStructures:release.headSettings?.headStructure?[release.headSettings.headStructure]:original?.headStructures??[],
         bandStructure:release.bandSettings?.bandStructure,bandFinish:release.bandSettings?.bandFinish,
         automaticPave:release.bandSettings?.automaticPave!==false,
@@ -274,7 +290,8 @@ function redirect(url:string){
   return new Response(null,{status:302,headers:{Location:url,'Cache-Control':'no-store','Referrer-Policy':'no-referrer'}});
 }
 
-export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passwordOverride?:string):Promise<Response>{
+export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passwordOverride?:string,
+  options?:{streamPublicAssets:boolean}):Promise<Response>{
   try{
     const url=new URL(request.url);
     const route=(url.searchParams.get('path')??url.pathname.slice(prefix.length)).replace(/^\/|\/$/g,'');
@@ -285,12 +302,26 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     const method=request.method;
     const store=storeOverride??cloudStore();
     const password=passwordOverride??process.env.XIANGYAN_ADMIN_PASSWORD;
+    async function publicAsset(key:string){
+      if(!options?.streamPublicAssets)return redirect(await store!.sign(key,'GET'));
+      const asset=await store!.get(key);
+      if(!asset)return fail(404,'文件不存在。');
+      return new Response(asset.body,{headers:{
+        'Content-Type':asset.headers.get('Content-Type')??'application/octet-stream',
+        'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
+      }});
+    }
+
+    if(id==='community'){
+      if(!store)return json({error:'社区存储尚未配置。'},503);
+      return communityApi(request,route.slice('community/'.length),store,!!password&&password.length>=32&&adminSessionValid(request,password));
+    }
     if(id==='assets'&&method==='GET'){
       if(!store)return json({error:'文件存储未配置。'},503);
       const path=[action,revision,...rest].filter(Boolean).join('/');
       const inventory=await store.get(root+'stock/assets.json');
       if(!inventory||!Object.hasOwn(await inventory.json(),path))fail(404,'文件不存在。');
-      return redirect(await store.sign(root+'assets/'+path,'GET'));
+      return await publicAsset(root+'assets/'+path);
     }
     if(id==='public'&&method==='GET'){
       if(!store)return json({error:'发布目录未配置。'},503);
@@ -328,7 +359,20 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
           const {files,...template}=release;
           return json(template);
         }
-        if(release.files.includes(rest[0]))return redirect(await store.sign(key+rest[0],'GET'));
+        if(release.files.includes(rest[0]))return await publicAsset(key+rest[0]);
+        const role=rest[0]===partViewNames.head?'head':rest[0]===partViewNames.band?'band':undefined;
+        const inputs=role&&legacyPartViewInputs(release,role);
+        if(role&&inputs){
+          const files=await Promise.all(inputs.map(async name=>{
+            const asset=await store.get(key+name);
+            if(!asset)return fail(404,'发布部件文件不存在。');
+            return new Uint8Array(await asset.arrayBuffer());
+          }));
+          const png=await renderPartView(files,role);
+          return new Response(new Uint8Array(png),{headers:{
+            'Content-Type':'image/png','Cache-Control':'private, max-age=300','X-Content-Type-Options':'nosniff',
+          }});
+        }
       }
       return json({error:'找不到已发布版本。'},404);
     }
@@ -336,12 +380,11 @@ export async function cloudAdmin(request:Request,storeOverride?:CloudStore,passw
     if(method==='POST'&&request.headers.get('origin')!==url.origin)fail(403,'请从本站后台操作。');
     if(id==='session'&&!action&&method==='POST'){
       const input=await body(request);
-      if(typeof input?.password!=='string'||!same(input.password,password))fail(401,'管理员密码错误。');
-      const claims=(Date.now()+sessionSeconds*1000)+'.'+randomUUID();
+      if(typeof input?.password!=='string'||!sameSecret(input.password,password))fail(401,'管理员密码错误。');
       return new Response(null,{status:204,headers:{'Cache-Control':'no-store',
-        'Set-Cookie':cookieName+'='+claims+'.'+signature(password,claims)+'; Path=/; Max-Age='+sessionSeconds+'; HttpOnly; Secure; SameSite=Strict'}});
+        'Set-Cookie':adminSessionCookie(password)}});
     }
-    if(!sessionIsValid(request,password))return json({error:'请先登录后台。'},401);
+    if(!adminSessionValid(request,password))return json({error:'请先登录后台。'},401);
     if(id==='session'&&!action&&method==='GET')return new Response(null,{status:204,headers:{'Cache-Control':'no-store'}});
     const library=cloudLibrary(store);
     if(id==='library'&&!action&&method==='GET')return json({sources:await library.sources(),

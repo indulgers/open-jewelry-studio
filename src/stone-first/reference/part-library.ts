@@ -49,7 +49,7 @@ export function createReferenceLibrary(read:ReadPart=readPart, sources:Record<st
       const source=sources[id];
       const [metal,stones]=await Promise.all([part(source,source.head),part(source,source.headStones)]);
       if(!metal.metal.length||!stones.stones.some(stone=>stone.zone==='center'))throw new Error('戒头缺少主石或镶座');
-      return {id:source.sourceId??id,classified:source.classified,profileId:source.profileId,seatY:source.seatY,metal:metal.metal,stones:stones.stones};
+      return {id:source.sourceId??id,classified:source.classified,profileId:source.profileId,seatY:source.seatY,metal:metal.metal.map(part=>({...part,headMetal:true})),stones:stones.stones};
     });
   }
 

@@ -1,0 +1,22 @@
+.fit-page{width:min(960px,100%);margin:0 auto;padding:clamp(26px,5vw,64px) var(--shop-gutter,20px);color:var(--ink);box-sizing:border-box}
+.fit-page h1,.fit-page h3{font-family:var(--shop-title,Georgia,serif);font-weight:500}
+.fit-page h1{font-size:clamp(30px,5vw,48px);margin:.5em 0}
+.fit-page nav,.fit-profile p,.fit-guide p,.fit-guide li{font-size:14px;line-height:1.7}
+.fit-profile p:empty{display:none}
+.fit-fields,.fit-actions{display:flex;flex-wrap:wrap;align-items:end;gap:12px}
+.fit-fields>label,.fit-editor>label{display:grid;gap:5px;text-align:left;font-size:14px}
+.fit-fields :is(input,select),.fit-editor>label select{font:inherit;min-height:42px;box-sizing:border-box;border:1px solid var(--line,#aca39a);border-radius:var(--shop-radius,4px);color:var(--ink);background:var(--page,#fff);padding:6px 10px;width:100%}
+.fit-fields>label{min-width:100px;flex:1 1 100px}
+.fit-fields>label:has(select){flex:1.4 1 175px}
+.fit-actions{align-items:center;margin-top:16px;gap:20px}
+.fit-page .fit-link,.fit-profile .fit-link,.fit-editor .fit-link{display:inline-block;padding:6px 0;font:inherit;color:inherit;background:none;border:0;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+.fit-editor :is(summary,.fit-link),.fit-guide summary{cursor:pointer;font-size:13px}
+.fit-editor details,.fit-guide details{margin-top:10px}
+.fit-guide{min-width:0}
+.fit-guide h3{margin:16px 0 8px}
+.fit-guide ol{padding-left:1.6em}
+.fit-figure{width:100%;max-width:320px;height:100px;display:block;border-top:1px solid var(--line,#d6d1c8);border-bottom:1px solid var(--line,#d6d1c8);color:var(--ink)}
+.fit-guides{margin:28px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(16px,5vw,54px)}
+.fit-guide table{font-size:13px;border-collapse:collapse;margin:8px 0;width:100%;font-variant-numeric:tabular-nums}
+.fit-guide :is(td,th){padding:4px 8px;text-align:left;border-bottom:1px solid var(--line,#d6d1c8)}
+@media(max-width:640px){.fit-guides{grid-template-columns:1fr}.fit-figure{max-width:100%}}

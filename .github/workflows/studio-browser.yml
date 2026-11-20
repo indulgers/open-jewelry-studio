@@ -1,0 +1,40 @@
+name: Studio browser acceptance
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'scripts/model-admin/**'
+      - 'scripts/studio-browser-acceptance.mjs'
+      - 'scripts/measure-accent-shimmer.mjs'
+      - '.github/workflows/studio-browser.yml'
+permissions:
+  contents: read
+jobs:
+  storefront:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save --ignore-scripts playwright-core@1.58.0
+      - name: Provide Chinese glyphs for screenshots
+        run: |
+          if test -z "$(fc-list :lang=zh family)"; then
+            mkdir -p "$RUNNER_TEMP/studio-fonts" "$HOME/.local/share/fonts"
+            curl --fail --location --max-time 60 --retry 2 \
+              https://raw.githubusercontent.com/notofonts/noto-cjk/523d033d6cb47f4a80c58a35753646f5c3608a78/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf \
+              -o "$RUNNER_TEMP/studio-fonts/NotoSansCJKsc-Regular.otf"
+            install -m 0644 "$RUNNER_TEMP/studio-fonts/NotoSansCJKsc-Regular.otf" "$HOME/.local/share/fonts/"
+            fc-cache -f "$HOME/.local/share/fonts"
+          fi
+      - run: node scripts/studio-browser-acceptance.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: studio-browser-evidence
+          path: visual-artifacts/
+          if-no-files-found: warn
