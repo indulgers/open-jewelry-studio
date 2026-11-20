@@ -1,10 +1,19 @@
-import {crc32,deflateSync} from 'node:zlib';
+import {deflateSync} from 'node:zlib';
 import type {ManagedTemplate} from '../../src/stone-first/reference/managed-types.ts';
 import stockAssets from '../../src/stone-first/reference/part-assets.json' with {type:'json'};
-import {renderPartPixels} from './part-view-raster.mjs';
 
 import type {PartViews} from '../../src/stone-first/catalog.ts';
 const size=256;
+const crcTable=Uint32Array.from({length:256},(_,byte)=>{
+  let value=byte;
+  for(let bit=0;bit<8;bit++)value=(value>>>1)^((value&1)?0xedb88320:0);
+  return value;
+});
+function pngCrc(bytes:Uint8Array){
+  let crc=0xffffffff;
+  for(const byte of bytes)crc=(crc>>>8)^crcTable[(crc^byte)&0xff];
+  return (crc^0xffffffff)>>>0;
+}
 
 function png(rgb:Buffer){
   function chunk(type:string,data:Buffer){
@@ -12,7 +21,7 @@ function png(rgb:Buffer){
     result.writeUInt32BE(data.length);
     result.write(type,4,'ascii');
     data.copy(result,8);
-    result.writeUInt32BE(crc32(result.subarray(4,-4)),result.length-4);
+    result.writeUInt32BE(pngCrc(result.subarray(4,-4)),result.length-4);
     return result;
   }
   const header=Buffer.alloc(13);
@@ -36,6 +45,7 @@ export function partViewInputs(template:ManagedTemplate,base:string,role:Role){
 }
 
 export async function renderPartView(bytes:Uint8Array[],role:Role){
+  const {renderPartPixels}=await import('./part-view-raster.mjs');
   return png(await renderPartPixels(bytes,role,size));
 }
 
