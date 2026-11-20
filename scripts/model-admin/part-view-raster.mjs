@@ -1,7 +1,7 @@
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+import {MeshoptDecoder} from 'meshoptimizer';
 import {DoubleSide,LoadingManager,Ray,Vector3} from 'three';
-import {MeshBVH} from 'three-mesh-bvh';
+import {MeshBVH} from 'three-mesh-bvh/src/index.js';
 
 const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
 export async function renderPartPixels(files,kind,size){
