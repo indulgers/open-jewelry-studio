@@ -5,7 +5,8 @@ import {formatYuan} from './ring02/demoOrder';
 import {RING_CATALOG} from './catalog';
 import {loadReferenceRing} from './reference/entry';
 import {fetchManaged,productRoute,featuredProducts,orderedProducts,type PublishedTemplate} from './reference/managed-types';
-import './diy-home.css';
+import {CatalogHeading,HeroCopy,HeroPlaceholder} from './CatalogPlaceholder';
+import {GallerySkeleton,ShopState} from '../components/ShopState';
 
 type StorefrontProduct=PublishedTemplate&{demo?:typeof RING_CATALOG[number]};
 const localDemoProducts:StorefrontProduct[]=RING_CATALOG.filter(ring=>ring.listed).map((ring,order)=>({
@@ -108,15 +109,15 @@ export function DiyHome({section}:{section?:'collection'|'story'}){
     const frame=requestAnimationFrame(()=>document.getElementById('diy-'+section)?.scrollIntoView({block:'start',behavior:'instant'}));
     return ()=>cancelAnimationFrame(frame);
   },[section,featured?.id]);
-  const CollectionHeading=all||!featured?'h1':'h2';
+
   return <main className="diy-home">
+    {!all&&catalog.status==='loading'&&<HeroPlaceholder/>}
     {!all&&featured&&<>
     <section className="diy-hero" aria-labelledby="diy-title">
       <div className="shop-wrap diy-hero-grid">
         <div className="diy-hero-content">
           {featured.collection&&<p className="collection-label">{featured.collection}</p>}
-          <h1 id="diy-title">让心意，<br/>有自己的形状。</h1>
-          <p className="diy-hero-sub">从一枚喜欢的戒指开始。在三维工作台里试搭戒头与戒圈，查看每一处镶嵌细节。</p>
+          <HeroCopy/>
           <div className="diy-hero-ctas">
             <a className="shop-button" href={productRoute(featured)} onMouseEnter={()=>warmEditor(featured)} onFocus={()=>warmEditor(featured)}>开始专属定制 <Arrow/></a>
             <a className="shop-text-link" href="#/diy/collection">浏览原款</a>
@@ -134,20 +135,15 @@ export function DiyHome({section}:{section?:'collection'|'story'}){
     </section>}
     </>}
     <section className="diy-collection shop-wrap" id="diy-collection" aria-labelledby="collection-title">
-      <div className="shop-section-heading"><div><CollectionHeading id="collection-title">{all?'全部款式':'精选原款'}</CollectionHeading>
-        {products.length>0&&<p>查看原款结构与演示参考价，或选一款开始定制。</p>}</div>
-        {products.length>0&&(all?<span className="collection-count">{products.length} 款戒指</span>:<a className="shop-text-link" href="#/diy/collection">查看全部款式 <Arrow/></a>)}
-      </div>
-      {catalog.status==='loading'&&<p className="shop-catalog-state" role="status">正在读取款式…</p>}
-      {catalog.status==='error'&&<div className="shop-catalog-state">
-        <p role="alert">款式目录暂时无法读取。</p>
-        <button className="shop-button shop-button-outline" onClick={()=>setAttempt(value=>value+1)}>重新读取款式</button>
-      </div>}
-      {catalog.status==='ready'&&!products.length&&<div className="shop-catalog-state">
-        <p>{published.length?'首页精选正在准备中。':'暂时没有上架款式。'}</p>
-        {published.length?<a className="shop-text-link" href="#/diy/collection">浏览全部 {published.length} 款戒指 <Arrow/></a>
-          :<a className="shop-text-link" href="#/diy/fit">查看佩戴尺寸指南 <Arrow/></a>}
-      </div>}
+      <CatalogHeading all={all} featured={!!featured||catalog.status==='loading'} count={products.length} loading={catalog.status==='loading'}/>
+      {catalog.status==='loading'&&<GallerySkeleton type="catalog" label="正在读取款式…"/>}
+      {catalog.status==='error'&&<ShopState kind="error" title="款式目录暂时无法读取。" detail="重新读取后，可以继续查看款式和参考价。">
+        <button className="shop-button" onClick={()=>setAttempt(value=>value+1)}>重新读取款式</button>
+      </ShopState>}
+      {catalog.status==='ready'&&!products.length&&<ShopState title={published.length?'首页精选正在准备中。':'暂时没有上架款式。'}>
+        {published.length?<a className="shop-button" href="#/diy/collection">浏览全部 {published.length} 款戒指 <Arrow/></a>
+          :<a className="shop-button" href="#/diy/fit">查看佩戴尺寸指南 <Arrow/></a>}
+      </ShopState>}
       {products.length>0&&<div className="diy-template-grid" data-count={products.length}>
         {products.map(template=><article key={template.id} className="diy-template" aria-labelledby={'card-title-'+template.id}>
           <a href={productRoute(template)} className="diy-template-image" onMouseEnter={()=>warmEditor(template)} onFocus={()=>warmEditor(template)} aria-label={'定制'+template.name}>

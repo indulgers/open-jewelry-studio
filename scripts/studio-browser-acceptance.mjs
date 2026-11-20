@@ -20,6 +20,58 @@ async function twoFrames(){
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
 }
 
+async function checkStorefrontStates(browser,width){
+  const statePage=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});
+  try{
+    let release;
+    const gate=new Promise(resolve=>{release=resolve;});
+    await statePage.route('**/{managed,public}/index.json',async route=>{
+      await gate;
+      await route.continue();
+    });
+    await statePage.goto(origin+'/#/diy/collection',{waitUntil:'domcontentloaded'});
+    await statePage.getByText('正在读取款式…',{exact:true}).waitFor({state:'attached'});
+    const tile=statePage.locator('.gallery-loading .skeleton-photo').first();
+    const before=await tile.boundingBox();
+    await statePage.screenshot({path:join(directory,'collection-loading-'+width+'.png')});
+    release();
+    const realTile=statePage.locator('.diy-template-image').first();
+    await realTile.waitFor();
+    const after=await realTile.boundingBox();
+    for(const key of ['x','y','width','height']){
+      assert.ok(Math.abs(before[key]-after[key])<=1,'catalog '+width+' '+key+': '+before[key]+' => '+after[key]);
+    }
+    console.log('CATALOG_GEOMETRY',width,JSON.stringify({before,after}));
+    const header=statePage.getByRole('banner');
+    for(const name of ['登录','注册']){
+      const bounds=await header.getByRole('link',{name,exact:true}).boundingBox();
+      assert.ok(bounds&&bounds.x>=0&&bounds.x+bounds.width<=width&&bounds.height>=44,'visible account link '+name);
+    }
+    let fail=true;
+    await statePage.route('**/community/works',route=>route.fulfill({
+      status:fail?503:200,contentType:'application/json',body:fail?'{}':'[]',
+    }));
+    await statePage.goto(origin+'/#/community');
+    await statePage.getByRole('heading',{name:'作品暂时无法读取'}).waitFor();
+    fail=false;
+    await statePage.getByRole('button',{name:'重新加载'}).click();
+    const panel=statePage.locator('.shop-state-empty');
+    const region=await panel.boundingBox();
+    const action=panel.getByRole('link',{name:'上传第一件作品'});
+    const button=await action.boundingBox();
+    assert.ok(Math.abs(region.x+region.width/2-button.x-button.width/2)<=1,'centered empty action');
+    assert.ok(await statePage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'page fits viewport');
+    await statePage.screenshot({path:join(directory,'community-empty-'+width+'.png')});
+    await action.click();
+    await statePage.getByRole('button',{name:'登录',exact:true}).waitFor();
+    await statePage.getByRole('navigation',{name:'账号入口'}).getByRole('link',{name:'注册账号'}).click();
+    await statePage.getByRole('button',{name:'注册账号',exact:true}).waitFor();
+    assert.ok(statePage.url().includes('upload=1'),'auth mode switch preserves the upload destination');
+    await header.getByRole('link',{name:'登录',exact:true}).click();
+    await statePage.getByRole('button',{name:'登录',exact:true}).waitFor();
+  }finally{await statePage.close();}
+}
+
 async function previewPixels(locator){
   return locator.evaluate(element=>{
     const sample=document.createElement('canvas');
@@ -241,6 +293,7 @@ try{
   const executablePath=['/usr/bin/google-chrome','/usr/bin/chromium','/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'].find(existsSync);
   assert.ok(executablePath,'Install Chromium for visual acceptance');
   browser=await chromium.launch({executablePath,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+  for(const width of [1440,390,320])await checkStorefrontStates(browser,width);
   page=await browser.newPage({viewport:{width:1440,height:1000},deviceScaleFactor:1});
   page.setDefaultTimeout(35000);
   // Hold the next animation callback to verify a just-edited design cannot save an older frame.
@@ -284,8 +337,7 @@ try{
   await page.getByRole('button',{name:'原款图'}).click();
   await page.locator('.hero-photo img').evaluate(img=>img.decode());
   assert.match(await page.locator('.hero-photo img').getAttribute('src'),/ring-02.jpg$/);
-  await page.goto(origin+'/#/my-designs');
-  await page.getByRole('button',{name:'创建消费者账号'}).click();
+  await page.getByRole('banner').getByRole('link',{name:'注册',exact:true}).click();
   await page.getByLabel('账号名').fill('studio_reviewer');
   await page.getByLabel('密码',{exact:true}).fill('local-test-account-only');
   await page.getByRole('button',{name:'注册账号',exact:true}).click();

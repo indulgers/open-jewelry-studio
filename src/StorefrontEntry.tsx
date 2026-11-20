@@ -1,4 +1,8 @@
 import {Component,lazy,Suspense,type ReactNode,useEffect,useState,useSyncExternalStore} from 'react';
+import {CommunityPlaceholder} from './community/CommunityPlaceholder';
+import {CatalogPlaceholder} from './stone-first/CatalogPlaceholder';
+import {ShopHeader} from './components/ShopHeader';
+import {ShopState} from './components/ShopState';
 import {communityMode} from './community/route';
 import {RING_CATALOG,type CatalogRing} from './stone-first/catalog';
 import {RING02_TEMPLATE} from './stone-first/ring02/assets';
@@ -11,14 +15,13 @@ class CommunityLoadBoundary extends Component<{children:ReactNode},{failed:boole
   state={failed:false};
   static getDerivedStateFromError(){return {failed:true};}
   render(){
-    if(this.state.failed)return <div role="alert" className="storefront-loading">
-      <p>作品页面暂时无法打开，请重新载入。</p>
+    if(this.state.failed)return <div className="app-shell"><ShopState kind="error" title="作品页面暂时无法打开，请重新载入。">
       <button className="shop-button" onClick={()=>window.location.reload()}>重新载入页面</button>
-    </div>;
+    </ShopState></div>;
     return this.props.children;
   }
 }
-const currentCommunity=()=>communityMode(window.location.hash);
+const currentHash=()=>window.location.hash;
 function watchRoute(changed:()=>void){
   window.addEventListener('hashchange',changed);
   return ()=>window.removeEventListener('hashchange',changed);
@@ -49,7 +52,8 @@ async function loadStorefront(signal:AbortSignal){
 }
 
 export function StorefrontEntry(){
-  const community=useSyncExternalStore(watchRoute,currentCommunity);
+  const hash=useSyncExternalStore(watchRoute,currentHash);
+  const community=communityMode(hash);
   const hosted=Boolean(import.meta.env.PROD||import.meta.env.VITE_CLOUD_MODE);
   const independent=hosted&&Boolean(community);
   const [App,setApp]=useState<typeof import('./App').default>();
@@ -72,12 +76,14 @@ export function StorefrontEntry(){
 
   if(App)return <App/>;
   if(hosted&&community)return <CommunityLoadBoundary>
-    <Suspense fallback={<p role="status">正在打开作品…</p>}><CommunityEntry mode={community}/></Suspense>
+    <Suspense fallback={<div className="app-shell"><ShopHeader page={community} verifyAccount={false}/><CommunityPlaceholder mine={community==='mine'}/></div>}><CommunityEntry mode={community}/></Suspense>
   </CommunityLoadBoundary>;
-  if(failed)return <div className="storefront-loading" role="alert">
-    <p>款式暂时无法读取，请重试。</p>
-    <button className="shop-button" onClick={()=>setAttempt(n=>n+1)}>重新加载</button>
-    <a className="shop-text-link" href="#/community">浏览设计社区</a>
+  const all=hash==='#/diy/collection';
+  const catalog=!hash||['#/diy','#/diy/story','#/diy/collection'].includes(hash);
+  return <div className="app-shell" data-workspace="stonefirst"><ShopHeader page={all?'collection':null} verifyAccount={false}/>
+    {failed?<main className="shop-wrap storefront-recovery"><ShopState kind="error" title="款式暂时无法读取，请重试。">
+      <button className="shop-button" onClick={()=>{setFailed(false);setAttempt(n=>n+1);}}>重新加载</button>
+      <a className="shop-text-link" href="#/community">浏览设计社区</a>
+    </ShopState></main>:catalog?<CatalogPlaceholder all={all} label="正在准备款式…"/>:<ShopState kind="loading" title="正在准备款式…"/>}
   </div>;
-  return <div role="status" className="storefront-loading"><span className="storefront-spinner" aria-hidden="true"/><span>正在准备款式…</span></div>;
 }

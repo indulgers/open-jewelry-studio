@@ -45,3 +45,24 @@
 .community-request-receipt dt{color:var(--muted)}
 .community-request-receipt dd{margin:0;overflow-wrap:anywhere}
 .community-request-receipt .shop-button{text-decoration:none}
+
+.community-heading-links {display:flex;gap:14px;align-items:center;min-width:0}
+.community-heading-links small {color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:12em}
+.community-heading-links a {white-space:nowrap}
+.community-grid {padding-top:0}
+.community-picture {aspect-ratio:1.2}
+.community-picture img {height:100%;width:100%;object-fit:contain}
+.community-auth {width:min(100%,440px);margin:clamp(28px,5vw,72px) auto;padding:clamp(20px,4vw,36px);border:1px solid var(--line);border-radius:var(--shop-radius);background:var(--panel)}
+.community-auth h2 {font:var(--display-weight) 26px/1.4 var(--shop-title);margin:0}
+.community-auth>p {color:var(--muted);font-size:14px;line-height:1.7}
+.community-auth .community-form {margin-bottom:0}
+@media(max-width:550px){
+  .community-picture{aspect-ratio:1}
+  .community-heading {display:grid;align-items:start}
+  .community-heading-links {justify-content:space-between;flex-direction:row-reverse}
+  .community-heading-links a{margin-right:auto}
+}
+.account-modes {display:flex;border-bottom:1px solid var(--line);margin-bottom:6px}
+.account-modes a {flex:1;text-align:center;text-decoration:none;min-height:44px;padding:10px;color:var(--muted)}
+.account-modes a[aria-current] {box-shadow:inset 0 -2px var(--ink);color:var(--ink);font-weight:600}
+.community-auth .community-actions .shop-button {width:100%}

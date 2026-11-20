@@ -1,3 +1,4 @@
+import {ShopState} from '../components/ShopState';
 import {sumMoney} from './pricing';
 import {managedAssetUrl,templateRoute} from './reference/managed-types';
 import {useEffect,useState} from 'react';
@@ -45,11 +46,10 @@ export function DiyCart(){
       <p>查看已保存的款式、配置和价格。</p>
     </header>
     {error&&<p className="cart-error" role="alert">{error}</p>}
-    {!orders&&!error&&<p role="status">正在读取购物车…</p>}
-    {orders?.length===0?<div className="diy-cart-empty">
-      <svg viewBox="0 0 64 64" width="58" height="58" aria-hidden="true"><path d="M14 22h36l-3 32H17l-3-32Zm10 0v-6a8 8 0 0 1 16 0v6"/></svg>
-      <h2>购物车里还没有款式</h2><p>从款式系列挑选原款，或在三维工作台完成搭配。</p><a className="shop-button" href="#/diy/collection">探索款式系列</a>
-    </div>:!!orders?.length&&<div className="cart-layout">
+    {!orders&&!error&&<ShopState kind="loading" title="正在读取购物车…"/>}
+    {orders?.length===0?<ShopState title="购物车里还没有款式" detail="从款式系列挑选原款，或在三维工作台完成搭配。">
+      <a className="shop-button" href="#/diy/collection">探索款式系列</a>
+    </ShopState>:!!orders?.length&&<div className="cart-layout">
       <div className="diy-cart">
         {orders.map(order=>{
           const template=RING_CATALOG.find(item=>item.revision===order.templateRevision);

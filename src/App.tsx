@@ -1,3 +1,5 @@
+import {CommunityPlaceholder} from './community/CommunityPlaceholder';
+import {ShopState} from './components/ShopState';
 import {communityMode} from './community/route';
 import {FitSession} from './stone-first/fit/FitSession';
 import {Fragment} from 'react';
@@ -167,6 +169,6 @@ export default function App(){
     <ShopHeader page={route.tab==='stonefirst'?route.section??diyPage:null}/>
     <section id="panel-showroom" aria-label="珠宝展台" hidden={tab!=='showroom'}><JewelryStudio active={tab==='showroom'}/></section>
     <section id="panel-modules" aria-label="模组 DIY" hidden={tab!=='modules'}>{modulesVisited&&<ModuleStudio active={tab==='modules'}/>}</section>
-    <section id="panel-stonefirst" aria-label="戒指定制" hidden={tab!=='stonefirst'}>{tab==='stonefirst'&&(diyPage==='catalog'?<DiyHome section={route.section}/>:diyPage==='cart'?<DiyCart/>:diyPage==='community'||diyPage==='mine'?<Suspense fallback={<p role="status">正在打开作品…</p>}><CommunityStudio key={diyPage} mode={diyPage}/></Suspense>:<EditorSession><Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<p role="status">正在加载镶嵌设计工作台…</p>}>{diyPage==='fit'?<FitPage/>:diyPage==='ring02'?<Ring02Studio/>:diyPage==='reference'?<SourceRingStudio key={route.templateId} templateId={route.templateId!}/>:diyPage==='published'?<PublishedTemplateStudio key={route.revision} id={route.templateId!} revision={route.revision!}/>:<StoneFirstStudio/>}</Suspense></EditorSession>)}</section>
+    <section id="panel-stonefirst" aria-label="戒指定制" hidden={tab!=='stonefirst'}>{tab==='stonefirst'&&(diyPage==='catalog'?<DiyHome section={route.section}/>:diyPage==='cart'?<DiyCart/>:diyPage==='community'||diyPage==='mine'?<Suspense fallback={<CommunityPlaceholder mine={diyPage==='mine'}/>}><CommunityStudio key={diyPage} mode={diyPage}/></Suspense>:<EditorSession><Suspense fallback={diyPage==='ring02'?<Ring02Loading/>:<ShopState kind="loading" title={diyPage==='fit'?'正在打开佩戴资料…':'正在加载镶嵌设计工作台…'}/>}>{diyPage==='fit'?<FitPage/>:diyPage==='ring02'?<Ring02Studio/>:diyPage==='reference'?<SourceRingStudio key={route.templateId} templateId={route.templateId!}/>:diyPage==='published'?<PublishedTemplateStudio key={route.revision} id={route.templateId!} revision={route.revision!}/>:<StoneFirstStudio/>}</Suspense></EditorSession>)}</section>
   </div>;
 }

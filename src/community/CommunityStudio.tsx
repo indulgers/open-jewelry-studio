@@ -1,26 +1,32 @@
-import {lazy,Suspense,useEffect,useState} from 'react';
+import {lazy,Suspense,useEffect,useState,useSyncExternalStore} from 'react';
 import {ReviewDialog} from '../stone-first/ring02/ReviewDialog';
 import {AccountForm} from './AccountForm';
 import {OrderHistory} from './OrderHistory';
 import {WorkRequestDialog} from './WorkRequestDialog';
 import {UploadWork} from './UploadWork';
 import {CUSTOMER_SESSION_CHANGED,CommunityAccountChanged,communityRequest,errorText,type Account,type Order,type Work} from './client';
-import './community.css';
+import {CommunityHeading} from './CommunityPlaceholder';
+import {GallerySkeleton,ShopState} from '../components/ShopState';
+
+const authIntent=()=>new URLSearchParams(window.location.hash.split('?')[1]).get('auth')??'';
+function watchIntent(fn:()=>void){window.addEventListener('hashchange',fn);return ()=>window.removeEventListener('hashchange',fn);}
 
 const PrivateDesignSummary=lazy(()=>import('./PrivateDesignSummary'));
 
 type Mode='community'|'mine';
 export default function CommunityStudio({mode}:{mode:Mode}){
   const mine=mode==='mine';
+  const intent=useSyncExternalStore(watchIntent,authIntent);
   const [account,setAccount]=useState<Account|null>();
   const [works,setWorks]=useState<Work[]>([]),[orders,setOrders]=useState<Order[]>([]);
   const [loading,setLoading]=useState(true),[version,refresh]=useState(0);
+  const [loadFailed,setLoadFailed]=useState(false);
   const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
   const [requestWork,setRequestWork]=useState<Work>(),[upload,setUpload]=useState(false);
   const [preview,setPreview]=useState<Work>(),[publish,setPublish]=useState<Work>();
   useEffect(()=>{
     const controller=new AbortController(),signal=controller.signal;
-    setLoading(true);setAccount(undefined);setError('');setWorks([]);setOrders([]);
+    setLoading(true);setLoadFailed(false);setAccount(undefined);setError('');setWorks([]);setOrders([]);
     setPreview(undefined);setPublish(undefined);setUpload(false);setRequestWork(undefined);
     async function load(){
       const session=await communityRequest<{account:Account|null}>('session',undefined,signal);
@@ -28,14 +34,20 @@ export default function CommunityStudio({mode}:{mode:Mode}){
         mine&&!session.account?[]:communityRequest<Work[]>(mine?'mine':'works',undefined,signal,mine?session.account?.name:undefined),
         mine&&session.account?communityRequest<Order[]>('orders',undefined,signal,session.account.name):[],
       ]);
-      if(!signal.aborted){setAccount(session.account);setWorks(items);setOrders(requests);}
+      if(!signal.aborted){
+        setAccount(session.account);setWorks(items);setOrders(requests);
+        if(mine&&session.account&&new URLSearchParams(window.location.hash.split('?')[1]).get('upload')==='1'){
+          setUpload(true);
+          window.history.replaceState(null,'',window.location.pathname+window.location.search+'#/my-designs');
+        }
+      }
     }
     load().catch(cause=>{
       if(signal.aborted)return;
       if(!(cause instanceof CommunityAccountChanged))throw cause;
       setNotice('账号已变更，请核对当前账号后重新操作。');
       return load();
-    }).catch(cause=>{if(!signal.aborted)setError(errorText(cause));})
+    }).catch(cause=>{if(!signal.aborted){setLoadFailed(true);setError(errorText(cause));}})
       .finally(()=>{if(!signal.aborted)setLoading(false);});
     return ()=>controller.abort();
   },[mine,version]);
@@ -56,7 +68,13 @@ export default function CommunityStudio({mode}:{mode:Mode}){
     window.addEventListener('hashchange',focusOrder);
     return ()=>window.removeEventListener('hashchange',focusOrder);
   },[mine,loading,account,orders]);
-  function loggedIn(user:Account){setAccount(user);setRequestWork(undefined);refresh(v=>v+1);}
+  function loggedIn(user:Account){
+    if(intent){
+      const params=new URLSearchParams(window.location.hash.split('?')[1]);
+      params.delete('auth');
+      window.history.replaceState(null,'',window.location.pathname+window.location.search+'#/my-designs'+(params.size?'?'+params:''));
+    }
+    setAccount(user);setRequestWork(undefined);refresh(v=>v+1);}
   function accountChanged(){
     setAccount(undefined);setWorks([]);setOrders([]);setPreview(undefined);setPublish(undefined);
     setUpload(false);setRequestWork(undefined);setNotice('账号已变更，请核对当前账号后重新操作。');
@@ -86,32 +104,35 @@ export default function CommunityStudio({mode}:{mode:Mode}){
     });
   }
   return <main className="community-page">
-    <header className="community-heading"><div><h1>{mine?'我的设计':'设计社区'}</h1>
-      <p>{mine?'查看保存的作品、发布记录和同款申请。':'浏览创作者发布的珠宝作品，选择心仪的设计申请制作。'}</p></div>
-      <a className="shop-text-link" href={mine?'#/community':'#/my-designs'}>{mine?'浏览设计社区':'我的设计'}</a>
-    </header>
-    {!mine&&account&&<p className="community-account">当前账号 {account.name}</p>}
+    <CommunityHeading mine={mine} account={account?.name}/>
     {mine&&account&&<div className="community-account"><span>{account.name}</span><a href="#/diy/fit">佩戴资料与尺寸</a>
       <button disabled={busy} onClick={()=>void act(async()=>{
         await communityRequest('logout',{expectedAccount:account.name});setAccount(null);setWorks([]);setOrders([]);setPreview(undefined);setUpload(false);setPublish(undefined);refresh(v=>v+1);
       })}>退出登录</button></div>}
     {notice&&<p role="status" className="community-notice">{notice}</p>}
-    {error&&<p role="alert" className="community-notice">{error} <button onClick={()=>refresh(v=>v+1)}>重新加载</button></p>}
-    {loading?<p role="status">正在读取作品…</p>:mine&&!account&&!error?<AccountForm onSuccess={loggedIn}/>:<>
+    {error&&!loadFailed&&<p role="alert" className="community-notice">{error} <button onClick={()=>refresh(v=>v+1)}>重新加载</button></p>}
+    {loading?<GallerySkeleton type="community" label="正在读取作品…"/>:loadFailed?<ShopState kind="error" title="作品暂时无法读取" detail={error}>
+      <button className="shop-button" onClick={()=>refresh(v=>v+1)}>重新加载</button>
+    </ShopState>:mine&&!account?<section className="community-auth">
+      <h2>相言账户</h2><p>登录后可以保存设计、发布作品和查看报价。</p>
+      <AccountForm key={intent} pageMode={intent==='register'?'register':'login'} onSuccess={loggedIn}/>
+    </section>:<>
       {mine&&account&&<div className="community-actions">
         <button className="shop-button" onClick={()=>setUpload(!upload)} aria-expanded={upload}>{upload?'收起上传':'上传作品'}</button>
         <a className="shop-text-link" href="#/diy/collection">从款式开始设计</a></div>}
       {upload&&account&&mine&&<UploadWork expectedAccount={account.name} onAccountChanged={accountChanged} onSaved={()=>{setUpload(false);setNotice('作品已私密保存。');refresh(v=>v+1);}}/>}
-      {!works.length&&!error&&<div className="community-empty"><p>{mine?'你还没有保存作品。':'社区还没有公开作品。'}</p>
-        <a className="shop-text-link" href={mine?'#/diy/collection':'#/my-designs'}>{mine?'浏览款式':'上传第一件作品'}</a></div>}
-      <div className="community-grid">{works.map(work=><article key={work.id} className="community-work">
+      {!works.length&&!upload&&<ShopState title={mine?'你还没有保存作品。':'社区还没有公开作品。'}
+        detail={mine?'挑一枚戒指开始搭配，保存后可以在这里查看和分享。':'把你的珠宝搭配分享给社区，让别人也能发现它。'}>
+        <a className="shop-button" href={mine?'#/diy/collection':'#/my-designs?upload=1'}>{mine?'浏览款式':'上传第一件作品'}</a>
+      </ShopState>}
+      {works.length>0&&<div className="community-grid">{works.map(work=><article key={work.id} className="community-work">
         <button className="community-picture" aria-label={'预览'+work.title} onClick={()=>setPreview(work)}>
           <img loading="lazy" src={work.image} alt={work.title}/></button>
         <div className="community-work-info"><div><h2>{work.title}</h2>
           <small>{mine?(work.published?'已公开':'仅自己可见'):work.author}</small></div>
           <button className="shop-text-link" disabled={busy} onClick={()=>mine?(work.published?changeVisibility(work):setPublish(work)):startRequest(work)}>
             {mine?(work.published?'转为私密':'发布作品'):'申请同款'}</button></div>
-      </article>)}</div>
+      </article>)}</div>}
       {!mine&&works.length>0&&<p className="community-note">同款申请由工作室核价，提交时无需付款。</p>}
       {mine&&account&&<OrderHistory key={account.name} orders={orders} accountName={account.name}
         onAccountChanged={accountChanged} onRefresh={()=>refresh(v=>v+1)}/>}

@@ -1,4 +1,5 @@
 import {createContext,useContext,useEffect,useLayoutEffect,useRef,useState,type ReactNode} from 'react';
+import {ShopState} from '../../components/ShopState';
 import {communityRequest,CUSTOMER_SESSION_CHANGED} from '../../community/client';
 import type {FitScope} from './profile';
 
@@ -62,7 +63,7 @@ export function FitSession({children}:{children:ReactNode}){
     return ()=>dialogs.forEach(dialog=>{if(dialog.isConnected&&!dialog.open)dialog.showModal();});
   },[locked]);
   return <>
-    {checking&&<p role="status" className={scope===undefined?undefined:'sr-only'}>正在确认当前佩戴资料…</p>}
+    {checking&&(scope===undefined?<ShopState kind="loading" title="正在确认当前佩戴资料…"/>:<p role="status" className="sr-only">正在确认当前佩戴资料…</p>)}
     {!checking&&unavailable&&<p role="status">暂时无法确认账号，佩戴资料已锁定。<button type="button" onClick={()=>retry(n=>n+1)}>重新读取</button></p>}
     {scope!==undefined&&<div ref={surface} inert={locked} aria-hidden={locked||undefined} style={{display:'contents',visibility:locked?'hidden':undefined}}>
       <Scope.Provider key={scope??'unverified'} value={scope}>{children}</Scope.Provider>
