@@ -31,7 +31,7 @@
 
 ## 视觉取舍
 
-首页保留相言四套主题，用同一位置的佩戴示意图和原款图帮助选款。编辑器以模型和部件对照为主，操作收在画布顶部。保存、发布、申请分别显示自己的结果。参考了 [Design for AI 的版式资料](https://designforai.dev/styles)、[VibeHub 风格案例](https://www.vibehub.xin/styles) 和 [Design Spells 交互案例](https://designspells.com/)。
+Maison 版本统一使用白色品牌视觉，用同一位置的佩戴示意图和原款图帮助选款。编辑器以模型和部件对照为主，操作收在画布顶部。保存、发布、申请分别显示自己的结果。参考了 [Design for AI 的版式资料](https://designforai.dev/styles)、[VibeHub 风格案例](https://www.vibehub.xin/styles) 和 [Design Spells 交互案例](https://designspells.com/)。
 
 ## 验收入口
 

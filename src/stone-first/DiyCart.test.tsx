@@ -21,6 +21,9 @@ it('excludes pending legacy designs and totals only the confirmed CNY snapshots'
   expect(screen.queryByText(formatYuan(order.quote.amount))).toBeNull();
   expect(screen.queryByText(/示例交期/)).toBeNull();
   act(()=>{addDemoOrder({...order,details:[{label:'金属外观',value:'玫瑰金色 · 哑面'}],managed:{id:'11111111-1111-1111-1111-111111111111',revision:'22222222-2222-2222-2222-222222222222',name:'已发布款'}});});
+  const pending=screen.getByRole('region',{name:'待重新确认的历史方案'});
+  expect(within(pending).getByRole('heading',{name:'待确认款'})).toBeVisible();
+  expect(within(pending).queryByRole('heading',{name:'已发布款'})).toBeNull();
   expect(summary).toHaveTextContent('已计价方案1 件');
   expect(screen.getByText('玫瑰金色 · 哑面 · 1 件')).toBeVisible();
   expect(within(summary).getByText(formatYuan(order.quote.amount))).toBeVisible();

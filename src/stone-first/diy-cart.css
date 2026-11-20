@@ -39,3 +39,5 @@
 @media(max-width:760px){.diy-cart-page{padding-block:25px 40px}.diy-home-intro{margin-bottom:25px}.diy-home-intro>a{margin-bottom:15px}.cart-layout{grid-template-columns:1fr;gap:24px}.cart-summary{position:static}.diy-cart-order{grid-template-columns:105px minmax(0,1fr);gap:17px;padding-block:22px}.cart-order-top h2{font-size:20px}.cart-order-top{gap:4px}.cart-remove{font-size:11px;padding-left:5px}.cart-order-price{margin-block:10px}.cart-order-price strong{font-size:18px}.cart-delivery{font-size:10px}.cart-details dl>div{grid-template-columns:1fr;gap:3px}.diy-cart-empty{padding-block:45px}.diy-cart-empty h2{font-size:25px}}
 
 .cart-customize{display:inline-block;font-size:12px;min-height:36px;padding-block:8px;color:var(--accent-hover)}
+
+.cart-pending>h2{font-size:19px;margin:25px 0 0}

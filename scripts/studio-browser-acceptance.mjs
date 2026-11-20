@@ -195,11 +195,6 @@ async function checkDesktopInspection(){
   assert.ok(magnification>100,'scroll wheel magnifies the current inspection angle');
   const enlarged=await previewPixels(canvas);
   assert.ok(enlarged.centroid<panned.centroid,'zooming at a point right of the ring must shift it left');
-  const theme=page.getByLabel('网站风格');
-  const nextTheme=await theme.evaluate(select=>[...select.options].find(option=>option.value!==select.value).value);
-  await theme.selectOption(nextTheme);await twoFrames();
-  assert.equal(Number.parseInt(await zoom.innerText(),10),magnification);
-  assert.ok(Math.abs((await previewPixels(canvas)).centroid-enlarged.centroid)<1.5,'theme change must retain the pan');
   await capture('03-editor-desktop-inspection');
   await page.getByRole('button',{name:'旋转',exact:true}).click();
   await page.mouse.move(x,y);await page.mouse.down();
@@ -225,10 +220,17 @@ async function checkDesktopInspection(){
   return canvas;
 }
 
+async function waitForCamera(){
+  await page.waitForFunction(()=>{
+    const canvas=document.querySelector('.stone-first-preview canvas');
+    return canvas?.dataset.inspectionFrame==='settled'&&!canvas.dataset.cameraTransition;
+  });
+}
+
 async function checkAccentShimmer(){
   const canvas=await checkInspectionLayout();
   const reset=page.getByRole('button',{name:'复位当前视角',exact:true});
-  await reset.click();await twoFrames();
+  await reset.click();await waitForCamera();
   await canvas.scrollIntoViewIfNeeded();
   const probe=await canvas.evaluateHandle(async element=>{
     const {createShimmerProbe}=await import('/scripts/measure-accent-shimmer.mjs');
@@ -236,7 +238,7 @@ async function checkAccentShimmer(){
   });
   const bounds=await canvas.boundingBox(),x=bounds.x+bounds.width/2,y=bounds.y+bounds.height/2;
   async function replay(reference){
-    await reset.click();await twoFrames();
+    await reset.click();await waitForCamera();
     await probe.evaluate((p,reference)=>p.begin(reference),reference);
     await page.mouse.move(x,y);await page.mouse.down();
     try{
@@ -261,7 +263,7 @@ async function checkAccentShimmer(){
   }finally{
     await probe.evaluate(p=>p.dispose());
     await probe.dispose();
-    await reset.click();await twoFrames();
+    await reset.click();await waitForCamera();
   }
 }
 
@@ -347,11 +349,12 @@ try{
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(origin);
   await page.getByRole('button',{name:'原款图'}).waitFor();
-  await page.locator('.hero-photo img').evaluate(img=>img.decode());
+  assert.equal(await page.getByLabel('网站风格').count(),0,'Maison has a single storefront identity');
+  await page.locator('.diy-hero-art img').evaluate(img=>img.decode());
   await capture('01-home');
   await page.getByRole('button',{name:'原款图'}).click();
-  await page.locator('.hero-photo img').evaluate(img=>img.decode());
-  assert.match(await page.locator('.hero-photo img').getAttribute('src'),/ring-02.jpg$/);
+  await page.locator('.diy-hero-art img').evaluate(img=>img.decode());
+  assert.match(await page.locator('.diy-hero-art img').getAttribute('src'),/ring-02.jpg$/);
   await page.getByRole('banner').getByRole('link',{name:'注册',exact:true}).click();
   await page.getByLabel('账号名').fill('studio_reviewer');
   await page.getByLabel('密码',{exact:true}).fill('local-test-account-only');
@@ -461,6 +464,7 @@ try{
     await page.unroute(sessionRoute,holdSession);
   }
   assert.ok(await canvas.evaluate((current,original)=>current===original,mountedCanvas));
+  await waitForCamera();
   const originalFace=await previewPixels(canvas);
   await page.getByLabel('主石切形').selectOption('pear');
   await page.getByLabel('宝石类别').selectOption('培育钻石');
@@ -469,7 +473,7 @@ try{
   await page.getByRole('button',{name:'戒圈与铺钻',exact:true}).click();
   await page.getByRole('group',{name:'表面处理'}).getByRole('button',{name:'哑面'}).click();
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
-  await twoFrames();
+  await waitForCamera();
   assert.notDeepEqual((await previewPixels(canvas)).shade,originalFace.shade,'custom styling must change visible pixels');
   await capture('03-editor-pear-gem');
   await canvas.scrollIntoViewIfNeeded();
