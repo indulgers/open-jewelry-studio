@@ -59,14 +59,18 @@ it('keeps the mounted editing surface and pending input when the same session is
   let release:(response:Response)=>void=()=>{};
   const pending=new Promise<Response>(resolve=>{release=resolve;});
   const authenticated=()=>Response.json({account:{name:'alice'},localProfileId:'a'.repeat(32)});
-  vi.stubGlobal('fetch',vi.fn().mockImplementationOnce(async()=>authenticated()).mockReturnValueOnce(pending).mockRejectedValueOnce(Error('offline')).mockImplementationOnce(async()=>authenticated()));
+  const fetchSession=vi.fn().mockImplementationOnce(async()=>authenticated()).mockReturnValueOnce(pending).mockRejectedValueOnce(Error('offline')).mockImplementationOnce(async()=>authenticated());
+  vi.stubGlobal('fetch',fetchSession);
   render(<FitSession><label>未确认刻字<input/></label><canvas aria-label="戒指画布"/></FitSession>);
   const field=await screen.findByLabelText('未确认刻字');
   const canvas=screen.getByLabelText('戒指画布');
   fireEvent.change(field,{target:{value:'还在编辑'}});
   await act(async()=>{window.dispatchEvent(new Event('focus'));});
   expect(canvas.isConnected).toBe(true);
-  expect(canvas.closest('[inert]')).toHaveStyle({display:'contents',visibility:'hidden'});
+  expect(canvas).toBeVisible();
+  expect(field).toHaveValue('还在编辑');
+  await act(async()=>{document.dispatchEvent(new Event('visibilitychange'));});
+  expect(fetchSession).toHaveBeenCalledTimes(2);
   await act(async()=>{release(authenticated());});
   expect(screen.getByLabelText('戒指画布')).toBe(canvas);
   expect(screen.getByLabelText('未确认刻字')).toHaveValue('还在编辑');
@@ -76,4 +80,24 @@ it('keeps the mounted editing surface and pending input when the same session is
   await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'重新读取'}));});
   expect(screen.getByLabelText('戒指画布')).toBe(canvas);
   expect(field).toBeVisible();expect(field).toHaveValue('还在编辑');
+});
+
+it('immediately covers the previous session if an account change interrupts a background check',async()=>{
+  const account=(id:string)=>Response.json({account:{name:id},localProfileId:id.repeat(32)});
+  let finishResume!:(response:Response)=>void;
+  let finishSwitch!:(response:Response)=>void;
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValueOnce(account('a'))
+    .mockImplementationOnce(()=>new Promise(resolve=>{finishResume=resolve;}))
+    .mockImplementationOnce(()=>new Promise(resolve=>{finishSwitch=resolve;})));
+  render(<FitSession><Preview/></FitSession>);
+  const previous=await screen.findByLabelText('预填');
+  await act(async()=>{window.dispatchEvent(new Event('focus'));});
+  expect(previous).toBeVisible();
+  await act(async()=>{window.dispatchEvent(new StorageEvent('storage',{key:CUSTOMER_SESSION_CHANGED}));});
+  expect(previous).not.toBeVisible();
+  await act(async()=>{finishResume(account('a'));});
+  expect(previous).not.toBeVisible();
+  await act(async()=>{finishSwitch(account('b'));});
+  expect(previous.isConnected).toBe(false);
+  expect(screen.getByLabelText('预填')).toBeVisible();
 });
