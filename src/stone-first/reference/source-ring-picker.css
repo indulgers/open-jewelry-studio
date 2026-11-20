@@ -103,7 +103,7 @@ html:has(.source-library[open]) {overflow: hidden}
 }
 
 /* ───────── Maison editor ─────────
-   The stone sits on a full-height white stage; every control floats on its edges.
+   The stone sits on a full-height white stage with the controls across its top.
    The configuration column is a quiet, square, hairline sheet on the right. */
 .app-shell .ring02-workspace{--editor-panel:440px;--stage-pad:clamp(16px,2vw,28px);position:relative;max-width:none;margin:0;padding:0;background:var(--page)}
 .app-shell .ring02-workspace.source-ring-workspace{padding:0}
@@ -120,13 +120,18 @@ html:has(.source-library[open]) {overflow: hidden}
 
 .app-shell .ring02-main{display:grid;grid-template-columns:minmax(0,1fr) var(--editor-panel);gap:0;max-width:none;margin:0;align-items:start}
 .app-shell .ring02-main .stone-first-preview{position:sticky;top:var(--shell-height);height:calc(100dvh - var(--shell-height));min-height:520px;border:0;border-radius:0;background:#fff;overflow:hidden}
-.app-shell .ring02-main .stone-first-canvas,.app-shell .source-ring-main .stone-first-canvas{position:absolute;inset:0;height:auto}
+.app-shell .ring02-main .stone-first-preview:has(.stone-first-camera-views){
+  display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);
+  align-content:start;gap:6px;padding:var(--stage-pad) var(--stage-pad) 0;
+}
+.app-shell .ring02-main .stone-first-canvas{position:relative;inset:auto;height:100%;min-height:0}
+.app-shell .ring02-main .stone-first-preview:has(.stone-first-camera-views) .stone-first-canvas{grid-row:4;margin-inline:calc(-1 * var(--stage-pad))}
 .app-shell .ring02-main .stone-first-preview::after{content:"";position:absolute;left:50%;bottom:9%;width:46%;height:5%;translate:-50% 0;border-radius:50%;
   background:radial-gradient(closest-side,#0000000d,transparent);pointer-events:none;z-index:0}
 .app-shell .ring02-main .stone-first-canvas{z-index:1}
 
 /* Floating stage controls */
-.app-shell .ring02-workspace .ring02-preview-bar{position:absolute;z-index:5;top:var(--stage-pad);right:var(--stage-pad);min-height:0;padding:0;display:flex;align-items:center;gap:18px}
+.app-shell .ring02-workspace .ring02-preview-bar{grid-row:1;justify-self:end;z-index:5;min-height:0;padding:0;display:flex;align-items:center;gap:18px}
 .app-shell .ring02-preview-bar>div{flex-direction:column;align-items:flex-end;gap:2px}
 .app-shell .ring02-preview-bar strong{font:400 14px/1.4 var(--shop-title);letter-spacing:.08em}
 .app-shell .ring02-preview-bar span{font:500 10px/1.4 var(--shop-latin);letter-spacing:.16em;color:var(--muted)}
@@ -134,7 +139,7 @@ html:has(.source-library[open]) {overflow: hidden}
 .app-shell .ring02-workspace .ring02-preview-bar button:is(:hover,:focus-visible){background:var(--ink);color:var(--page);text-decoration:none}
 .app-shell .ring02-workspace .ring02-preview-bar button[aria-pressed=true]{background:var(--ink);color:var(--page);text-decoration:none}
 
-.app-shell .ring02-workspace .stone-first-camera-views{position:absolute;z-index:5;right:var(--stage-pad);bottom:var(--stage-pad);display:flex;gap:0;padding:0;border:1px solid var(--line);background:color-mix(in srgb,var(--page) 90%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.app-shell .ring02-workspace .stone-first-camera-views{grid-row:2;justify-self:end;max-width:100%;z-index:5;display:flex;gap:0;padding:0;border:1px solid var(--line);background:color-mix(in srgb,var(--page) 90%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .app-shell .ring02-workspace .stone-first-camera-views button{position:relative;display:flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:0 16px;border:0;border-radius:0;background:transparent;color:var(--muted);font-size:12px;font-weight:400;letter-spacing:.12em;white-space:nowrap}
 .app-shell .ring02-workspace .stone-first-camera-views button+button{border-left:1px solid var(--line)}
 .app-shell .ring02-workspace .stone-first-camera-views button:hover{color:var(--ink);background:transparent}
@@ -142,7 +147,7 @@ html:has(.source-library[open]) {overflow: hidden}
 .app-shell .ring02-workspace .stone-first-camera-views button[aria-pressed=true]::after{content:"";position:absolute;left:16px;right:16px;bottom:8px;height:1px;background:var(--ink)}
 .app-shell .source-camera-toolbar img{opacity:.7}
 
-.app-shell .ring02-workspace .ring-inspection{position:absolute;z-index:5;left:var(--stage-pad);bottom:var(--stage-pad);display:flex;flex-wrap:nowrap;gap:0;padding:0;margin:0;border:1px solid var(--line);background:color-mix(in srgb,var(--page) 90%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.app-shell .ring02-workspace .ring-inspection{grid-row:3;justify-self:start;max-width:100%;z-index:5;display:flex;flex-wrap:nowrap;gap:0;padding:0;margin:0;border:1px solid var(--line);background:color-mix(in srgb,var(--page) 90%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .app-shell .ring-inspection>*{border-right:1px solid var(--line)}
 .app-shell .ring-inspection>:last-child{border-right:0}
 .app-shell .ring-inspection-drag{margin:0}
@@ -249,9 +254,6 @@ html:has(.source-library[open]) {overflow: hidden}
 .app-shell .source-library-heading h2{font:var(--display-weight) 22px/1.4 var(--shop-title);letter-spacing:.1em}
 .app-shell .source-library-chips button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--page)}
 
-@media(max-width:1240px) and (min-width:801px){
-  .app-shell .ring02-workspace .ring-inspection{bottom:auto;top:calc(var(--stage-pad) + 48px)}
-}
 @media(max-width:1100px){.app-shell .ring02-workspace{--editor-panel:380px}}
 @media(max-width:800px){
   .app-shell .ring02-workspace{--stage-pad:12px}
@@ -259,11 +261,11 @@ html:has(.source-library[open]) {overflow: hidden}
   .app-shell .source-style-picker{font-size:0;gap:0}
   .app-shell .ring02-main{grid-template-columns:minmax(0,1fr)}
   .app-shell .ring02-main .stone-first-preview{position:sticky;top:var(--shell-height);z-index:3;height:clamp(300px,92vw,460px);min-height:0;border-bottom:1px solid var(--line)}
-  .app-shell .ring02-workspace .stone-first-camera-views{left:var(--stage-pad);right:var(--stage-pad);overflow-x:auto;scrollbar-width:none}
+  .app-shell .ring02-workspace .stone-first-camera-views{justify-self:stretch;overflow-x:auto;scrollbar-width:none}
   .app-shell .ring02-workspace .stone-first-camera-views button{flex:1 0 auto;padding:0 12px}
-  .app-shell .ring02-workspace .ring-inspection{top:calc(var(--stage-pad) + 46px);bottom:auto;left:var(--stage-pad);flex-wrap:wrap}
+  .app-shell .ring02-workspace .ring-inspection{min-width:0;flex-wrap:wrap}
   .app-shell .ring02-workspace .ring-inspection button{min-height:40px;padding:0 9px;min-width:36px}
-  .app-shell .ring02-workspace .ring02-preview-bar{left:var(--stage-pad);right:var(--stage-pad);justify-content:space-between}
+  .app-shell .ring02-workspace .ring02-preview-bar{justify-self:stretch;justify-content:space-between}
   .app-shell .ring02-preview-bar>div{align-items:flex-start}
   .app-shell .ring02-main .stone-first-panel{min-height:0;border-left:0;padding:28px var(--shop-gutter) 170px}
   .app-shell .ring02-workspace .ring02-purchase{left:0;width:auto;border-left:0;padding-inline:var(--shop-gutter)}
@@ -271,11 +273,8 @@ html:has(.source-library[open]) {overflow: hidden}
 }
 @media(max-width:800px) and (max-height:700px){.app-shell .ring02-main .stone-first-preview{position:relative;top:auto}}
 @media(max-width:800px){
-  /* Phones: pinch zooms, so the zoom group gives its room back to the stone. */
   .app-shell .ring02-workspace .ring02-preview-bar>div{display:none}
-  .app-shell .ring02-workspace .ring02-preview-bar{left:auto}
-  .app-shell .ring02-workspace .ring-inspection{top:var(--stage-pad)}
-  .app-shell .ring-inspection-zoom{display:none!important}
+  .app-shell .ring02-workspace .ring02-preview-bar{justify-content:flex-end}
   .app-shell .ring02-workspace .ring-inspection button{min-height:38px;font-size:11px}
   .app-shell .ring02-workspace .ring02-preview-bar button{min-height:38px;padding:0 12px;font-size:11px}
 }

@@ -506,7 +506,8 @@ try{
   await page.evaluate(()=>scrollTo(0,0));await twoFrames();
   const mobileCanvas=await checkInspectionLayout();
   await checkTouchZoom(mobileCanvas);
-  await page.getByRole('button',{name:'镶嵌特写'}).click();await twoFrames();
+  await page.getByRole('button',{name:'镶嵌特写'}).click();await waitForCamera();
+  assert.ok(await page.getByRole('button',{name:'放大模型'}).isVisible(),'mobile also provides button zoom');
   await capture('04-editor-mobile-detail');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'mobile editor overflow');
   await page.goto(origin+'/#/stonefirst/precision/ring-02');
@@ -532,6 +533,7 @@ try{
   await page.getByRole('button',{name:/查看内圈效果/}).click();
   await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
   await twoFrames();
+  await waitForCamera();
   await assertCurrentSnapshot(precision,save);
   await page.getByRole('button',{name:'返回编辑器'}).click();
   await page.goto(origin+'/#/diy/fit');
@@ -548,6 +550,7 @@ try{
     await page.getByRole('button',{name:angle,exact:true}).click();
     await page.waitForFunction(()=>document.querySelector('.community-save-control button:not(:disabled)'),{},{timeout:90000});
     await twoFrames();
+    await waitForCamera();
     await page.locator('.stone-first-preview canvas').screenshot({path:join(directory,'floral-setting-'+cut+'.png')});
   }
   assert.deepEqual(errors,[],'uncaught browser errors');
